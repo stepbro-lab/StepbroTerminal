@@ -1,0 +1,22 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-sidebar: #f4f4f5;
+  --bg-card: #ffffff;
+  --bg-hover: rgba(0, 0, 0, 0.05);
+  --bg-active: rgba(0, 0, 0, 0.08);
+  --text: #1c1c1e;
+  --text-muted: #8e8e93;
+  --border: rgba(0, 0, 0, 0.08);
+  --accent: #2563eb;
+  --attention: #f59e0b;
+  --danger: #ef4444;
+  --font-ui: system-ui, -apple-system, 'Segoe UI Variable', 'Segoe UI', Inter, Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', 'Cascadia Mono', Menlo, Consolas, monospace;
+  --radius-card: 12px;
+  --radius-row: 6px;
+}
+
+html, body, #root { height: 100%; margin: 0; font-family: var(--font-ui); }

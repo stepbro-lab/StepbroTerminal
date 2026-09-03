@@ -1,0 +1,9 @@
+node_modules/
+out/
+dist/
+release/
+build/icon.png
+build/icons/
+*.log
+.DS_Store
+.vite/
