@@ -169,6 +169,8 @@ export interface Prefs {
   presetUsage: Record<string, number>
   /** Ghost-text the permission-skipping flag when an agent is typed at a prompt. */
   flagHints: boolean
+  /** Draw terminals with WebGL. Off uses the DOM renderer, for displays that react badly to GPU windows. */
+  gpuRendering: boolean
 }
 
 export type SplitDir = 'row' | 'column'

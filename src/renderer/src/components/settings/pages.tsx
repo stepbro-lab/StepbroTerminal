@@ -108,6 +108,15 @@ export function TerminalPage() {
         </Row>
       </Section>
 
+      <Section
+        title="Rendering"
+        description="Terminals draw with the GPU. Turn it off if your display shifts colour, brightness or HDR while the app is open; the software renderer looks the same and only costs a little speed."
+      >
+        <Row label="GPU acceleration">
+          <Toggle value={p.gpuRendering} onChange={(gpuRendering) => upd({ gpuRendering })} />
+        </Row>
+      </Section>
+
       <Section title="History" description="Lines kept above the visible screen, per session. The host keeps the same amount while the window is closed.">
         <Row label="Scrollback">
           <Slider value={p.scrollback} min={1000} max={50000} step={1000} onChange={(scrollback) => upd({ scrollback })} format={(v) => `${(v / 1000).toFixed(0)}k`} />

@@ -23,7 +23,8 @@ export const defaultPrefs: Prefs = {
   hiddenProjects: [],
   customPresets: [],
   presetUsage: {},
-  flagHints: true
+  flagHints: true,
+  gpuRendering: true
 }
 
 function file(): string {

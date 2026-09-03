@@ -320,10 +320,19 @@ class TerminalRegistry {
       this.prefs.lineHeight !== prefs.lineHeight ||
       this.prefs.ligatures !== prefs.ligatures
     const themeChanged = this.dark !== dark
+    const gpuChanged = !!this.prefs && this.prefs.gpuRendering !== prefs.gpuRendering
     this.prefs = prefs
     this.dark = dark
     for (const e of this.entries.values()) {
       if (!prefs.flagHints) this.clearHint(e)
+      if (gpuChanged) {
+        // Off: drop the WebGL layer and xterm falls back to its DOM renderer. On: bring it back where mounted.
+        if (e.webgl) {
+          e.webgl.dispose()
+          e.webgl = null
+        }
+        if (prefs.gpuRendering && e.mounted) this.loadWebgl(e)
+      }
       if (fontChanged) {
         e.term.options.fontFamily = fontStack(prefs.fontFamily)
         e.term.options.fontSize = prefs.fontSize
@@ -351,7 +360,7 @@ class TerminalRegistry {
   // ---- internals ----
 
   private async loadWebgl(e: Entry): Promise<void> {
-    if (e.webgl || !this.webglSupported || !e.term.element) return
+    if (e.webgl || !this.webglSupported || !e.term.element || this.prefs?.gpuRendering === false) return
     try {
       if (!this.webglCtor) {
         const mod = await import('@xterm/addon-webgl')

@@ -10,6 +10,7 @@ const prefs = (over: Partial<Prefs> = {}): Prefs => ({
   theme: 'system',
   accent: 'blue',
   flagHints: true,
+  gpuRendering: true,
   fontFamily: 'x',
   fontSize: 13,
   lineHeight: 1.2,
