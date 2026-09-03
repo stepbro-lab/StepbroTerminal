@@ -143,6 +143,38 @@ class TerminalRegistry {
       ev.preventDefault()
       this.contextMenuHandler(id, ev.clientX, ev.clientY)
     })
+    // Dragging selects text even while a program owns the mouse (Claude Code takes it for
+    // scrolling). xterm only allows that with Shift held, so the press is replayed as if it were;
+    // the wheel still reaches the program.
+    container.addEventListener(
+      'mousedown',
+      (ev) => {
+        if (ev.button !== 0 || ev.shiftKey || term.modes.mouseTrackingMode === 'none') return
+        if (window.step.platform === 'darwin' && ev.altKey) return
+        ev.stopPropagation()
+        // Without this the browser moves focus off the terminal, xterm reports the focus loss, the
+        // program repaints and re-enables the mouse, and xterm drops the selection it just started.
+        ev.preventDefault()
+        ev.target?.dispatchEvent(
+          new MouseEvent('mousedown', {
+            bubbles: true,
+            cancelable: true,
+            shiftKey: true,
+            button: 0,
+            buttons: 1,
+            detail: ev.detail,
+            clientX: ev.clientX,
+            clientY: ev.clientY,
+            screenX: ev.screenX,
+            screenY: ev.screenY,
+            ctrlKey: ev.ctrlKey,
+            altKey: ev.altKey,
+            metaKey: ev.metaKey
+          })
+        )
+      },
+      true
+    )
     // Dropping files pastes their paths, quoted when needed.
     container.addEventListener('dragover', (ev) => ev.preventDefault())
     container.addEventListener('drop', (ev) => {

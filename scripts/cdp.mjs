@@ -44,11 +44,20 @@ const send = (method, params = {}) =>
     ws.send(JSON.stringify({ id, method, params }))
   })
 
-const [arg, extra] = process.argv.slice(2)
+const [arg, extra, ...rest] = process.argv.slice(2)
 if (arg === '--shot') {
   const r = await send('Page.captureScreenshot', { format: 'png' })
   fs.writeFileSync(extra || 'shot.png', Buffer.from(r.result.data, 'base64'))
   console.log('saved', extra || 'shot.png')
+} else if (arg === '--drag') {
+  // Real mouse drag through Chromium: --drag x1 y1 x2 y2 [shift]
+  const [x1, y1, x2, y2] = [extra, ...rest].map(Number)
+  const modifiers = rest.includes('shift') ? 8 : 0
+  const step = (type, x, y) => send('Input.dispatchMouseEvent', { type, x, y, button: 'left', buttons: type === 'mouseReleased' ? 0 : 1, clickCount: 1, modifiers })
+  await step('mousePressed', x1, y1)
+  for (let i = 1; i <= 8; i++) await step('mouseMoved', x1 + ((x2 - x1) * i) / 8, y1 + ((y2 - y1) * i) / 8)
+  await step('mouseReleased', x2, y2)
+  console.log('dragged')
 } else {
   const r = await send('Runtime.evaluate', { expression: arg, awaitPromise: true, returnByValue: true })
   if (r.result?.exceptionDetails) console.error('EXC', JSON.stringify(r.result.exceptionDetails.exception?.description ?? r.result.exceptionDetails, null, 1))
