@@ -2,6 +2,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { Resvg } from '@resvg/resvg-js'
+import pngToIco from 'png-to-ico'
 
 const root = path.resolve(import.meta.dirname, '..')
 const iconsDir = path.join(root, 'resources', 'icons')
@@ -17,9 +18,13 @@ function render(svg, size, file) {
   console.log('wrote', path.relative(root, file), `${size}px`)
 }
 
-// App icon: electron-builder derives .ico and .icns from a 512px PNG.
+// App icon: electron-builder derives .ico and .icns from a 512px PNG. The .ico is also used by the
+// dev Start Menu shortcut so Windows shows name and logo in notifications.
 render(appSvg, 512, path.join(buildDir, 'icon.png'))
 render(appSvg, 256, path.join(iconsDir, 'app-256.png'))
+const ico = await pngToIco([path.join(buildDir, 'icon.png')])
+fs.writeFileSync(path.join(buildDir, 'icon.ico'), ico)
+console.log('wrote build/icon.ico')
 
 // Tray icons: a small chevron whose color reflects the aggregate state.
 const tray = (color, dot) => `

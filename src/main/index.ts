@@ -18,6 +18,7 @@ import { StepTray } from './tray'
 import { PromptLog } from './prompts'
 import { registerIpc } from './ipc'
 import { buildAppMenu } from './menu'
+import { APP_ID, ensureWindowsShortcut, migrateUserData } from './branding'
 import type { Ctx } from './context'
 
 const VERSION = app.getVersion()
@@ -48,7 +49,9 @@ function hostEntry(): string {
 async function boot(): Promise<void> {
   const log = (...a: unknown[]): void => console.log('[step]', ...a)
   await app.whenReady()
-  app.setAppUserModelId('com.step.terminal')
+  app.setAppUserModelId(APP_ID)
+  ensureWindowsShortcut()
+  migrateUserData()
 
   const prefs = loadPrefs()
   const env = await shellEnv()

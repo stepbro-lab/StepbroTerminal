@@ -12,7 +12,7 @@ export function EmptyState() {
   if (!project) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-4 p-8 text-center">
-        <div className="text-[14px] text-secondary">Pick a folder and Step opens a shell in it.</div>
+        <div className="text-[14px] text-secondary">Pick a folder and StepbroTerminal opens a shell in it.</div>
         <button className="btn btn-primary" onClick={() => void addProject()}>
           Choose folder
         </button>

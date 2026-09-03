@@ -23,7 +23,7 @@ export function createWindow(prefs: Prefs): BrowserWindow {
     minWidth: 720,
     minHeight: 480,
     show: false,
-    title: 'Step',
+    title: 'StepbroTerminal',
     backgroundColor: c.bg,
     ...(platform === 'darwin'
       ? { titleBarStyle: 'hiddenInset' as const, trafficLightPosition: { x: 14, y: 12 } }

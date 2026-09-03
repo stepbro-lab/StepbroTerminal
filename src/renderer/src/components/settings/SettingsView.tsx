@@ -3,10 +3,10 @@ import { useUi, type SettingsPage } from '@/stores/ui'
 import { AppearancePage, TerminalPage, AgentsPage, NotificationsPage, ShortcutsPage, AdvancedPage } from './pages'
 
 const PAGES: Array<{ id: SettingsPage; label: string; icon: React.ReactNode; title: string; blurb: string }> = [
-  { id: 'appearance', label: 'Appearance', icon: <Palette size={14} />, title: 'Appearance', blurb: 'How Step looks. Auto follows your system appearance.' },
-  { id: 'terminal', label: 'Terminal', icon: <Terminal size={14} />, title: 'Terminal', blurb: 'The shell Step opens and how text is drawn inside it.' },
+  { id: 'appearance', label: 'Appearance', icon: <Palette size={14} />, title: 'Appearance', blurb: 'How StepbroTerminal looks. Auto follows your system appearance.' },
+  { id: 'terminal', label: 'Terminal', icon: <Terminal size={14} />, title: 'Terminal', blurb: 'The shell StepbroTerminal opens and how text is drawn inside it.' },
   { id: 'agents', label: 'Agents', icon: <Cpu size={14} />, title: 'Agents', blurb: 'Coding agents found on this machine and your own launchers.' },
-  { id: 'notifications', label: 'Notifications', icon: <Bell size={14} />, title: 'Notifications', blurb: 'When Step should get your attention.' },
+  { id: 'notifications', label: 'Notifications', icon: <Bell size={14} />, title: 'Notifications', blurb: 'When StepbroTerminal should get your attention.' },
   { id: 'shortcuts', label: 'Shortcuts', icon: <Keyboard size={14} />, title: 'Shortcuts', blurb: 'Everything you can do without leaving the keyboard.' },
   { id: 'advanced', label: 'Advanced', icon: <Wrench size={14} />, title: 'Advanced', blurb: 'The session host, data on disk and paths.' }
 ]
@@ -31,7 +31,7 @@ export function SettingsView() {
             {p.label}
           </button>
         ))}
-        <div className="mt-auto pb-3 pl-2 text-[11px] text-muted">Step {window.step.version}</div>
+        <div className="mt-auto pb-3 pl-2 text-[11px] text-muted">StepbroTerminal {window.step.version}</div>
       </aside>
       <main className="min-w-0 flex-1 pb-2 pr-2">
         <div className="card scroll-thin h-full">

@@ -1,5 +1,6 @@
 import { BrowserWindow, Notification } from 'electron'
 import type { Prefs, Session, SessionStatus } from '@shared/types'
+import { appLogoPath } from './branding'
 
 export interface NotifierDeps {
   getPrefs: () => Prefs
@@ -12,6 +13,10 @@ export interface NotifierDeps {
 
 const ENTER = new Uint8Array([0x0d])
 const ESCAPE = new Uint8Array([0x1b])
+
+function pathToFileUrl(p: string): string {
+  return 'file:///' + p.replace(/\\/g, '/')
+}
 
 function escapeXml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
@@ -69,6 +74,7 @@ export class Notifier {
         : new Notification({
             title,
             body,
+            icon: appLogoPath(),
             silent: !prefs.sound,
             actions: process.platform === 'darwin' && waiting ? [{ type: 'button', text: 'Allow' }, { type: 'button', text: 'Deny' }] : undefined
           })
@@ -98,9 +104,9 @@ export class Notifier {
     return `<toast activationType="protocol" launch="step://focus/${id}"${waiting ? ' scenario="reminder"' : ''}>
   <visual>
     <binding template="ToastGeneric">
+      <image placement="appLogoOverride" hint-crop="circle" src="${escapeXml(pathToFileUrl(appLogoPath()))}"/>
       <text hint-maxLines="1">${escapeXml(title)}</text>
       <text>${escapeXml(body)}</text>
-      <text placement="attribution">Step</text>
     </binding>
   </visual>
   ${actions}

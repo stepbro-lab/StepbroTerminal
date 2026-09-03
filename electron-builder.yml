@@ -1,5 +1,5 @@
-appId: com.step.terminal
-productName: Step
+appId: com.stepbro.terminal
+productName: StepbroTerminal
 copyright: Copyright © 2026 Kevin
 directories:
   buildResources: build

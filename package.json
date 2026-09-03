@@ -1,9 +1,9 @@
 {
   "name": "step-terminal",
-  "productName": "Step",
+  "productName": "StepbroTerminal",
   "version": "0.1.0",
   "private": true,
-  "description": "A beautiful cross-platform terminal for always-on AI coding agents.",
+  "description": "StepbroTerminal: a beautiful cross-platform terminal for always-on AI coding agents.",
   "author": {
     "name": "Kevin"
   },
@@ -50,6 +50,7 @@
     "electron-builder": "^25.1.8",
     "electron-vite": "^2.3.0",
     "lucide-react": "^0.475.0",
+    "png-to-ico": "^3.0.2",
     "postcss": "^8.4.49",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

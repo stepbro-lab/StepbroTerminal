@@ -125,7 +125,7 @@ export function AgentsPage() {
   const agents = presets.filter((x) => x.id !== 'shell' && !x.custom)
   return (
     <>
-      <Section title="Detected" description="Type any of these in a shell and Step recognizes it. Right-click a folder to start one directly with live status.">
+      <Section title="Detected" description="Type any of these in a shell and StepbroTerminal recognizes it. Right-click a folder to start one directly with live status.">
         <div className="flex flex-col">
           {agents.map((a) => (
             <div key={a.id} className="setting-row">
@@ -141,7 +141,7 @@ export function AgentsPage() {
         </div>
       </Section>
 
-      <Section title="Claude Code" description="Step passes hooks to Claude per session so it can show working, waiting and done. Only set a path if the binary is not on PATH.">
+      <Section title="Claude Code" description="StepbroTerminal passes hooks to Claude per session so it can show working, waiting and done. Only set a path if the binary is not on PATH.">
         <Row label="Binary">
           <TextField
             value={p.claudePath ?? ''}

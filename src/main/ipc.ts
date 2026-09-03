@@ -88,7 +88,7 @@ export function registerIpc(ctx: Ctx): void {
   on('win:setActiveSession', (id) => {
     ctx.activeId = id
   })
-  on('win:setTitle', (title) => ctx.win?.setTitle(title ? `${title} — Step` : 'Step'))
+  on('win:setTitle', (title) => ctx.win?.setTitle(title ? `${title} — StepbroTerminal` : 'StepbroTerminal'))
   on('win:setOverlay', (color, symbolColor) => {
     if (process.platform !== 'win32' || !ctx.win) return
     try {

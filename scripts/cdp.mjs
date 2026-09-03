@@ -9,10 +9,10 @@ function devtoolsPort() {
   if (process.env.STEP_CDP_PORT) return process.env.STEP_CDP_PORT
   const userData =
     process.platform === 'win32'
-      ? path.join(process.env.APPDATA, 'Step')
+      ? path.join(process.env.APPDATA, 'StepbroTerminal')
       : process.platform === 'darwin'
-        ? path.join(os.homedir(), 'Library', 'Application Support', 'Step')
-        : path.join(os.homedir(), '.config', 'Step')
+        ? path.join(os.homedir(), 'Library', 'Application Support', 'StepbroTerminal')
+        : path.join(os.homedir(), '.config', 'StepbroTerminal')
   return fs.readFileSync(path.join(userData, 'DevToolsActivePort'), 'utf8').split(/\r?\n/)[0].trim()
 }
 const PORT = devtoolsPort()
