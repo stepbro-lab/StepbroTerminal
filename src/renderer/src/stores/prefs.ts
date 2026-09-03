@@ -35,10 +35,17 @@ function syncCaptionButtons(): void {
   })
 }
 
-function toHex(rgb: string): string | null {
-  const m = rgb.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/)
-  if (!m) return null
-  return '#' + [m[1], m[2], m[3]].map((n) => Number(n).toString(16).padStart(2, '0')).join('')
+/** Accepts `rgb(r, g, b)` and the `color(srgb r g b)` form Chromium uses for color-mix results. */
+function toHex(css: string): string | null {
+  const hex = (n: number): string =>
+    Math.max(0, Math.min(255, Math.round(n)))
+      .toString(16)
+      .padStart(2, '0')
+  const rgb = css.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/)
+  if (rgb) return '#' + [rgb[1], rgb[2], rgb[3]].map((n) => hex(Number(n))).join('')
+  const srgb = css.match(/color\(srgb\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)/)
+  if (srgb) return '#' + [srgb[1], srgb[2], srgb[3]].map((n) => hex(Number(n) * 255)).join('')
+  return null
 }
 
 export const usePrefs = create<PrefsState>((set, get) => ({
