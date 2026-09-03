@@ -520,3 +520,23 @@ kbd {
     box-shadow: inset 0 0 0 1.5px transparent;
   }
 }
+
+/* Stacked agent logos in a view tab: one small ringed circle per agent, overlapping. */
+.logo-stack {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+.logo-stack-item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: var(--bg-card);
+  box-shadow: 0 0 0 1.5px var(--bg-hover);
+}
+.logo-stack-item + .logo-stack-item {
+  margin-left: -5px;
+}

@@ -1,6 +1,6 @@
 // Dev helper: evaluate JavaScript inside the running Step renderer via the Chrome DevTools Protocol.
 // Usage: node scripts/cdp.mjs "<expression>"   (expression may return a promise)
-//        node scripts/cdp.mjs --shot out.png    (screenshot of the page)
+//        node scripts/cdp.mjs --shot out.png [x y w h [scale]]   (screenshot, optionally a zoomed clip)
 import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
@@ -46,7 +46,10 @@ const send = (method, params = {}) =>
 
 const [arg, extra, ...rest] = process.argv.slice(2)
 if (arg === '--shot') {
-  const r = await send('Page.captureScreenshot', { format: 'png' })
+  // --shot out.png [x y w h [scale]]: optional clip, enlarged by scale for a close look.
+  const [x, y, width, height, scale] = rest.map(Number)
+  const clip = rest.length >= 4 ? { clip: { x, y, width, height, scale: scale || 1 } } : {}
+  const r = await send('Page.captureScreenshot', { format: 'png', ...clip })
   fs.writeFileSync(extra || 'shot.png', Buffer.from(r.result.data, 'base64'))
   console.log('saved', extra || 'shot.png')
 } else if (arg === '--drag') {
