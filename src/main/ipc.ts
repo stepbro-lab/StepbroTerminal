@@ -1,0 +1,144 @@
+import { app, clipboard, dialog, ipcMain, Menu, shell } from 'electron'
+import type { CreateRequest, InvokeMap, SendMap } from '@shared/ipc'
+import type { MenuItemSpec, Session } from '@shared/types'
+import { normalizeProjectPath } from '@shared/paths'
+import { readTranscriptDetails, transcriptPath } from './claude/transcript'
+import { buildLaunchSpec } from './presets/launchSpec'
+import type { Ctx } from './context'
+
+type Handler<K extends keyof InvokeMap> = (...args: Parameters<InvokeMap[K]>) => ReturnType<InvokeMap[K]> | Promise<ReturnType<InvokeMap[K]>>
+type Listener<K extends keyof SendMap> = (...args: Parameters<SendMap[K]>) => void
+
+export function registerIpc(ctx: Ctx): void {
+  const handle = <K extends keyof InvokeMap>(channel: K, fn: Handler<K>): void => {
+    ipcMain.handle(channel, (_e, ...args) => (fn as any)(...args))
+  }
+  const on = <K extends keyof SendMap>(channel: K, fn: Listener<K>): void => {
+    ipcMain.on(channel, (_e, ...args) => (fn as any)(...args))
+  }
+
+  // ---- host ----
+  handle('host:state', () => ctx.hostState)
+  handle('host:list', () => [...ctx.sessions.values()])
+  handle('host:create', (req: CreateRequest) => createSession(ctx, req))
+  handle('host:restartHost', () => ctx.restartHost())
+  on('host:attach', (id) => ctx.client.send({ t: 'attach', id }))
+  on('host:detach', (id) => ctx.client.send({ t: 'detach', id }))
+  on('host:input', (id, data) => ctx.client.send({ t: 'input', id }, data))
+  on('host:resize', (id, cols, rows) => ctx.client.send({ t: 'resize', id, cols, rows }))
+  on('host:kill', (id) => ctx.client.send({ t: 'kill', id }))
+  on('host:close', (id) => ctx.client.send({ t: 'close', id }))
+  on('host:restart', (id) => ctx.client.send({ t: 'restart', id }))
+  on('host:rename', (id, title) => ctx.client.send({ t: 'rename', id, title }))
+  on('host:pin', (id, pinned) => ctx.client.send({ t: 'pin', id, pinned }))
+  on('host:viewed', (id) => ctx.client.send({ t: 'viewed', id }))
+  on('host:ack', (id, bytes) => ctx.client.send({ t: 'ack', id, bytes }))
+
+  // ---- projects ----
+  handle('projects:list', () => ctx.projects())
+  handle('projects:pickFolder', async () => {
+    const res = await dialog.showOpenDialog(ctx.win ?? undefined!, {
+      properties: ['openDirectory', 'createDirectory'],
+      title: 'Add project folder'
+    })
+    if (res.canceled || !res.filePaths[0]) return null
+    return normalizeProjectPath(res.filePaths[0])
+  })
+  handle('projects:add', (p) => {
+    const norm = normalizeProjectPath(p)
+    const added = ctx.prefs.addedProjects.filter((x) => x.toLowerCase() !== norm.toLowerCase())
+    const hidden = ctx.prefs.hiddenProjects.filter((x) => x.toLowerCase() !== norm.toLowerCase())
+    ctx.setPrefs({ addedProjects: [norm, ...added], hiddenProjects: hidden })
+    return ctx.projects()
+  })
+  handle('projects:hide', (p) => {
+    const norm = normalizeProjectPath(p)
+    ctx.setPrefs({
+      addedProjects: ctx.prefs.addedProjects.filter((x) => x.toLowerCase() !== norm.toLowerCase()),
+      hiddenProjects: [norm, ...ctx.prefs.hiddenProjects.filter((x) => x.toLowerCase() !== norm.toLowerCase())]
+    })
+    return ctx.projects()
+  })
+  handle('projects:openFolder', (p) => {
+    void shell.openPath(p)
+  })
+
+  // ---- claude data ----
+  handle('history:list', () => ctx.history.sessions())
+  handle('history:details', (projectPath, sessionId) => readTranscriptDetails(transcriptPath(projectPath, sessionId)))
+  handle('history:live', () => ctx.live.list())
+
+  // ---- presets & prefs ----
+  handle('presets:list', () => ctx.presets)
+  handle('presets:refresh', () => ctx.refreshPresets())
+  handle('prefs:get', () => ctx.prefs)
+  handle('prefs:set', (partial) => ctx.setPrefs(partial))
+
+  // ---- window ----
+  handle('win:isMaximized', () => !!ctx.win?.isMaximized())
+  on('win:minimize', () => ctx.win?.minimize())
+  on('win:maximize', () => {
+    if (!ctx.win) return
+    if (ctx.win.isMaximized()) ctx.win.unmaximize()
+    else ctx.win.maximize()
+  })
+  on('win:close', () => ctx.win?.close())
+  on('win:setActiveSession', (id) => {
+    ctx.activeId = id
+  })
+  on('win:setTitle', (title) => ctx.win?.setTitle(title ? `${title} — Step` : 'Step'))
+  on('clipboard:write', (text) => clipboard.writeText(text))
+
+  handle('menu:popup', (items: MenuItemSpec[]) => popupMenu(ctx, items))
+  handle('app:openExternal', (url) => {
+    if (/^https?:\/\//.test(url)) void shell.openExternal(url)
+  })
+  handle('app:openPath', (p) => {
+    void shell.openPath(p)
+  })
+  void app
+}
+
+async function createSession(ctx: Ctx, req: CreateRequest): Promise<Session> {
+  const preset = ctx.presets.find((p) => p.id === req.presetId) ?? ctx.presets.find((p) => p.id === 'shell')!
+  const launch = buildLaunchSpec(preset, ctx.prefs, ctx.env)
+  const usage = { ...ctx.prefs.presetUsage, [preset.id]: (ctx.prefs.presetUsage[preset.id] ?? 0) + 1 }
+  ctx.setPrefs({ presetUsage: usage })
+  const s = await ctx.client.create({
+    projectPath: normalizeProjectPath(req.projectPath),
+    presetId: preset.id,
+    launch,
+    cols: req.cols,
+    rows: req.rows,
+    title: req.title,
+    agentSessionId: req.resumeId,
+    resume: !!req.resumeId
+  })
+  ctx.sessions.set(s.id, s)
+  ctx.emitProjects()
+  return s
+}
+
+function popupMenu(ctx: Ctx, items: MenuItemSpec[]): Promise<string | null> {
+  return new Promise((resolve) => {
+    let picked: string | null = null
+    const build = (list: MenuItemSpec[]): Electron.MenuItemConstructorOptions[] =>
+      list.map((it) => {
+        if (it.separator) return { type: 'separator' }
+        return {
+          label: it.label ?? '',
+          enabled: it.enabled !== false,
+          type: it.checked !== undefined ? 'checkbox' : 'normal',
+          checked: it.checked,
+          submenu: it.submenu ? build(it.submenu) : undefined,
+          click: it.submenu
+            ? undefined
+            : () => {
+                picked = it.id ?? null
+              }
+        }
+      })
+    const menu = Menu.buildFromTemplate(build(items))
+    menu.popup({ window: ctx.win ?? undefined, callback: () => resolve(picked) })
+  })
+}

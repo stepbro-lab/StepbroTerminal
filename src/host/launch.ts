@@ -30,57 +30,7 @@ export function writeHooksSettings(dir: string, sessionId: string, url: string):
   return file
 }
 
-export interface ResolvedCommand {
-  file: string
-  argsPrefix: string[]
-}
-
-const WIN_EXTS = ['.exe', '.cmd', '.bat', '.com']
-
-function isExecutable(file: string): boolean {
-  try {
-    const st = fs.statSync(file)
-    return st.isFile()
-  } catch {
-    return false
-  }
-}
-
-/**
- * Resolves a command name to an executable path using PATH. On Windows `.cmd`/`.bat`
- * shims are run through cmd.exe because ConPTY cannot start them directly.
- */
-export function resolveCommand(
-  command: string,
-  env: NodeJS.ProcessEnv,
-  platform: NodeJS.Platform = process.platform
-): ResolvedCommand | null {
-  const win = platform === 'win32'
-  const wrap = (file: string): ResolvedCommand => {
-    if (win && /\.(cmd|bat)$/i.test(file)) {
-      return { file: env['ComSpec'] || 'cmd.exe', argsPrefix: ['/d', '/s', '/c', file] }
-    }
-    return { file, argsPrefix: [] }
-  }
-
-  const hasDir = /[\\/]/.test(command)
-  if (hasDir || path.isAbsolute(command)) {
-    if (isExecutable(command)) return wrap(command)
-    if (win) for (const ext of WIN_EXTS) if (isExecutable(command + ext)) return wrap(command + ext)
-    return null
-  }
-
-  const pathVar = env['PATH'] || env['Path'] || ''
-  const dirs = pathVar.split(win ? ';' : ':').filter(Boolean)
-  const exts = win ? (/\.[a-z0-9]+$/i.test(command) ? [''] : WIN_EXTS) : ['']
-  for (const dir of dirs) {
-    for (const ext of exts) {
-      const candidate = path.join(dir, command + ext)
-      if (isExecutable(candidate)) return wrap(candidate)
-    }
-  }
-  return null
-}
+export { resolveCommand, findOnPath, type ResolvedCommand } from '@shared/resolveCommand'
 
 export function ptyEnv(base: NodeJS.ProcessEnv, extra?: Record<string, string>): Record<string, string> {
   const out: Record<string, string> = {}
