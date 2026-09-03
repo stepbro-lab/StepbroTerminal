@@ -10,6 +10,8 @@ export default {
         hover: 'var(--bg-hover)',
         active: 'var(--bg-active)',
         fg: 'var(--text)',
+        secondary: 'var(--text-secondary)',
+        elevated: 'var(--bg-elevated)',
         muted: 'var(--text-muted)',
         line: 'var(--border)',
         accent: 'var(--accent)',

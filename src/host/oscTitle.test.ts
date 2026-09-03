@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isBoringTitle, OscTitleParser } from './oscTitle'
+import { isBoringTitle, OscTitleParser, stripTitleGlyph } from './oscTitle'
 
 const b = (s: string) => Buffer.from(s)
 
@@ -30,5 +30,14 @@ describe('isBoringTitle', () => {
     expect(isBoringTitle('')).toBe(true)
     expect(isBoringTitle('✱ Refactor checkout')).toBe(false)
     expect(isBoringTitle('npm run dev')).toBe(false)
+  })
+})
+
+describe('stripTitleGlyph', () => {
+  it('drops a leading spinner glyph but keeps real titles', () => {
+    expect(stripTitleGlyph('✳ Claude Code')).toBe('Claude Code')
+    expect(stripTitleGlyph('◑ Respuesta simple')).toBe('Respuesta simple')
+    expect(stripTitleGlyph('npm run dev')).toBe('npm run dev')
+    expect(stripTitleGlyph('C:\\dev')).toBe('C:\\dev')
   })
 })

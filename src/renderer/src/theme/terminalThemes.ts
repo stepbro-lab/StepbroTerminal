@@ -1,0 +1,51 @@
+import type { ITheme } from '@xterm/xterm'
+
+export const lightTerminal: ITheme = {
+  background: '#ffffff',
+  foreground: '#1c1c1e',
+  cursor: '#2f6df6',
+  cursorAccent: '#ffffff',
+  selectionBackground: 'rgba(37, 99, 235, 0.22)',
+  selectionInactiveBackground: 'rgba(37, 99, 235, 0.12)',
+  black: '#1c1c1e',
+  red: '#c0392b',
+  green: '#1f8a4c',
+  yellow: '#b7791f',
+  blue: '#2563eb',
+  magenta: '#8e44ad',
+  cyan: '#0e7c86',
+  white: '#d1d1d6',
+  brightBlack: '#8e8e93',
+  brightRed: '#e0483c',
+  brightGreen: '#22a05a',
+  brightYellow: '#d69a2a',
+  brightBlue: '#3b82f6',
+  brightMagenta: '#a855f7',
+  brightCyan: '#0891b2',
+  brightWhite: '#f4f4f5'
+}
+
+export const darkTerminal: ITheme = {
+  background: '#141418',
+  foreground: '#e6e6e8',
+  cursor: '#6e9cff',
+  cursorAccent: '#141418',
+  selectionBackground: 'rgba(96, 165, 250, 0.28)',
+  selectionInactiveBackground: 'rgba(96, 165, 250, 0.16)',
+  black: '#1c1c1f',
+  red: '#ff6b6b',
+  green: '#4ade80',
+  yellow: '#fbbf24',
+  blue: '#60a5fa',
+  magenta: '#c084fc',
+  cyan: '#22d3ee',
+  white: '#e6e6e8',
+  brightBlack: '#6b6b73',
+  brightRed: '#ff8787',
+  brightGreen: '#86efac',
+  brightYellow: '#fcd34d',
+  brightBlue: '#93c5fd',
+  brightMagenta: '#d8b4fe',
+  brightCyan: '#67e8f9',
+  brightWhite: '#ffffff'
+}

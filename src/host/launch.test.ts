@@ -69,8 +69,10 @@ describe('resolveCommand', () => {
 
 describe('ptyEnv', () => {
   it('sets terminal vars and strips electron node mode', () => {
-    const env = ptyEnv({ ELECTRON_RUN_AS_NODE: '1', PATH: '/x', UNDEF: undefined }, { STEP_SESSION: 'a' })
+    const env = ptyEnv({ ELECTRON_RUN_AS_NODE: '1', PATH: '/x', UNDEF: undefined, CLAUDECODE: '1', CLAUDE_CODE_CHILD_SESSION: '1' }, { STEP_SESSION: 'a' })
     expect(env['ELECTRON_RUN_AS_NODE']).toBeUndefined()
+    expect(env['CLAUDECODE']).toBeUndefined()
+    expect(env['CLAUDE_CODE_CHILD_SESSION']).toBeUndefined()
     expect(env).toMatchObject({ PATH: '/x', TERM: 'xterm-256color', COLORTERM: 'truecolor', TERM_PROGRAM: 'Step', STEP_SESSION: 'a' })
     expect('UNDEF' in env).toBe(false)
   })

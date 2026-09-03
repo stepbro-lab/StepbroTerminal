@@ -22,6 +22,8 @@ import type { Ctx } from './context'
 const VERSION = app.getVersion()
 process.env['STEP_VERSION'] = VERSION
 
+if (!app.isPackaged) app.commandLine.appendSwitch('remote-debugging-port', '9223')
+
 if (!app.requestSingleInstanceLock()) {
   app.quit()
 } else {
@@ -78,7 +80,7 @@ async function boot(): Promise<void> {
       ctx.emit('presets:update', ctx.presets)
       return ctx.presets
     },
-    projects: () => computeProjects(ctx.prefs, history.sessions(), [...ctx.sessions.values()]),
+    projects: () => computeProjects(ctx.prefs, [...ctx.sessions.values()]),
     emitProjects: () => ctx.emit('projects:update', ctx.projects()),
     connectHost: () => connectHost(ctx),
     restartHost: async () => {
@@ -102,10 +104,7 @@ async function boot(): Promise<void> {
 
   ctx.refreshPresets()
   wireHostClient(ctx)
-  history.on('update', (list) => {
-    ctx.emit('history:update', list)
-    ctx.emitProjects()
-  })
+  history.on('update', (list) => ctx.emit('history:update', list))
   live.on('update', (list) => ctx.emit('live:update', list))
   history.start()
   live.start()

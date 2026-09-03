@@ -47,7 +47,7 @@ export function reduceStatus(s: Input, e: ReducerEvent): StatusPatch | null {
       return s.status === 'working' ? null : { status: 'working' }
     case 'quiet':
       if (s.launch.hooks || s.agent.registryPid) return null
-      return s.status === 'working' ? { status: 'idle' } : null
+      return s.status === 'working' || s.status === 'starting' ? { status: 'idle' } : null
     case 'registry': {
       const v = e.status.toLowerCase()
       if (v === 'busy' || v === 'working' || v === 'running') return s.status === 'working' ? null : { status: 'working' }

@@ -1,9 +1,9 @@
 import fs from 'node:fs'
 import { normalizeProjectPath, projectName, sameProject } from '@shared/paths'
-import type { HistorySession, Prefs, Project, Session } from '@shared/types'
+import type { Prefs, Project, Session } from '@shared/types'
 
-/** Projects = added by the user ∪ seen in Claude history ∪ owning a live session, minus hidden ones. */
-export function computeProjects(prefs: Prefs, history: HistorySession[], sessions: Session[]): Project[] {
+/** Projects = folders the user added ∪ folders that own a live session, minus hidden ones. */
+export function computeProjects(prefs: Prefs, sessions: Session[]): Project[] {
   const out: Project[] = []
   const add = (p: string, source: Project['sources'][number]): void => {
     const norm = normalizeProjectPath(p)
@@ -16,12 +16,6 @@ export function computeProjects(prefs: Prefs, history: HistorySession[], session
   }
   for (const p of prefs.addedProjects) add(p, 'added')
   for (const s of sessions) add(s.projectPath, 'live')
-  const seen = new Set<string>()
-  for (const h of history) {
-    if (seen.has(h.projectPath)) continue
-    seen.add(h.projectPath)
-    add(h.projectPath, 'history')
-  }
   return out.filter((p) => !prefs.hiddenProjects.some((h) => sameProject(h, p.path)) && (p.sources.includes('live') || dirExists(p.path)))
 }
 

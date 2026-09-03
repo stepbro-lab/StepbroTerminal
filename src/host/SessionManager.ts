@@ -6,7 +6,7 @@ import * as nodePty from 'node-pty'
 import type { CreateSessionOpts, LiveClaude, Session } from '@shared/types'
 import { RingBuffer } from './RingBuffer'
 import { TitleCapture, detectAgentFromCommand } from './titleCapture'
-import { OscTitleParser, isBoringTitle } from './oscTitle'
+import { OscTitleParser, isBoringTitle, stripTitleGlyph } from './oscTitle'
 import { reduceStatus, type ReducerEvent } from './statusReducer'
 import { ptyEnv, resolveCommand, substituteArgs, writeHooksSettings } from './launch'
 import { findAncestor, processTable } from './procTree'
@@ -28,12 +28,16 @@ interface Live {
   lines: TitleCapture
   osc: OscTitleParser
   quietTimer?: NodeJS.Timeout
+  /** When the current burst of output started; reset after QUIET_MS of silence. */
+  burstStart: number
   logFd?: number
   logBytes: number
   paused: boolean
 }
 
 const QUIET_MS = 1500
+/** Output must keep flowing this long before a plain shell shows as working. */
+const BUSY_AFTER_MS = 400
 const LOG_MAX = 8 * 1024 * 1024
 const LOG_KEEP = 2 * 1024 * 1024
 
@@ -362,8 +366,14 @@ export class SessionManager extends EventEmitter {
           l.s.agent.sessionId = e.sessionId
           l.s.agent.detectedPreset = 'claude'
           log('mapped claude', e.pid, '->', l.s.id)
-          if (e.status) this.apply(l, { kind: 'registry', status: e.status })
-          else this.emitSession(l)
+          // A freshly mapped agent that is not busy is simply idle; "done" is reserved for finished turns.
+          const busy = /busy|working|running/i.test(e.status ?? '')
+          if (busy) this.apply(l, { kind: 'registry', status: e.status! })
+          else {
+            l.s.status = 'idle'
+            l.s.statusAt = Date.now()
+            this.emitSession(l)
+          }
         }
       }
     } catch (e) {
@@ -391,6 +401,7 @@ export class SessionManager extends EventEmitter {
       buf: new RingBuffer(this.opts.bufferBytes),
       lines: new TitleCapture(60),
       osc: new OscTitleParser(),
+      burstStart: 0,
       logBytes: 0,
       paused: false
     }
@@ -469,10 +480,13 @@ export class SessionManager extends EventEmitter {
     this.appendLog(l, bytes)
     this.emit('output', l.s.id, bytes)
     for (const t of l.osc.feed(bytes)) this.onOscTitle(l, t)
-    this.apply(l, { kind: 'output' })
+    const now = Date.now()
+    if (!l.burstStart) l.burstStart = now
+    if (now - l.burstStart >= BUSY_AFTER_MS) this.apply(l, { kind: 'output' })
     if (l.quietTimer) clearTimeout(l.quietTimer)
     l.quietTimer = setTimeout(() => {
       l.quietTimer = undefined
+      l.burstStart = 0
       this.apply(l, { kind: 'quiet' })
     }, QUIET_MS)
   }
@@ -480,7 +494,7 @@ export class SessionManager extends EventEmitter {
   private onOscTitle(l: Live, title: string): void {
     const s = l.s
     if (s.titleSource === 'user') return
-    const t = title.trim()
+    const t = stripTitleGlyph(title)
     if (isBoringTitle(t)) return
     if (s.title === t && s.titleSource === 'osc') return
     s.title = t.slice(0, 120)

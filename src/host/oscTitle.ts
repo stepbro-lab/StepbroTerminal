@@ -60,6 +60,11 @@ export class OscTitleParser {
 
 const BORING = /^(windows powershell|powershell|pwsh|cmd|command prompt|bash|zsh|fish|sh|terminal|administrator: .*|.*: (bash|zsh|fish|sh))$/i
 
+/** Agents prefix their titles with a spinner glyph ("✳ Fix bug", "◑ Thinking"); the sidebar has its own status mark. */
+export function stripTitleGlyph(t: string): string {
+  return t.replace(/^[^\p{L}\p{N}\s]{1,2}\s+/u, '').trim()
+}
+
 /** Titles that shells emit by default and that would make a poor session name. */
 export function isBoringTitle(t: string): boolean {
   const s = t.trim()
