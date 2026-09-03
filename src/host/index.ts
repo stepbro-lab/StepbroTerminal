@@ -10,7 +10,7 @@ import { HookServer } from './HookServer'
 import { initLog, log } from './log'
 
 const IDLE_EXIT_MS = 60_000
-const BUFFER_BYTES = 2 * 1024 * 1024
+const SCROLLBACK_LINES = 5000
 
 async function main(): Promise<void> {
   const dir = stepDir()
@@ -26,7 +26,7 @@ async function main(): Promise<void> {
     logDir: path.join(dir, 'sessions'),
     hooksDir: path.join(dir, 'hooks'),
     hookUrl: () => hookUrl,
-    bufferBytes: BUFFER_BYTES,
+    scrollback: SCROLLBACK_LINES,
     baseEnv: process.env
   })
   sm.load()

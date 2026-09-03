@@ -7,7 +7,13 @@ const shared = resolve(__dirname, 'src/shared')
 export default defineConfig({
   main: {
     plugins: [externalizeDepsPlugin()],
-    resolve: { alias: { '@shared': shared } },
+    resolve: {
+      alias: {
+        '@shared': shared,
+        // The package's "module" field points at a file that does not exist; use the real ESM build.
+        '@xterm/headless': resolve(__dirname, 'node_modules/@xterm/headless/lib-headless/xterm-headless.mjs')
+      }
+    },
     build: {
       rollupOptions: {
         input: {

@@ -1,7 +1,21 @@
 // Dev helper: evaluate JavaScript inside the running Step renderer via the Chrome DevTools Protocol.
 // Usage: node scripts/cdp.mjs "<expression>"   (expression may return a promise)
 //        node scripts/cdp.mjs --shot out.png    (screenshot of the page)
-const PORT = process.env.STEP_CDP_PORT || '9223'
+import fs from 'node:fs'
+import path from 'node:path'
+import os from 'node:os'
+
+function devtoolsPort() {
+  if (process.env.STEP_CDP_PORT) return process.env.STEP_CDP_PORT
+  const userData =
+    process.platform === 'win32'
+      ? path.join(process.env.APPDATA, 'Step')
+      : process.platform === 'darwin'
+        ? path.join(os.homedir(), 'Library', 'Application Support', 'Step')
+        : path.join(os.homedir(), '.config', 'Step')
+  return fs.readFileSync(path.join(userData, 'DevToolsActivePort'), 'utf8').split(/\r?\n/)[0].trim()
+}
+const PORT = devtoolsPort()
 
 const targets = await (await fetch(`http://127.0.0.1:${PORT}/json`)).json()
 const page = targets.find((t) => t.type === 'page')
@@ -33,7 +47,6 @@ const send = (method, params = {}) =>
 const [arg, extra] = process.argv.slice(2)
 if (arg === '--shot') {
   const r = await send('Page.captureScreenshot', { format: 'png' })
-  const fs = await import('node:fs')
   fs.writeFileSync(extra || 'shot.png', Buffer.from(r.result.data, 'base64'))
   console.log('saved', extra || 'shot.png')
 } else {

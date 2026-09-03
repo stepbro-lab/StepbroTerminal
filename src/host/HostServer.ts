@@ -118,10 +118,12 @@ export class HostServer {
       }
       case 'attach': {
         c.attached.add(msg.id)
-        const snap = this.sm.snapshot(msg.id)
-        c.unacked.set(msg.id, snap.byteLength)
-        this.send(c, { t: 'replay', id: msg.id }, snap)
-        this.recheckFlow(msg.id)
+        void this.sm.snapshot(msg.id).then((snap) => {
+          if (!c.attached.has(msg.id) || c.sock.destroyed) return
+          c.unacked.set(msg.id, snap.byteLength)
+          this.send(c, { t: 'replay', id: msg.id }, snap)
+          this.recheckFlow(msg.id)
+        })
         break
       }
       case 'detach':

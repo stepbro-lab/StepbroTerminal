@@ -14,6 +14,8 @@ interface Entry {
   webgl: IDisposable | null
   container: HTMLDivElement
   hydrated: boolean
+  /** While a snapshot is being written, xterm's replies to queries must not reach the PTY. */
+  replaying: boolean
   ackPending: number
   ackTimer: number | null
   disposables: IDisposable[]
@@ -116,14 +118,19 @@ class TerminalRegistry {
       webgl: null,
       container,
       hydrated: false,
+      replaying: false,
       ackPending: 0,
       ackTimer: null,
       disposables: [],
       mounted: false
     }
     entry.disposables.push(
-      term.onData((data) => window.step.send('host:input', id, encoder.encode(data))),
+      term.onData((data) => {
+        if (entry.replaying) return
+        window.step.send('host:input', id, encoder.encode(data))
+      }),
       term.onBinary((data) => {
+        if (entry.replaying) return
         const bytes = new Uint8Array(data.length)
         for (let i = 0; i < data.length; i++) bytes[i] = data.charCodeAt(i) & 0xff
         window.step.send('host:input', id, bytes)
@@ -176,11 +183,15 @@ class TerminalRegistry {
         return
       }
       e.hydrated = true
+      e.replaying = true
       e.term.reset()
-      if (bytes.byteLength === 0) return
+      if (bytes.byteLength === 0) {
+        e.replaying = false
+        return
+      }
       e.term.write(bytes, () => {
+        e.replaying = false
         this.ack(e, bytes.byteLength)
-        this.nudge(e)
       })
       return
     }
@@ -264,13 +275,6 @@ class TerminalRegistry {
     } catch {
       /* container not laid out yet */
     }
-  }
-
-  private nudge(e: Entry): void {
-    if (!e.mounted) return
-    const { cols, rows } = e.term
-    window.step.send('host:resize', e.id, cols, Math.max(1, rows - 1))
-    window.setTimeout(() => window.step.send('host:resize', e.id, cols, rows), 60)
   }
 
   private ack(e: Entry, n: number): void {

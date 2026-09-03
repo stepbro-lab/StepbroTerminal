@@ -3,7 +3,6 @@ import { useUi } from '@/stores/ui'
 import { useTerminalMount } from '@/terminal/useTerminalMount'
 import { closeSession, restartSession } from '@/lib/actions'
 import { CardHeader } from './CardHeader'
-import { CardFooter } from './CardFooter'
 import { EmptyState } from './EmptyState'
 import { HostBanner } from './HostBanner'
 
@@ -26,7 +25,7 @@ export function TerminalPane() {
         ) : (
           <>
             <CardHeader session={session} />
-            <div className="relative min-h-0 flex-1 overflow-hidden px-3 py-2">
+            <div className="relative min-h-0 flex-1 overflow-hidden px-3 pb-2.5 pt-2">
               {/* The mount node stays in the tree while the host reconnects, so xterm is never orphaned. */}
               <div ref={mountRef} className="relative h-full w-full" onMouseDown={() => useUi.getState().setRenaming(null)} />
               {session.status === 'error' && session.error && (
@@ -50,7 +49,6 @@ export function TerminalPane() {
                 </Bar>
               )}
             </div>
-            <CardFooter session={session} />
           </>
         )}
         {session && !connected && (

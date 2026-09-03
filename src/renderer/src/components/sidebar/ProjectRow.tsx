@@ -1,7 +1,7 @@
 import { ChevronRight, Folder, FolderOpen, Plus } from 'lucide-react'
 import type { SidebarProject } from '@/lib/sidebarModel'
 import { useUi } from '@/stores/ui'
-import { newSessionMenu, projectMenu, toggleProjectCollapsed } from '@/lib/actions'
+import { newShell, projectMenu, toggleProjectCollapsed } from '@/lib/actions'
 
 interface Props {
   project: SidebarProject
@@ -41,11 +41,11 @@ export function ProjectRow({ project, isActiveProject }: Props) {
         </span>
         <button
           className="icon-btn h-5 w-5 opacity-0 group-hover:opacity-100"
-          title="New shell or agent session"
+          title="New shell"
           onClick={(e) => {
             e.stopPropagation()
             setActiveProject(project.path)
-            void newSessionMenu(project.path)
+            void newShell(project.path)
           }}
         >
           <Plus size={13} />

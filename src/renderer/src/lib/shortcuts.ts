@@ -1,7 +1,7 @@
 import { useData } from '@/stores/data'
 import { usePrefs } from '@/stores/prefs'
 import { useUi } from '@/stores/ui'
-import { addProject, closeSession, newSessionMenu, newShell, restartSession } from './actions'
+import { addProject, closeSession, newShell, restartSession } from './actions'
 import { flatSessions, type SidebarProject } from './sidebarModel'
 import { registry } from '@/terminal/TerminalRegistry'
 
@@ -34,7 +34,7 @@ export function runCommand(cmd: Command): void {
       break
     case 'new-session':
       if (!target) void addProject()
-      else void newSessionMenu(target)
+      else void newShell(target)
       break
     case 'new-shell':
       if (!target) void addProject()

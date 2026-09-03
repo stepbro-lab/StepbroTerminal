@@ -3,8 +3,9 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { randomUUID } from 'node:crypto'
 import * as nodePty from 'node-pty'
+import { Terminal as HeadlessTerminal } from '@xterm/headless'
+import { SerializeAddon } from '@xterm/addon-serialize'
 import type { CreateSessionOpts, LiveClaude, Session } from '@shared/types'
-import { RingBuffer } from './RingBuffer'
 import { TitleCapture, detectAgentFromCommand } from './titleCapture'
 import { OscTitleParser, isBoringTitle, stripTitleGlyph } from './oscTitle'
 import { reduceStatus, type ReducerEvent } from './statusReducer'
@@ -17,14 +18,18 @@ export interface SessionManagerOpts {
   logDir: string
   hooksDir: string
   hookUrl: () => string
-  bufferBytes: number
+  scrollback: number
   baseEnv: NodeJS.ProcessEnv
 }
 
 interface Live {
   s: Session
   pty?: nodePty.IPty
-  buf: RingBuffer
+  /** Server-side emulator: the source of truth for what is on screen while nobody is attached. */
+  screen: HeadlessTerminal
+  serializer: SerializeAddon
+  /** Resolves when every byte handed to the emulator has been parsed. */
+  drained: Promise<void>
   lines: TitleCapture
   osc: OscTitleParser
   quietTimer?: NodeJS.Timeout
@@ -42,7 +47,7 @@ const LOG_MAX = 8 * 1024 * 1024
 const LOG_KEEP = 2 * 1024 * 1024
 
 /**
- * Owns every PTY, its scrollback and its status. Emits:
+ * Owns every PTY, its screen state and its status. Emits:
  * 'session' (Session) · 'removed' (id) · 'output' (id, bytes) · 'clear' (id) · 'exit' (id, code)
  */
 export class SessionManager extends EventEmitter {
@@ -72,8 +77,17 @@ export class SessionManager extends EventEmitter {
     return false
   }
 
-  snapshot(id: string): Uint8Array {
-    return this.live.get(id)?.buf.snapshot() ?? new Uint8Array(0)
+  /** Serialized screen plus scrollback as escape sequences; replaying it reproduces the display exactly. */
+  async snapshot(id: string): Promise<Uint8Array> {
+    const l = this.live.get(id)
+    if (!l) return new Uint8Array(0)
+    await l.drained
+    try {
+      return Buffer.from(l.serializer.serialize({ scrollback: this.opts.scrollback }), 'utf8')
+    } catch (e) {
+      log('serialize failed', id, e)
+      return new Uint8Array(0)
+    }
   }
 
   // ---- persistence ----
@@ -101,7 +115,7 @@ export class SessionManager extends EventEmitter {
       s.agent = s.agent ?? {}
       s.agent.registryPid = undefined
       const l = this.newLive(s)
-      this.readLogTail(l)
+      this.replayLogTail(l)
       this.live.set(s.id, l)
     }
   }
@@ -165,7 +179,7 @@ export class SessionManager extends EventEmitter {
         /* already gone */
       }
     }
-    l.buf.clear()
+    l.screen.reset()
     l.lines.reset()
     l.s.exitCode = undefined
     l.s.error = undefined
@@ -212,6 +226,11 @@ export class SessionManager extends EventEmitter {
         /* ignore */
       }
     }
+    try {
+      l.screen.dispose()
+    } catch {
+      /* ignore */
+    }
     this.live.delete(id)
     for (const f of [this.logPath(id), path.join(this.opts.hooksDir, `${id}.json`)]) {
       try {
@@ -249,13 +268,19 @@ export class SessionManager extends EventEmitter {
     const l = this.live.get(id)
     if (!l) return
     if (cols < 2 || rows < 1 || cols > 1000 || rows > 1000) return
+    if (l.s.cols === cols && l.s.rows === rows) return
     l.s.cols = cols
     l.s.rows = rows
+    try {
+      l.screen.resize(cols, rows)
+    } catch (e) {
+      log('screen resize failed', id, e)
+    }
     if (l.pty) {
       try {
         l.pty.resize(cols, rows)
       } catch (e) {
-        log('resize failed', id, e)
+        log('pty resize failed', id, e)
       }
     }
   }
@@ -317,9 +342,6 @@ export class SessionManager extends EventEmitter {
     for (const l of this.live.values()) {
       if (l.s.agent.sessionId !== agentSessionId) continue
       this.apply(l, { kind: 'hook', name, payload })
-      if (name === 'SessionStart' && (l.s.titleSource === 'none' || l.s.titleSource === 'input')) {
-        // Claude will set an OSC title shortly; nothing to do here.
-      }
       return
     }
   }
@@ -396,9 +418,19 @@ export class SessionManager extends EventEmitter {
   // ---- internals ----
 
   private newLive(s: Session): Live {
+    const screen = new HeadlessTerminal({
+      cols: s.cols || 80,
+      rows: s.rows || 24,
+      scrollback: this.opts.scrollback,
+      allowProposedApi: true
+    })
+    const serializer = new SerializeAddon()
+    screen.loadAddon(serializer as any)
     return {
       s,
-      buf: new RingBuffer(this.opts.bufferBytes),
+      screen,
+      serializer,
+      drained: Promise.resolve(),
       lines: new TitleCapture(60),
       osc: new OscTitleParser(),
       burstStart: 0,
@@ -459,8 +491,7 @@ export class SessionManager extends EventEmitter {
     this.openLog(l)
     p.onData((data) => {
       if (l.pty !== p) return
-      const bytes = Buffer.from(data, 'utf8')
-      this.onOutput(l, bytes)
+      this.onOutput(l, data)
     })
     p.onExit(({ exitCode }) => {
       if (l.pty !== p) return
@@ -475,8 +506,9 @@ export class SessionManager extends EventEmitter {
     this.persist()
   }
 
-  private onOutput(l: Live, bytes: Buffer): void {
-    l.buf.write(bytes)
+  private onOutput(l: Live, data: string): void {
+    const bytes = Buffer.from(data, 'utf8')
+    this.feedScreen(l, data)
     this.appendLog(l, bytes)
     this.emit('output', l.s.id, bytes)
     for (const t of l.osc.feed(bytes)) this.onOscTitle(l, t)
@@ -489,6 +521,17 @@ export class SessionManager extends EventEmitter {
       l.burstStart = 0
       this.apply(l, { kind: 'quiet' })
     }, QUIET_MS)
+  }
+
+  private feedScreen(l: Live, data: string | Uint8Array): void {
+    l.drained = new Promise<void>((resolve) => {
+      try {
+        l.screen.write(data as any, resolve)
+      } catch (e) {
+        log('screen write failed', l.s.id, e)
+        resolve()
+      }
+    })
   }
 
   private onOscTitle(l: Live, title: string): void {
@@ -533,7 +576,7 @@ export class SessionManager extends EventEmitter {
     this.persist()
   }
 
-  // ---- scrollback log on disk ----
+  // ---- raw output log on disk (used to rebuild the screen after a host restart) ----
 
   private logPath(id: string): string {
     return path.join(this.opts.logDir, `${id}.log`)
@@ -579,9 +622,9 @@ export class SessionManager extends EventEmitter {
     if (l.pty) this.openLog(l)
   }
 
-  private readLogTail(l: Live): void {
-    const tail = this.readTail(this.logPath(l.s.id), this.opts.bufferBytes)
-    if (tail.length) l.buf.write(tail)
+  private replayLogTail(l: Live): void {
+    const tail = this.readTail(this.logPath(l.s.id), LOG_KEEP)
+    if (tail.length) this.feedScreen(l, tail)
   }
 
   private readTail(file: string, max: number): Buffer {

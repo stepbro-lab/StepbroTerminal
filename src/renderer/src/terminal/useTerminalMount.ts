@@ -16,8 +16,9 @@ export function useTerminalMount(id: string | null, connected: boolean): React.R
     let t = 0
     void registry.fontsReady().then(() => {
       if (cancelled) return
-      registry.mount(id, el)
+      const entry = registry.mount(id, el)
       registry.markDetached(id)
+      window.step.send('host:resize', id, entry.term.cols, entry.term.rows)
       window.step.send('host:attach', id)
       ro = new ResizeObserver(() => registry.fit(id))
       ro.observe(el)

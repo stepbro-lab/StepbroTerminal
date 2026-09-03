@@ -22,7 +22,8 @@ import type { Ctx } from './context'
 const VERSION = app.getVersion()
 process.env['STEP_VERSION'] = VERSION
 
-if (!app.isPackaged) app.commandLine.appendSwitch('remote-debugging-port', '9223')
+// Dev only: a random DevTools port, published in <userData>/DevToolsActivePort (see scripts/cdp.mjs).
+if (!app.isPackaged) app.commandLine.appendSwitch('remote-debugging-port', '0')
 
 if (!app.requestSingleInstanceLock()) {
   app.quit()
