@@ -7,6 +7,8 @@ export interface AgentMeta {
   sessionId?: string
   /** Detected agent preset id when the user typed an agent inside a shell. */
   detectedPreset?: string
+  /** Pid of a Claude Code process mapped to this session through the live registry. */
+  registryPid?: number
   model?: string
   tool?: string
   lastMessage?: string
@@ -53,6 +55,8 @@ export interface CreateSessionOpts {
   rows: number
   title?: string
   agentSessionId?: string
+  /** Launch with `launch.resumeArgs` (needs agentSessionId). */
+  resume?: boolean
 }
 
 export interface Preset {

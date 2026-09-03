@@ -4,12 +4,12 @@ import { detectAgentFromCommand, TitleCapture } from './titleCapture'
 const b = (s: string) => Buffer.from(s, 'utf8')
 
 describe('TitleCapture', () => {
-  it('returns the first non-empty line once', () => {
+  it('returns each submitted non-empty line', () => {
     const t = new TitleCapture()
     expect(t.feed(b('\r'))).toBeNull()
     expect(t.feed(b('npm run '))).toBeNull()
     expect(t.feed(b('dev\r'))).toBe('npm run dev')
-    expect(t.feed(b('other\r'))).toBeNull()
+    expect(t.feed(b('other\r'))).toBe('other')
   })
 
   it('applies backspace and ignores escape sequences', () => {

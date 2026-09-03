@@ -75,7 +75,7 @@ describe('reduceStatus', () => {
     expect(reduceStatus(base('working', false), { kind: 'quiet' })).toEqual({ status: 'idle' })
     expect(reduceStatus(base('idle', true), { kind: 'output' })).toBeNull()
     expect(reduceStatus(base('working', true), { kind: 'quiet' })).toBeNull()
-    expect(reduceStatus(base('idle', false, { sessionId: 'abc' }), { kind: 'output' })).toBeNull()
+    expect(reduceStatus(base('idle', false, { registryPid: 42 }), { kind: 'output' })).toBeNull()
     expect(reduceStatus(base('exited', false), { kind: 'output' })).toBeNull()
   })
 

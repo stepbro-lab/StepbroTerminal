@@ -1,19 +1,18 @@
 /**
- * Captures the first command line the user types into a PTY so it can become the
- * session title. Ignores escape sequences and control bytes, applies backspace.
+ * Reconstructs the command lines the user types into a PTY (used for the session
+ * title and for agent detection). Ignores escape sequences and control bytes,
+ * applies backspace.
  */
 export class TitleCapture {
   private line = ''
   private escape = false
   private csi = false
   private osc = false
-  private done = false
 
   constructor(private readonly max = 60) {}
 
-  /** Returns the captured title once; null until a non-empty line is submitted. */
+  /** Returns the submitted line when a non-empty line is completed in this chunk, else null. */
   feed(input: Uint8Array): string | null {
-    if (this.done) return null
     const text = Buffer.from(input).toString('utf8')
     for (let i = 0; i < text.length; i++) {
       const ch = text[i]
@@ -38,11 +37,8 @@ export class TitleCapture {
       }
       if (ch === '\r' || ch === '\n') {
         const t = this.line.trim()
-        if (t.length) {
-          this.done = true
-          return t.length > this.max ? t.slice(0, this.max - 1) + '…' : t
-        }
         this.line = ''
+        if (t.length) return t.length > this.max ? t.slice(0, this.max - 1) + '…' : t
         continue
       }
       if (ch === '\x7f' || ch === '\b') {
@@ -57,7 +53,6 @@ export class TitleCapture {
 
   reset(): void {
     this.line = ''
-    this.done = false
     this.escape = this.csi = this.osc = false
   }
 }
