@@ -9,7 +9,7 @@ publish:
   provider: github
   owner: kevin9038440334
   repo: StepbroTerminal-releases
-  releaseType: release
+  releaseType: prerelease
 # node-pty ships N-API prebuilds that work in Electron without a rebuild.
 npmRebuild: false
 files:
