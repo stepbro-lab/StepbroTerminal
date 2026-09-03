@@ -217,6 +217,8 @@ const SHORTCUTS: Array<[string, string]> = [
   ['New shell', `${modKey} T`],
   ['Command palette', `${modKey} K`],
   ['Jump to session 1 to 9', `${modKey} 1…9`],
+  ['Split right / close other pane', `${modKey} \\`],
+  ['Split down', `${modKey} ⇧ \\`],
   ['Close session', `${modKey} W`],
   ['Restart session', `${modKey} ⇧ R`],
   ['Rename session', 'F2'],

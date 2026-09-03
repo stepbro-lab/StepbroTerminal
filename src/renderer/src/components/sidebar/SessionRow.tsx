@@ -13,6 +13,7 @@ interface Props {
 
 export function SessionRow({ row }: Props) {
   const activeId = useUi((s) => s.activeId)
+  const inPane = useUi((s) => s.panes.includes(row.id))
   const renamingId = useUi((s) => s.renamingId)
   const setRenaming = useUi((s) => s.setRenaming)
   const setActive = useUi((s) => s.setActive)
@@ -32,6 +33,7 @@ export function SessionRow({ row }: Props) {
     <div
       className="row grid-cols-[16px_minmax(0,1fr)_auto_16px] gap-2 pl-[22px]"
       data-active={active}
+      data-pane={inPane && !active}
       title={row.session.projectPath}
       onClick={() => {
         setActiveProject(row.session.projectPath)

@@ -1,7 +1,7 @@
 import { useData } from '@/stores/data'
 import { usePrefs } from '@/stores/prefs'
 import { useUi } from '@/stores/ui'
-import { addProject, closeSession, newShell, restartSession } from './actions'
+import { addProject, closeSession, newShell, restartSession, splitWithNewShell } from './actions'
 import { flatSessions, type SidebarProject } from './sidebarModel'
 import { registry } from '@/terminal/TerminalRegistry'
 
@@ -18,6 +18,8 @@ export type Command =
   | 'settings'
   | 'restart-session'
   | 'rename-session'
+  | 'split-right'
+  | 'split-down'
 
 let modelRef: SidebarProject[] = []
 export function setSidebarModelRef(m: SidebarProject[]): void {
@@ -61,6 +63,13 @@ export function runCommand(cmd: Command): void {
     case 'rename-session':
       if (ui.activeId) ui.setRenaming(ui.activeId)
       break
+    case 'split-right':
+    case 'split-down': {
+      const dir = cmd === 'split-right' ? 'row' : 'column'
+      if (ui.panes.length > 1 && ui.splitDir === dir) ui.unsplit()
+      else void splitWithNewShell(dir)
+      break
+    }
   }
 }
 
@@ -72,8 +81,10 @@ export function commandFor(ev: KeyboardEvent): Command | 'jump' | null {
   if (ev.shiftKey) {
     if (k === 'r') return 'restart-session'
     if (k === 'o') return 'add-project'
+    if (ev.key === '\\' || ev.key === '|') return 'split-down'
     return null
   }
+  if (ev.key === '\\') return 'split-right'
   if (ev.altKey) return null
   switch (k) {
     case 'k':

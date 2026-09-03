@@ -82,8 +82,8 @@ export default function App() {
   useEffect(() => {
     const ui = useUi.getState()
     if (hostState.kind !== 'connected') return
-    if (activeId && !sessions[activeId]) ui.setActive(null)
-    if (!ui.activeId) {
+    for (const id of ui.panes) if (!sessions[id]) ui.dropPane(id)
+    if (!useUi.getState().activeId) {
       const first = Object.values(sessions).sort((a, b) => b.updatedAt - a.updatedAt)[0]
       if (first) {
         ui.setActiveProject(first.projectPath)

@@ -9,9 +9,15 @@ export interface Toast {
 
 export type PaletteMode = 'all' | 'resume'
 export type SettingsPage = 'appearance' | 'terminal' | 'agents' | 'notifications' | 'shortcuts' | 'advanced'
+export type SplitDir = 'row' | 'column'
 
 interface UiState {
+  /** The focused session; always equals panes[focus]. */
   activeId: string | null
+  /** One or two sessions shown side by side. */
+  panes: string[]
+  focus: number
+  splitDir: SplitDir
   activeProject: string | null
   paletteOpen: boolean
   paletteQuery: string
@@ -25,6 +31,10 @@ interface UiState {
   spinnerFrame: number
   maximized: boolean
   setActive: (id: string | null) => void
+  focusPane: (index: number) => void
+  split: (dir: SplitDir, id: string) => void
+  unsplit: () => void
+  dropPane: (id: string) => void
   setActiveProject: (path: string | null) => void
   openPalette: (query?: string, mode?: PaletteMode, project?: string | null) => void
   closePalette: () => void
@@ -43,6 +53,9 @@ let toastSeq = 1
 
 export const useUi = create<UiState>((set, get) => ({
   activeId: null,
+  panes: [],
+  focus: 0,
+  splitDir: 'row',
   activeProject: null,
   paletteOpen: false,
   paletteQuery: '',
@@ -55,11 +68,50 @@ export const useUi = create<UiState>((set, get) => ({
   toasts: [],
   spinnerFrame: 0,
   maximized: false,
+  // Selecting a session shows it in the focused pane; if it is already in a pane, that pane takes focus.
   setActive: (id) => {
-    if (get().activeId === id) return
-    set({ activeId: id, searchOpen: false })
+    const { panes, focus, activeId } = get()
+    if (id === null) {
+      if (activeId === null && panes.length === 0) return
+      set({ activeId: null, panes: [], focus: 0, searchOpen: false })
+      window.step.send('win:setActiveSession', null)
+      return
+    }
+    const idx = panes.indexOf(id)
+    if (idx >= 0) {
+      if (activeId === id) return
+      set({ activeId: id, focus: idx, searchOpen: false })
+    } else {
+      const next = panes.length ? [...panes] : [id]
+      if (panes.length) next[focus] = id
+      set({ activeId: id, panes: next, searchOpen: false })
+    }
     window.step.send('win:setActiveSession', id)
-    if (id) window.step.send('host:viewed', id)
+    window.step.send('host:viewed', id)
+  },
+  focusPane: (index) => {
+    const id = get().panes[index]
+    if (id) get().setActive(id)
+  },
+  split: (dir, id) => {
+    const { activeId } = get()
+    const panes = activeId && activeId !== id ? [activeId, id] : [id]
+    set({ panes, focus: panes.length - 1, splitDir: dir, activeId: id, searchOpen: false })
+    window.step.send('win:setActiveSession', id)
+    window.step.send('host:viewed', id)
+  },
+  unsplit: () => {
+    const { activeId } = get()
+    set({ panes: activeId ? [activeId] : [], focus: 0 })
+  },
+  dropPane: (id) => {
+    const { panes, focus } = get()
+    if (!panes.includes(id)) return
+    const next = panes.filter((p) => p !== id)
+    const f = Math.min(focus, Math.max(0, next.length - 1))
+    const activeId = next[f] ?? null
+    set({ panes: next, focus: f, activeId })
+    window.step.send('win:setActiveSession', activeId)
   },
   setActiveProject: (path) => set({ activeProject: path }),
   openPalette: (query = '', mode = 'all', project = null) =>

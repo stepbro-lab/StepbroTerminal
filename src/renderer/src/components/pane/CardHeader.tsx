@@ -1,43 +1,62 @@
 import { useEffect, useRef, useState } from 'react'
-import { MoreHorizontal, Pin, RotateCw, Search, X } from 'lucide-react'
+import { Columns2, MoreHorizontal, Pin, Rows2, Search, X } from 'lucide-react'
 import type { Session } from '@shared/types'
 import { useData } from '@/stores/data'
 import { useUi } from '@/stores/ui'
-import { closeSession, copyText, killSession, openFolder, pinSession, renameSession, restartSession } from '@/lib/actions'
+import { closeSession, copyText, killSession, openFolder, pinSession, renameSession, restartSession, splitWithNewShell } from '@/lib/actions'
 import { popup, sep } from '@/lib/menus'
 import { defaultTitle, rowPresetId } from '@/lib/sidebarModel'
 import { StatusGlyph } from '../sidebar/StatusGlyph'
 import { SearchBar } from './SearchBar'
 
-export function CardHeader({ session }: { session: Session }) {
+export function CardHeader({ session, split = false, dim = false }: { session: Session; split?: boolean; dim?: boolean }) {
   const presets = useData((s) => s.presets)
   const searchOpen = useUi((s) => s.searchOpen)
   const setSearchOpen = useUi((s) => s.setSearchOpen)
+  const activeId = useUi((s) => s.activeId)
+  const splitDir = useUi((s) => s.splitDir)
   const [editing, setEditing] = useState(false)
   const color = presets.find((p) => p.id === rowPresetId(session))?.color ?? '#8a8a90'
   const title = session.title || defaultTitle(session)
   const canResume = !!session.launch.resumeArgs && !!session.agent.sessionId
+  const isActive = activeId === session.id
 
   const more = async (anchor: HTMLElement): Promise<void> => {
-    const pick = await popup([
-      { id: 'rename', label: 'Rename' },
-      { id: 'pin', label: session.pinned ? 'Unpin' : 'Pin' },
-      sep,
-      { id: 'restart', label: canResume ? 'Restart (resume conversation)' : 'Restart' },
-      { id: 'kill', label: 'Kill process', enabled: session.alive },
-      sep,
-      { id: 'folder', label: 'Open folder' },
-      { id: 'copyPath', label: 'Copy path' },
-      { id: 'copyId', label: 'Copy session id', enabled: !!session.agent.sessionId },
-      sep,
-      { id: 'close', label: 'Close session' }
-    ], { anchor })
+    const pick = await popup(
+      [
+        { id: 'rename', label: 'Rename' },
+        { id: 'pin', label: session.pinned ? 'Unpin' : 'Pin' },
+        sep,
+        { id: 'split-right', label: 'Split right' },
+        { id: 'split-down', label: 'Split down' },
+        { id: 'unsplit', label: 'Close other pane', enabled: split },
+        sep,
+        { id: 'restart', label: canResume ? 'Restart and resume conversation' : 'Restart' },
+        { id: 'kill', label: 'Kill process', enabled: session.alive },
+        sep,
+        { id: 'folder', label: 'Open folder' },
+        { id: 'copyPath', label: 'Copy path' },
+        { id: 'copyId', label: 'Copy Claude session id', enabled: !!session.agent.sessionId },
+        sep,
+        { id: 'close', label: 'Close session' }
+      ],
+      { anchor }
+    )
     switch (pick) {
       case 'rename':
         setEditing(true)
         break
       case 'pin':
         pinSession(session.id, !session.pinned)
+        break
+      case 'split-right':
+        await splitWithNewShell('row')
+        break
+      case 'split-down':
+        await splitWithNewShell('column')
+        break
+      case 'unsplit':
+        useUi.getState().unsplit()
         break
       case 'restart':
         restartSession(session.id)
@@ -61,7 +80,7 @@ export function CardHeader({ session }: { session: Session }) {
   }
 
   return (
-    <div className="flex h-9 shrink-0 items-center gap-2 border-b border-line pl-3 pr-1.5">
+    <div className="flex h-9 shrink-0 items-center gap-2 border-b border-line pl-3 pr-1.5" style={{ opacity: dim ? 0.75 : 1 }}>
       <StatusGlyph status={session.status} color={color} size={14} />
       {editing ? (
         <TitleInput session={session} onDone={() => setEditing(false)} />
@@ -72,15 +91,28 @@ export function CardHeader({ session }: { session: Session }) {
       )}
       {session.pinned && <Pin size={12} className="text-muted" />}
       <div className="ml-auto flex items-center gap-0.5">
-        {searchOpen ? (
+        {searchOpen && isActive ? (
           <SearchBar id={session.id} onClose={() => setSearchOpen(false)} />
         ) : (
           <button className="icon-btn" title="Find (Ctrl/Cmd+F)" onClick={() => setSearchOpen(true)}>
             <Search size={14} />
           </button>
         )}
-        <button className="icon-btn" title={canResume ? 'Restart and resume' : 'Restart'} onClick={() => restartSession(session.id)}>
-          <RotateCw size={14} />
+        <button
+          className="icon-btn"
+          title={split && splitDir === 'row' ? 'Close other pane' : 'Split right (Ctrl/Cmd+\\)'}
+          data-on={split && splitDir === 'row'}
+          onClick={() => (split && splitDir === 'row' ? useUi.getState().unsplit() : void splitWithNewShell('row'))}
+        >
+          <Columns2 size={14} />
+        </button>
+        <button
+          className="icon-btn"
+          title={split && splitDir === 'column' ? 'Close other pane' : 'Split down (Ctrl/Cmd+Shift+\\)'}
+          data-on={split && splitDir === 'column'}
+          onClick={() => (split && splitDir === 'column' ? useUi.getState().unsplit() : void splitWithNewShell('column'))}
+        >
+          <Rows2 size={14} />
         </button>
         <button className="icon-btn" title="More" onClick={(e) => void more(e.currentTarget)}>
           <MoreHorizontal size={15} />
