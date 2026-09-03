@@ -3,7 +3,7 @@ import { Columns2, FileDiff, Globe, MoreHorizontal, Pin, Rows2, Search, X } from
 import type { Session } from '@shared/types'
 import { useData } from '@/stores/data'
 import { useUi } from '@/stores/ui'
-import { closeSession, copyText, killSession, openFolder, pinSession, renameSession, restartSession, splitWithNewShell } from '@/lib/actions'
+import { closeSession, copyText, killSession, openFolder, pinSession, renameSession, restartSession, splitWithNewShell, redrawSession } from '@/lib/actions'
 import { popup, sep } from '@/lib/menus'
 import { defaultTitle, rowPresetId } from '@/lib/sidebarModel'
 import { StatusGlyph } from '../sidebar/StatusGlyph'
@@ -36,6 +36,7 @@ export function CardHeader({ session, split = false, dim = false }: { session: S
         { id: 'split-down', label: 'Split down' },
         { id: 'unsplit', label: 'Close other panes', enabled: split },
         sep,
+        { id: 'redraw', label: 'Redraw screen' },
         { id: 'restart', label: canResume ? 'Restart and resume conversation' : 'Restart' },
         { id: 'kill', label: 'Kill process', enabled: session.alive },
         sep,
@@ -62,6 +63,9 @@ export function CardHeader({ session, split = false, dim = false }: { session: S
         break
       case 'unsplit':
         useUi.getState().unsplit()
+        break
+      case 'redraw':
+        redrawSession(session.id)
         break
       case 'restart':
         restartSession(session.id)

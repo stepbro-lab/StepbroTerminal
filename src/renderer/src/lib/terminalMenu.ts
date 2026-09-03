@@ -4,6 +4,7 @@ import { useUi } from '@/stores/ui'
 import { registry } from '@/terminal/TerminalRegistry'
 import { popup, sep } from './menus'
 import { defaultTitle, rowPresetId } from './sidebarModel'
+import { redrawSession } from './actions'
 
 const encoder = new TextEncoder()
 
@@ -43,6 +44,7 @@ export async function terminalContextMenu(id: string, x: number, y: number): Pro
       { label: 'Send selection to', submenu: targets, enabled: !!selection && targets.length > 0 },
       sep,
       { id: 'find', label: 'Find…' },
+      { id: 'redraw', label: 'Redraw screen' },
       { id: 'selectAll', label: 'Select all' },
       { id: 'clearSel', label: 'Clear selection', enabled: !!selection }
     ],
@@ -62,6 +64,9 @@ export async function terminalContextMenu(id: string, x: number, y: number): Pro
       break
     case 'find':
       useUi.getState().setSearchOpen(true)
+      break
+    case 'redraw':
+      redrawSession(id)
       break
     case 'selectAll':
       e.term.selectAll()

@@ -84,6 +84,15 @@ function nextSessionId(closing: string): string | null {
   return list[0]?.id ?? null
 }
 
+/** Nudges the program to repaint: a one-column resize and back makes TUI apps redraw everything. */
+export function redrawSession(id: string): void {
+  const e = registry.get(id)
+  if (!e) return
+  const { cols, rows } = e.term
+  window.step.send('host:resize', id, Math.max(2, cols - 1), rows)
+  window.setTimeout(() => window.step.send('host:resize', id, cols, rows), 120)
+}
+
 export function restartSession(id: string): void {
   registry.markDetached(id)
   window.step.send('host:restart', id)

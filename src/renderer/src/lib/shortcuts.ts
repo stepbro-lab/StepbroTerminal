@@ -1,7 +1,7 @@
 import { useData } from '@/stores/data'
 import { usePrefs } from '@/stores/prefs'
 import { useUi } from '@/stores/ui'
-import { addProject, closeSession, newShell, restartSession, splitWithNewShell } from './actions'
+import { addProject, closeSession, newShell, redrawSession, restartSession, splitWithNewShell } from './actions'
 import { flatSessions, type SidebarProject } from './sidebarModel'
 import { registry } from '@/terminal/TerminalRegistry'
 import { jumpToAttention } from './attention'
@@ -25,6 +25,7 @@ export type Command =
   | 'prompt-history'
   | 'next-view'
   | 'prev-view'
+  | 'redraw'
 
 let modelRef: SidebarProject[] = []
 export function setSidebarModelRef(m: SidebarProject[]): void {
@@ -85,6 +86,9 @@ export function runCommand(cmd: Command): void {
     case 'split-down':
       void splitWithNewShell(cmd === 'split-right' ? 'row' : 'column')
       break
+    case 'redraw':
+      if (ui.activeId) redrawSession(ui.activeId)
+      break
   }
 }
 
@@ -97,6 +101,7 @@ export function commandFor(ev: KeyboardEvent): Command | 'jump' | null {
     if (k === 'r') return 'restart-session'
     if (k === 'o') return 'add-project'
     if (k === 'h') return 'prompt-history'
+    if (k === 'l') return 'redraw'
     if (ev.key === ']' || ev.key === '}') return 'next-view'
     if (ev.key === '[' || ev.key === '{') return 'prev-view'
     if (ev.key === '\\' || ev.key === '|') return 'split-down'

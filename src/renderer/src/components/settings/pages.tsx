@@ -237,6 +237,7 @@ const SHORTCUTS: Array<[string, string]> = [
   ['Command palette', `${modKey} K`],
   ['Next session that needs you', `${modKey} J`],
   ['Prompt history', `${modKey} ⇧ H`],
+  ['Redraw the screen', `${modKey} ⇧ L`],
   ['Jump to session 1 to 9', `${modKey} 1…9`],
   ['Split right with a new shell', `${modKey} \\`],
   ['Split down with a new shell', `${modKey} ⇧ \\`],
