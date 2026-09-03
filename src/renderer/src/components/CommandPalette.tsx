@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Folder, History, Moon, PanelLeft, RotateCw, Search, Settings, Sun, Terminal } from 'lucide-react'
 import { useData } from '@/stores/data'
-import { usePrefs } from '@/stores/prefs'
+import { usePrefs, setChromeDim } from '@/stores/prefs'
 import { useUi } from '@/stores/ui'
 import { filter } from '@/lib/fuzzy'
 import { addProject, createSession, historyFor, newShell, restartSession, resumeHistory } from '@/lib/actions'
@@ -170,6 +170,8 @@ export function CommandPalette() {
       setCursor(0)
       setTimeout(() => inputRef.current?.focus(), 0)
     }
+    setChromeDim(open)
+    return () => setChromeDim(false)
   }, [open, mode])
   useEffect(() => setCursor(0), [query])
   useEffect(() => {
