@@ -48,7 +48,7 @@
   --attention: #f5b640;
   --danger: #ff6369;
   --success: #4cc38a;
-  --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.02) inset, 0 8px 24px rgba(0, 0, 0, 0.35);
+  --shadow-card: none;
   --shadow-pop: 0 24px 70px rgba(0, 0, 0, 0.6), 0 2px 8px rgba(0, 0, 0, 0.4);
   --scrim: rgba(0, 0, 0, 0.5);
 }
