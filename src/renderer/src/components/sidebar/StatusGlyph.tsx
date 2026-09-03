@@ -1,5 +1,5 @@
-import { SPINNER, useUi } from '@/stores/ui'
 import type { RowStatus } from '@/lib/sidebarModel'
+import { DotSpinner } from './DotSpinner'
 
 interface Props {
   status: RowStatus
@@ -9,38 +9,30 @@ interface Props {
 
 /**
  * Left-hand status mark of a session row:
- * working → braille spinner in the agent color · attention → amber dot · done → colored dot
+ * working → dot spinner in the agent color · attention → amber dot · done → agent-colored dot
  * error → red dot · idle/exited → nothing.
  */
 export function StatusGlyph({ status, color, size = 14 }: Props) {
-  const frame = useUi((s) => s.spinnerFrame)
   const box: React.CSSProperties = { width: size, height: size }
+  const dot = (bg: string, px = 7, pulse = false): React.ReactElement => (
+    <span className="inline-flex items-center justify-center" style={box}>
+      <span className={pulse ? 'pulse-once rounded-full' : 'rounded-full'} style={{ width: px, height: px, background: bg }} />
+    </span>
+  )
   switch (status) {
     case 'working':
     case 'starting':
       return (
-        <span className="inline-flex items-center justify-center font-mono leading-none" style={{ ...box, color, fontSize: size - 1 }}>
-          {SPINNER[frame]}
+        <span className="inline-flex items-center justify-center" style={box}>
+          <DotSpinner size={size} color={color} />
         </span>
       )
     case 'attention':
-      return (
-        <span className="inline-flex items-center justify-center" style={box}>
-          <span className="pulse-once rounded-full" style={{ width: 8, height: 8, background: 'var(--attention)' }} />
-        </span>
-      )
+      return dot('var(--attention)', 8, true)
     case 'done':
-      return (
-        <span className="inline-flex items-center justify-center" style={box}>
-          <span className="rounded-full" style={{ width: 7, height: 7, background: color }} />
-        </span>
-      )
+      return dot(color)
     case 'error':
-      return (
-        <span className="inline-flex items-center justify-center" style={box}>
-          <span className="rounded-full" style={{ width: 7, height: 7, background: 'var(--danger)' }} />
-        </span>
-      )
+      return dot('var(--danger)')
     default:
       return <span style={box} />
   }

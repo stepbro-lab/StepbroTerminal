@@ -56,7 +56,7 @@
 :root {
   --font-ui: 'Inter Variable', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI Variable Text', 'Segoe UI', sans-serif;
   --font-mono: 'JetBrains Mono', 'SF Mono', 'Cascadia Mono', Menlo, Consolas, monospace;
-  --radius-card: 12px;
+  --radius-card: 10px;
   --radius-row: 7px;
   --radius-input: 8px;
   --titlebar-h: 40px;

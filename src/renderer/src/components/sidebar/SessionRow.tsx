@@ -21,13 +21,17 @@ export function SessionRow({ row }: Props) {
   const color = presets.find((p) => p.id === row.presetId)?.color ?? '#8a8a90'
   const active = activeId === row.id
   const renaming = renamingId === row.id
-  const muted = row.status === 'idle' || row.status === 'exited'
+  const busy = row.status === 'working' || row.status === 'starting' || row.status === 'attention' || row.status === 'done'
+  const exited = row.status === 'exited'
+
+  // Text: active is bright, busy is one step down, idle is muted, exited is faint.
+  const titleColor = active ? 'var(--text)' : busy ? 'var(--text-secondary)' : exited ? 'var(--text-faint)' : 'var(--text-muted)'
+  const logoColor = active ? 'var(--text)' : busy ? 'var(--text-secondary)' : 'var(--text-faint)'
 
   return (
     <div
       className="row grid-cols-[16px_minmax(0,1fr)_auto_16px] gap-2 pl-[22px]"
       data-active={active}
-      data-tone={!muted && !active ? 'fg' : undefined}
       title={row.session.projectPath}
       onClick={() => {
         setActiveProject(row.session.projectPath)
@@ -41,10 +45,7 @@ export function SessionRow({ row }: Props) {
       onAuxClick={(e) => {
         if (e.button === 1) void closeSession(row.id)
       }}
-      style={{
-        color: row.status === 'exited' && !active ? 'var(--text-faint)' : undefined,
-        fontWeight: row.status === 'attention' ? 600 : undefined
-      }}
+      style={{ color: titleColor, fontWeight: active || row.status === 'attention' ? 550 : undefined }}
     >
       <StatusGlyph status={row.status} color={color} />
       {renaming ? (
@@ -52,8 +53,8 @@ export function SessionRow({ row }: Props) {
       ) : (
         <span className="row-title">{row.title}</span>
       )}
-      {row.pinned && <Pin size={11} className="opacity-60" />}
-      <span className="flex items-center justify-center" style={{ color: active || !muted ? color : 'var(--text-faint)' }}>
+      {row.pinned && <Pin size={11} strokeWidth={1.8} style={{ color: 'var(--text-muted)' }} />}
+      <span className="flex items-center justify-center" style={{ color: logoColor }}>
         <AgentLogo presetId={row.presetId} size={13} />
       </span>
     </div>

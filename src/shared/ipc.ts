@@ -62,6 +62,8 @@ export interface SendMap {
   'win:close': () => void
   'win:setActiveSession': (id: string | null) => void
   'win:setTitle': (title: string) => void
+  /** Windows only: keep the native caption buttons on the same color as our title bar. */
+  'win:setOverlay': (color: string, symbolColor: string) => void
   'clipboard:write': (text: string) => void
 }
 

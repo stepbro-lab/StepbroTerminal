@@ -112,7 +112,6 @@ button {
 .row[data-active='true']:hover {
   background: var(--bg-active);
   color: var(--text);
-  font-weight: 550;
 }
 .row-title {
   overflow: hidden;

@@ -61,12 +61,12 @@ export function CardHeader({ session }: { session: Session }) {
   }
 
   return (
-    <div className="flex h-10 shrink-0 items-center gap-2 border-b border-line pl-3.5 pr-2">
+    <div className="flex h-9 shrink-0 items-center gap-2 border-b border-line pl-3 pr-1.5">
       <StatusGlyph status={session.status} color={color} size={14} />
       {editing ? (
         <TitleInput session={session} onDone={() => setEditing(false)} />
       ) : (
-        <span className="min-w-0 flex-1 truncate text-[13px] font-semibold tracking-[-0.005em]" onDoubleClick={() => setEditing(true)} title={session.projectPath}>
+        <span className="min-w-0 flex-1 truncate text-[13px] font-medium tracking-[-0.005em]" onDoubleClick={() => setEditing(true)} title={session.projectPath}>
           {title}
         </span>
       )}

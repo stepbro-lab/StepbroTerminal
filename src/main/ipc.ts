@@ -4,6 +4,7 @@ import type { MenuItemSpec, Session } from '@shared/types'
 import { normalizeProjectPath } from '@shared/paths'
 import { readTranscriptDetails, transcriptPath } from './claude/transcript'
 import { buildLaunchSpec } from './presets/launchSpec'
+import { TITLEBAR_HEIGHT } from './window'
 import type { Ctx } from './context'
 
 type Handler<K extends keyof InvokeMap> = (...args: Parameters<InvokeMap[K]>) => ReturnType<InvokeMap[K]> | Promise<ReturnType<InvokeMap[K]>>
@@ -87,6 +88,14 @@ export function registerIpc(ctx: Ctx): void {
     ctx.activeId = id
   })
   on('win:setTitle', (title) => ctx.win?.setTitle(title ? `${title} — Step` : 'Step'))
+  on('win:setOverlay', (color, symbolColor) => {
+    if (process.platform !== 'win32' || !ctx.win) return
+    try {
+      ctx.win.setTitleBarOverlay({ color, symbolColor, height: TITLEBAR_HEIGHT })
+    } catch {
+      /* overlay unsupported */
+    }
+  })
   on('clipboard:write', (text) => clipboard.writeText(text))
 
   handle('menu:popup', (items: MenuItemSpec[]) => popupMenu(ctx, items))
