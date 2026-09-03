@@ -95,6 +95,8 @@ export interface EventMap {
   'projects:update': (projects: Project[]) => void
   'ui:focusSession': (id: string) => void
   'ui:command': (name: string) => void
+  /** Play the notification sound; the renderer owns the audio file. */
+  'ui:sound': () => void
   'win:maximized': (maximized: boolean) => void
   'theme:system': (dark: boolean) => void
 }

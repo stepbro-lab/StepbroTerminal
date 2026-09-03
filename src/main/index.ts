@@ -113,7 +113,8 @@ async function boot(): Promise<void> {
     getWindow: () => ctx.win,
     getActive: () => ctx.activeId,
     input: (id, bytes) => client.send({ t: 'input', id }, bytes),
-    focusSession: (id) => ctx.emit('ui:focusSession', id)
+    focusSession: (id) => ctx.emit('ui:focusSession', id),
+    playSound: () => ctx.emit('ui:sound')
   })
   ctx.tray = new StepTray({
     getSessions: () => [...ctx.sessions.values()],

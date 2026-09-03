@@ -9,6 +9,8 @@ export interface NotifierDeps {
   /** Sends raw bytes to a session's PTY. */
   input: (id: string, bytes: Uint8Array) => void
   focusSession: (id: string) => void
+  /** Plays the app's own notification sound (the renderer holds the audio file). */
+  playSound: () => void
 }
 
 const ENTER = new Uint8Array([0x0d])
@@ -70,17 +72,19 @@ export class Notifier {
     const body = waiting ? 'Needs your input' : s.status === 'error' ? (s.error ?? 'Something went wrong') : (s.agent.lastMessage ?? 'Finished')
     const n =
       process.platform === 'win32'
-        ? new Notification({ toastXml: this.toast(s.id, title, body, waiting), silent: !prefs.sound })
+        ? new Notification({ toastXml: this.toast(s.id, title, body, waiting), silent: true })
         : new Notification({
             title,
             body,
             icon: appLogoPath(),
-            silent: !prefs.sound,
+            silent: true,
             actions: process.platform === 'darwin' && waiting ? [{ type: 'button', text: 'Allow' }, { type: 'button', text: 'Deny' }] : undefined
           })
     n.on('click', () => this.show(s.id))
     n.on('action', (_e, index) => this.respond(s.id, index === 0))
     n.show()
+    // The system sound stays off so only ours plays.
+    if (prefs.sound) this.deps.playSound()
   }
 
   private show(id: string): void {
