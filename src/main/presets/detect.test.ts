@@ -9,6 +9,7 @@ import type { Prefs } from '@shared/types'
 const prefs = (over: Partial<Prefs> = {}): Prefs => ({
   theme: 'system',
   accent: 'blue',
+  flagHints: true,
   fontFamily: 'x',
   fontSize: 13,
   lineHeight: 1.2,

@@ -1,10 +1,11 @@
-import { Terminal, type IDisposable } from '@xterm/xterm'
+import { Terminal, type IDecoration, type IDisposable, type IMarker } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import { SearchAddon } from '@xterm/addon-search'
 import { WebLinksAddon } from '@xterm/addon-web-links'
 import { Unicode11Addon } from '@xterm/addon-unicode11'
 import type { Prefs } from '@shared/types'
 import { darkTerminal, lightTerminal } from '@/theme/terminalThemes'
+import { InputLine, hintFor } from '@/lib/flagHints'
 
 interface Entry {
   id: string
@@ -20,10 +21,19 @@ interface Entry {
   ackTimer: number | null
   disposables: IDisposable[]
   mounted: boolean
+  /** What has been typed on the current shell line, for flag hints. */
+  line: InputLine
+  /** Ghost text after the cursor, when a hint is showing. */
+  hint: { text: string; cells: number; marker: IMarker; decoration: IDecoration } | null
+  /** A keystroke changed the line; the hint is recomputed once the shell has echoed it. */
+  hintDirty: boolean
+  /** Escape hides hints until the next line. */
+  hintMuted: boolean
 }
 
 const ACK_EVERY = 64 * 1024
 const encoder = new TextEncoder()
+const measure = document.createElement('canvas').getContext('2d')
 
 type AppKeyHandler = (ev: KeyboardEvent) => boolean
 type ContextMenuHandler = (id: string, x: number, y: number) => void
@@ -151,12 +161,21 @@ class TerminalRegistry {
       ackPending: 0,
       ackTimer: null,
       disposables: [],
-      mounted: false
+      mounted: false,
+      line: new InputLine(),
+      hint: null,
+      hintDirty: false,
+      hintMuted: false
     }
     entry.disposables.push(
       term.onData((data) => {
         if (entry.replaying) return
         window.step.send('host:input', id, encoder.encode(data))
+        this.noteInput(entry, data)
+      }),
+      // Hints wait for the shell's echo so the cursor is where the typed text ended.
+      term.onWriteParsed(() => {
+        if (entry.hintDirty || entry.hint) this.refreshHint(entry)
       }),
       term.onBinary((data) => {
         if (entry.replaying) return
@@ -213,6 +232,8 @@ class TerminalRegistry {
       }
       e.hydrated = true
       e.replaying = true
+      this.clearHint(e)
+      e.line.reset()
       e.term.reset()
       if (bytes.byteLength === 0) {
         e.replaying = false
@@ -230,6 +251,8 @@ class TerminalRegistry {
   clear(id: string): void {
     const e = this.entries.get(id)
     if (!e) return
+    this.clearHint(e)
+    e.line.reset()
     e.term.reset()
     e.hydrated = true
   }
@@ -243,6 +266,7 @@ class TerminalRegistry {
     const e = this.entries.get(id)
     if (!e) return
     this.unmount(id)
+    this.clearHint(e)
     for (const d of e.disposables) d.dispose()
     e.term.dispose()
     this.entries.delete(id)
@@ -259,6 +283,7 @@ class TerminalRegistry {
     this.prefs = prefs
     this.dark = dark
     for (const e of this.entries.values()) {
+      if (!prefs.flagHints) this.clearHint(e)
       if (fontChanged) {
         e.term.options.fontFamily = fontStack(prefs.fontFamily)
         e.term.options.fontSize = prefs.fontSize
@@ -336,6 +361,18 @@ class TerminalRegistry {
   private handleKey(e: Entry, ev: KeyboardEvent): boolean {
     if (ev.type !== 'keydown') return true
     if (this.appKeyHandler(ev)) return false
+    if (e.hint) {
+      const plain = !ev.ctrlKey && !ev.altKey && !ev.metaKey && !ev.shiftKey
+      if (plain && (ev.key === 'Tab' || ev.key === 'ArrowRight')) {
+        this.acceptHint(e)
+        return false
+      }
+      if (plain && ev.key === 'Escape') {
+        e.hintMuted = true
+        this.clearHint(e)
+        return false
+      }
+    }
     const mac = window.step.platform === 'darwin'
     const mod = mac ? ev.metaKey : ev.ctrlKey
     if (!mac && ev.ctrlKey && ev.shiftKey && ev.key.toLowerCase() === 'c') {
@@ -376,6 +413,76 @@ class TerminalRegistry {
       const text = await window.step.invoke('clipboard:readText')
       if (text) e.term.paste(text)
     }
+  }
+
+  // ---- flag hints: ghost text such as " --dangerously-skip-permissions" after "claude" ----
+
+  private noteInput(e: Entry, data: string): void {
+    e.line.feed(data)
+    if (e.line.text === '') e.hintMuted = false
+    e.hintDirty = true
+    // The cursor only moves once the shell echoes, so anything shown now would be misplaced.
+    this.clearHint(e)
+  }
+
+  private wantedHint(e: Entry): string | null {
+    if (this.prefs?.flagHints === false || e.hintMuted || !e.line.known) return null
+    // Full-screen programs own the keyboard; hints are for shell prompts only.
+    if (e.term.buffer.active.type !== 'normal' || e.term.modes.mouseTrackingMode !== 'none') return null
+    return hintFor(e.line.text)
+  }
+
+  private refreshHint(e: Entry): void {
+    e.hintDirty = false
+    this.clearHint(e)
+    const text = this.wantedHint(e)
+    if (!text) return
+    const term = e.term
+    const buf = term.buffer.active
+    const cells = Math.min(text.length, term.cols - buf.cursorX)
+    if (cells < 2) return
+    const marker = term.registerMarker(0)
+    if (!marker) return
+    const decoration = term.registerDecoration({ marker, x: buf.cursorX, width: cells, layer: 'top' })
+    if (!decoration) {
+      marker.dispose()
+      return
+    }
+    decoration.onRender((el) => this.paintHint(e, el, text, cells))
+    e.hint = { text, cells, marker, decoration }
+  }
+
+  private paintHint(e: Entry, el: HTMLElement, text: string, cells: number): void {
+    const o = e.term.options
+    el.classList.add('step-ghost')
+    el.textContent = text
+    el.style.fontFamily = o.fontFamily ?? ''
+    el.style.fontSize = `${o.fontSize}px`
+    el.style.fontWeight = String(o.fontWeight ?? 'normal')
+    el.style.lineHeight = el.style.height
+    // Cells are a hair wider than the glyph advance; spread the letters so they sit on the grid.
+    if (measure) {
+      measure.font = `${el.style.fontWeight} ${el.style.fontSize} ${el.style.fontFamily}`
+      const natural = measure.measureText('M').width
+      const cell = parseFloat(el.style.width) / cells
+      if (natural > 0 && cell > 0) el.style.letterSpacing = `${cell - natural}px`
+    }
+  }
+
+  private acceptHint(e: Entry): void {
+    const hint = e.hint
+    if (!hint) return
+    this.clearHint(e)
+    window.step.send('host:input', e.id, encoder.encode(hint.text))
+    e.line.feed(hint.text)
+    e.hintDirty = true
+  }
+
+  private clearHint(e: Entry): void {
+    if (!e.hint) return
+    e.hint.decoration.dispose()
+    e.hint.marker.dispose()
+    e.hint = null
   }
 
   private copySelection(e: Entry): void {

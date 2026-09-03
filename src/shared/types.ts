@@ -163,6 +163,8 @@ export interface Prefs {
   claudePath?: string
   shell?: string
   presetUsage: Record<string, number>
+  /** Ghost-text the permission-skipping flag when an agent is typed at a prompt. */
+  flagHints: boolean
 }
 
 export type SplitDir = 'row' | 'column'

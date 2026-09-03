@@ -415,3 +415,11 @@ kbd {
 .toast-in {
   animation: toast-in 180ms var(--ease);
 }
+
+/* Ghost text after the cursor: the flag StepbroTerminal suggests when an agent is typed. */
+.xterm .step-ghost {
+  color: var(--text-faint);
+  white-space: pre;
+  overflow: hidden;
+  pointer-events: none;
+}

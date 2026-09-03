@@ -141,6 +141,15 @@ export function AgentsPage() {
         </div>
       </Section>
 
+      <Section
+        title="As you type"
+        description="Type claude, codex or gemini at a prompt and the flag that skips its permission prompts shows up in grey. Tab or → accepts it, Esc hides it."
+      >
+        <Row label="Suggest skip-permissions flags">
+          <Toggle value={p.flagHints} onChange={(flagHints) => upd({ flagHints })} />
+        </Row>
+      </Section>
+
       <Section title="Claude Code" description="StepbroTerminal passes hooks to Claude per session so it can show working, waiting and done. Only set a path if the binary is not on PATH.">
         <Row label="Binary">
           <TextField

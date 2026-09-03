@@ -21,7 +21,8 @@ export const defaultPrefs: Prefs = {
   addedProjects: [],
   hiddenProjects: [],
   customPresets: [],
-  presetUsage: {}
+  presetUsage: {},
+  flagHints: true
 }
 
 function file(): string {
