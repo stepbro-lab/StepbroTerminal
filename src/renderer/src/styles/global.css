@@ -109,9 +109,6 @@ button {
   background: var(--bg-active);
   color: var(--text);
 }
-.row[data-pane='true'] {
-  background: var(--bg-hover);
-}
 .row-title {
   overflow: hidden;
   text-overflow: ellipsis;
