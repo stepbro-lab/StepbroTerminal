@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { ptyEnv, resolveCommand, substituteArgs, writeHooksSettings } from './launch'
+import { ptyEnv, resolveCommand, substituteArgs, writeHooksSettings, writeMcpConfig } from './launch'
 
 let tmp: string
 beforeEach(() => {
@@ -20,6 +20,24 @@ describe('substituteArgs', () => {
         hooksSettings: '/p/h.json'
       })
     ).toEqual(['--session-id', 'abc', '--settings', '/p/h.json', 'x'])
+  })
+})
+
+describe('mcp placeholders', () => {
+  it('fills the config path and url, and blanks them when absent', () => {
+    const args = ['--mcp-config', '{mcpConfig}', '-c', 'mcp_servers.stepbro.url="{mcpUrl}"']
+    expect(substituteArgs(args, { sessionId: 's', hooksSettings: '', mcpConfig: '/p/s.mcp.json', mcpUrl: 'http://h/mcp' })).toEqual([
+      '--mcp-config',
+      '/p/s.mcp.json',
+      '-c',
+      'mcp_servers.stepbro.url="http://h/mcp"'
+    ])
+    expect(substituteArgs(['{mcpConfig}'], { sessionId: 's', hooksSettings: '' })).toEqual([''])
+  })
+
+  it('writes an http server entry for Claude Code', () => {
+    const file = writeMcpConfig(tmp, 's1', 'http://127.0.0.1:1/mcp/t/s1')
+    expect(JSON.parse(fs.readFileSync(file, 'utf8'))).toEqual({ mcpServers: { stepbro: { type: 'http', url: 'http://127.0.0.1:1/mcp/t/s1' } } })
   })
 })
 

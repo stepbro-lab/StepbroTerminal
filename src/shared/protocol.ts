@@ -1,4 +1,4 @@
-import type { CreateSessionOpts, PromptRecord, Session } from './types'
+import type { CreateSessionOpts, PromptRecord, Session, Note } from './types'
 
 export type ClientMsg =
   | { t: 'hello'; version: string }
@@ -15,6 +15,10 @@ export type ClientMsg =
   | { t: 'pin'; id: string; pinned: boolean }
   | { t: 'viewed'; id: string }
   | { t: 'ack'; id: string; bytes: number }
+  | { t: 'notes:list' }
+  | { t: 'notes:add'; text: string }
+  | { t: 'notes:update'; id: string; text?: string; done?: boolean }
+  | { t: 'notes:delete'; id: string }
   | { t: 'shutdown' }
 
 export type HostMsg =
@@ -28,6 +32,8 @@ export type HostMsg =
   | { t: 'clear'; id: string }
   | { t: 'exit'; id: string; code: number }
   | { t: 'prompt'; prompt: PromptRecord }
+  /** The whole list after any change; `added` is set when an agent just saved one. */
+  | { t: 'notes'; notes: Note[]; added?: Note }
   | { t: 'error'; message: string; id?: string; reqId?: string }
 
 const HEADER = 8

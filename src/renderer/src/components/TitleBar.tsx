@@ -4,6 +4,7 @@ import { useUi } from '@/stores/ui'
 import { useData } from '@/stores/data'
 import { ActivityPulse } from './ActivityPulse'
 import { UpdatePill } from './UpdatePill'
+import { NotesButton } from './notes/NotesButton'
 import { ViewSwitcher } from './ViewSwitcher'
 import { StatusGlyph } from './sidebar/StatusGlyph'
 import { defaultTitle, rowPresetId } from '@/lib/sidebarModel'
@@ -41,6 +42,7 @@ export function TitleBar() {
         </button>
         <ActivityPulse />
         <UpdatePill />
+        <NotesButton />
       </div>
       <div className="pointer-events-none absolute inset-x-0 flex items-center justify-center gap-1.5 text-[12.5px] text-muted">
         {viewCount >= 2 ? (

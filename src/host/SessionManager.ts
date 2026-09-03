@@ -9,7 +9,7 @@ import type { CreateSessionOpts, LiveClaude, Session } from '@shared/types'
 import { TitleCapture, detectAgentFromCommand } from './titleCapture'
 import { OscTitleParser, isBoringTitle, stripTitleGlyph } from './oscTitle'
 import { reduceStatus, type ReducerEvent } from './statusReducer'
-import { ptyEnv, resolveCommand, substituteArgs, writeHooksSettings } from './launch'
+import { ptyEnv, resolveCommand, substituteArgs, writeHooksSettings, writeMcpConfig } from './launch'
 import { findAncestor, processTable } from './procTree'
 import { log } from './log'
 import { waitingForApproval } from './screenPrompts'
@@ -19,6 +19,8 @@ export interface SessionManagerOpts {
   logDir: string
   hooksDir: string
   hookUrl: () => string
+  /** The per-session MCP endpoint (notes tools) for agents that take one. */
+  mcpUrl: (sessionId: string) => string
   scrollback: number
   baseEnv: NodeJS.ProcessEnv
 }
@@ -482,7 +484,16 @@ export class SessionManager extends EventEmitter {
       }
     }
     const template = resume && s.launch.resumeArgs ? s.launch.resumeArgs : s.launch.args
-    const args = substituteArgs(template, { sessionId, hooksSettings })
+    const mcpUrl = this.opts.mcpUrl(s.id)
+    let mcpConfig = ''
+    if (template.some((a) => a.includes('{mcpConfig}'))) {
+      try {
+        mcpConfig = writeMcpConfig(this.opts.hooksDir, s.id, mcpUrl)
+      } catch (e) {
+        log('mcp config write failed', e)
+      }
+    }
+    const args = substituteArgs(template, { sessionId, hooksSettings, mcpConfig, mcpUrl })
     const resolved = resolveCommand(s.launch.command, env)
     if (!resolved) {
       s.status = 'error'

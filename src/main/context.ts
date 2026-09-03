@@ -1,6 +1,6 @@
 import type { BrowserWindow } from 'electron'
 import type { EventMap, EventName } from '@shared/ipc'
-import type { HostState, Preset, Prefs, Project, Session } from '@shared/types'
+import type { HostState, Preset, Prefs, Project, Session, Note } from '@shared/types'
 import type { HostClient } from './host/HostClient'
 import type { HistoryIndex } from './claude/history'
 import type { LiveClaudeWatcher } from './claude/liveSessions'
@@ -26,6 +26,8 @@ export interface Ctx {
   tray: StepTray
   prompts: PromptLog
   updates: Updates
+  /** Latest list from the host, so the renderer can ask for it on boot. */
+  notes: Note[]
   log: (...a: unknown[]) => void
   emit: <K extends EventName>(channel: K, ...args: Parameters<EventMap[K]>) => void
   setPrefs: (partial: Partial<Prefs>) => Prefs

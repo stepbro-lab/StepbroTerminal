@@ -5,6 +5,7 @@ import { addProject, closeSession, newShell, redrawSession, restartSession, spli
 import { flatSessions, type SidebarProject } from './sidebarModel'
 import { registry } from '@/terminal/TerminalRegistry'
 import { jumpToAttention } from './attention'
+import { useNotes } from '@/stores/notes'
 
 const isMac = window.step.platform === 'darwin'
 
@@ -26,6 +27,7 @@ export type Command =
   | 'next-view'
   | 'prev-view'
   | 'redraw'
+  | 'notes'
 
 let modelRef: SidebarProject[] = []
 export function setSidebarModelRef(m: SidebarProject[]): void {
@@ -89,6 +91,9 @@ export function runCommand(cmd: Command): void {
     case 'redraw':
       if (ui.activeId) redrawSession(ui.activeId)
       break
+    case 'notes':
+      useNotes.getState().toggle()
+      break
   }
 }
 
@@ -102,6 +107,7 @@ export function commandFor(ev: KeyboardEvent): Command | 'jump' | null {
     if (k === 'o') return 'add-project'
     if (k === 'h') return 'prompt-history'
     if (k === 'l') return 'redraw'
+    if (k === 'n') return 'notes'
     if (ev.key === ']' || ev.key === '}') return 'next-view'
     if (ev.key === '[' || ev.key === '{') return 'prev-view'
     if (ev.key === '\\' || ev.key === '|') return 'split-down'
@@ -143,6 +149,10 @@ export function jumpTo(n: number): void {
 export function handleKeydown(ev: KeyboardEvent): boolean {
   const ui = useUi.getState()
   if (ev.key === 'Escape') {
+    if (useNotes.getState().open) {
+      useNotes.getState().setOpen(false)
+      return true
+    }
     if (ui.paletteOpen) {
       ui.closePalette()
       return true

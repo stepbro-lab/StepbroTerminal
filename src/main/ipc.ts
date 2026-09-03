@@ -37,6 +37,12 @@ export function registerIpc(ctx: Ctx): void {
   on('host:viewed', (id) => ctx.client.send({ t: 'viewed', id }))
   on('host:ack', (id, bytes) => ctx.client.send({ t: 'ack', id, bytes }))
 
+  // ---- notes ----
+  handle('notes:list', () => ctx.notes)
+  on('notes:add', (text) => ctx.client.send({ t: 'notes:add', text }))
+  on('notes:update', (id, patch) => ctx.client.send({ t: 'notes:update', id, ...patch }))
+  on('notes:delete', (id) => ctx.client.send({ t: 'notes:delete', id }))
+
   // ---- projects ----
   handle('projects:list', () => ctx.projects())
   handle('projects:pickFolder', async () => {

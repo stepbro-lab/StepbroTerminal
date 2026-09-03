@@ -7,6 +7,8 @@ import type { HostInfo } from '@shared/types'
 import { SessionManager } from './SessionManager'
 import { HostServer } from './HostServer'
 import { HookServer } from './HookServer'
+import { NoteStore } from './NoteStore'
+import { handleMcp } from './mcp'
 import { initLog, log } from './log'
 
 const IDLE_EXIT_MS = 60_000
@@ -21,22 +23,30 @@ async function main(): Promise<void> {
 
   const token = randomBytes(16).toString('hex')
   let hookUrl = ''
+  let mcpUrlFor: (sessionId: string) => string = () => ''
   const sm = new SessionManager({
     stateFile: path.join(dir, 'state.json'),
     logDir: path.join(dir, 'sessions'),
     hooksDir: path.join(dir, 'hooks'),
     hookUrl: () => hookUrl,
+    mcpUrl: (id) => mcpUrlFor(id),
     scrollback: SCROLLBACK_LINES,
     baseEnv: process.env
   })
   sm.load()
 
-  const hooks = new HookServer(sm, token)
+  const notes = new NoteStore(path.join(dir, 'notes.json'))
+  notes.load()
+
+  const hooks = new HookServer(sm, token, (sessionId, req, res) =>
+    handleMcp({ notes, session: (id) => sm.list().find((s) => s.id === id), version }, sessionId, req, res)
+  )
   const hookPort = await hooks.listen()
   hookUrl = hooks.url()
+  mcpUrlFor = (id) => hooks.mcpUrl(id)
 
   const socketPath = hostSocketPath()
-  const server = new HostServer(sm, socketPath, version)
+  const server = new HostServer(sm, notes, socketPath, version)
   try {
     await server.listen()
   } catch (e: any) {

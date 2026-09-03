@@ -6,6 +6,9 @@ export interface HookSink {
   applyHook(agentSessionId: string, name: string, payload: Record<string, unknown>): void
 }
 
+/** Serves one MCP request for the session whose endpoint was hit. */
+export type McpHandler = (sessionId: string, req: http.IncomingMessage, res: http.ServerResponse) => Promise<void>
+
 const MAX_BODY = 1024 * 1024
 
 /** Local HTTP endpoint that Claude Code's `type: "http"` hooks post to. Always answers 200 `{}`. */
@@ -15,7 +18,8 @@ export class HookServer {
 
   constructor(
     private readonly sink: HookSink,
-    private readonly token: string
+    private readonly token: string,
+    private readonly mcp?: McpHandler
   ) {
     this.server = http.createServer((req, res) => this.handle(req, res))
     this.server.on('error', (e) => log('hook server error', e))
@@ -35,11 +39,25 @@ export class HookServer {
     return `http://127.0.0.1:${this.port}/hooks/${this.token}`
   }
 
+  /** The MCP endpoint an agent in `sessionId` gets: the notes tools, tagged with that session. */
+  mcpUrl(sessionId: string): string {
+    return `http://127.0.0.1:${this.port}/mcp/${this.token}/${sessionId}`
+  }
+
   close(): void {
     this.server.close()
   }
 
   private handle(req: http.IncomingMessage, res: http.ServerResponse): void {
+    const mcpPrefix = `/mcp/${this.token}/`
+    if (this.mcp && req.url?.startsWith(mcpPrefix)) {
+      const sessionId = req.url.slice(mcpPrefix.length).split(/[/?]/)[0]
+      this.mcp(sessionId, req, res).catch((e) => {
+        log('mcp error', e)
+        if (!res.headersSent) res.writeHead(500).end()
+      })
+      return
+    }
     const ok = req.method === 'POST' && req.url === `/hooks/${this.token}`
     if (!ok) {
       res.writeHead(404).end()

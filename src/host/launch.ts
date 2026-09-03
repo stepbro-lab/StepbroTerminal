@@ -14,8 +14,22 @@ const HOOK_EVENTS = [
   'SessionEnd'
 ] as const
 
-export function substituteArgs(args: string[], vars: { sessionId: string; hooksSettings: string }): string[] {
-  return args.map((a) => a.replace(/\{sessionId\}/g, vars.sessionId).replace(/\{hooksSettings\}/g, vars.hooksSettings))
+export interface LaunchVars {
+  sessionId: string
+  hooksSettings: string
+  /** Path of the MCP config file for Claude Code, and the bare URL for agents that take one. */
+  mcpConfig?: string
+  mcpUrl?: string
+}
+
+export function substituteArgs(args: string[], vars: LaunchVars): string[] {
+  return args.map((a) =>
+    a
+      .replace(/\{sessionId\}/g, vars.sessionId)
+      .replace(/\{hooksSettings\}/g, vars.hooksSettings)
+      .replace(/\{mcpConfig\}/g, vars.mcpConfig ?? '')
+      .replace(/\{mcpUrl\}/g, vars.mcpUrl ?? '')
+  )
 }
 
 /** Writes a Claude Code settings file that only adds http hooks pointing at `url`. Returns its path. */
@@ -27,6 +41,14 @@ export function writeHooksSettings(dir: string, sessionId: string, url: string):
   }
   const file = path.join(dir, `${sessionId}.json`)
   fs.writeFileSync(file, JSON.stringify({ hooks }, null, 2))
+  return file
+}
+
+/** Writes the file Claude Code takes with --mcp-config: our notes server for this session. */
+export function writeMcpConfig(dir: string, sessionId: string, url: string): string {
+  fs.mkdirSync(dir, { recursive: true })
+  const file = path.join(dir, `${sessionId}.mcp.json`)
+  fs.writeFileSync(file, JSON.stringify({ mcpServers: { stepbro: { type: 'http', url } } }, null, 2))
   return file
 }
 

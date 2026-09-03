@@ -11,8 +11,8 @@ export const builtinPresets: BuiltinPreset[] = [
     color: '#d97757',
     binary: 'claude',
     binaries: ['claude'],
-    args: ['--session-id', '{sessionId}', '--settings', '{hooksSettings}'],
-    resumeArgs: ['--resume', '{sessionId}', '--settings', '{hooksSettings}'],
+    args: ['--session-id', '{sessionId}', '--settings', '{hooksSettings}', '--mcp-config', '{mcpConfig}'],
+    resumeArgs: ['--resume', '{sessionId}', '--settings', '{hooksSettings}', '--mcp-config', '{mcpConfig}'],
     hooks: true
   },
   {
@@ -21,8 +21,8 @@ export const builtinPresets: BuiltinPreset[] = [
     color: '#7aa2ff',
     binary: 'codex',
     binaries: ['codex'],
-    args: [],
-    resumeArgs: ['resume', '{sessionId}'],
+    args: ['-c', 'mcp_servers.stepbro.url="{mcpUrl}"'],
+    resumeArgs: ['-c', 'mcp_servers.stepbro.url="{mcpUrl}"', 'resume', '{sessionId}'],
     hooks: false
   },
   {

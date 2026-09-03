@@ -3,7 +3,7 @@ import { join, resolve } from 'node:path'
 import fs from 'node:fs'
 import { claudeDir, hostLogPath } from '@shared/paths'
 import type { EventMap, EventName } from '@shared/ipc'
-import type { HostState, Prefs, Session } from '@shared/types'
+import type { HostState, Prefs, Session, Note } from '@shared/types'
 import { HostClient } from './host/HostClient'
 import { ensureHost, requestHostShutdown } from './host/launcher'
 import { loadPrefs, savePrefs } from './prefs'
@@ -79,6 +79,7 @@ async function boot(): Promise<void> {
     tray: null as unknown as StepTray,
     prompts: new PromptLog(),
     updates: null as unknown as Updates,
+    notes: [],
     log,
     emit: <K extends EventName>(channel: K, ...args: Parameters<EventMap[K]>): void => {
       if (ctx.win && !ctx.win.isDestroyed()) ctx.win.webContents.send(channel, ...args)
@@ -213,6 +214,10 @@ function wireHostClient(ctx: Ctx): void {
   client.on('clear', (id: string) => ctx.emit('host:clear', id))
   client.on('exit', (id: string, code: number) => ctx.emit('host:exit', id, code))
   client.on('prompt', (p) => ctx.prompts.add(p))
+  client.on('notes', (notes: Note[], added?: Note) => {
+    ctx.notes = notes
+    ctx.emit('notes:update', notes, added)
+  })
   client.on('error', (m: string) => ctx.log('host error:', m))
   client.on('disconnected', () => {
     ctx.log('host disconnected, reconnecting')

@@ -6,7 +6,8 @@ const shared = resolve(__dirname, 'src/shared')
 
 export default defineConfig({
   main: {
-    plugins: [externalizeDepsPlugin()],
+    // The MCP SDK and zod are bundled into host.js: the host runs unpacked, outside the asar.
+    plugins: [externalizeDepsPlugin({ exclude: ['@modelcontextprotocol/sdk', 'zod'] })],
     resolve: {
       alias: {
         '@shared': shared,

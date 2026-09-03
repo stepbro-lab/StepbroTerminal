@@ -179,6 +179,19 @@ export interface WorkspaceState {
   activeId: string | null
 }
 
+/** Who wrote a note: an agent inside a session, or the user in the panel. */
+export type NoteSource = { kind: 'agent'; sessionId: string; presetId: string; title: string } | { kind: 'user' }
+
+/** A note kept by the host, shared by every session and every agent. */
+export interface Note {
+  id: string
+  text: string
+  createdAt: number
+  updatedAt: number
+  done: boolean
+  source: NoteSource
+}
+
 /** Where the app stands with respect to a newer release. */
 export type UpdateState =
   | { kind: 'idle' }

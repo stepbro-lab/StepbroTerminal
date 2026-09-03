@@ -81,8 +81,8 @@ describe('defaultShell and buildLaunchSpec', () => {
     const spec = buildLaunchSpec(list.find((p) => p.id === 'claude')!, prefs(), { PATH: tmp }, 'linux')
     expect(spec).toEqual({
       command: 'claude',
-      args: ['--session-id', '{sessionId}', '--settings', '{hooksSettings}'],
-      resumeArgs: ['--resume', '{sessionId}', '--settings', '{hooksSettings}'],
+      args: ['--session-id', '{sessionId}', '--settings', '{hooksSettings}', '--mcp-config', '{mcpConfig}'],
+      resumeArgs: ['--resume', '{sessionId}', '--settings', '{hooksSettings}', '--mcp-config', '{mcpConfig}'],
       hooks: true
     })
   })

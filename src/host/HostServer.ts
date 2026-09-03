@@ -2,6 +2,8 @@ import net from 'node:net'
 import fs from 'node:fs'
 import { encodeFrame, FrameParser, type ClientMsg, type HostMsg } from '@shared/protocol'
 import type { SessionManager } from './SessionManager'
+import type { NoteStore } from './NoteStore'
+import type { Note } from '@shared/types'
 import { SizeOwners } from './sizeOwners'
 import { log } from './log'
 
@@ -28,6 +30,7 @@ export class HostServer {
 
   constructor(
     private readonly sm: SessionManager,
+    private readonly notes: NoteStore,
     private readonly socketPath: string,
     private readonly version: string
   ) {
@@ -46,6 +49,7 @@ export class HostServer {
     sm.on('exit', (id, code) => this.broadcast({ t: 'exit', id, code }))
     sm.on('prompt', (prompt) => this.broadcast({ t: 'prompt', prompt }))
     sm.on('output', (id: string, bytes: Uint8Array) => this.queueOutput(id, bytes))
+    notes.on('change', (list: Note[], added?: Note) => this.broadcast({ t: 'notes', notes: list, added }))
   }
 
   get clientCount(): number {
@@ -114,6 +118,7 @@ export class HostServer {
       case 'hello':
         this.send(c, { t: 'hello', version: this.version, pid: process.pid })
         this.send(c, { t: 'sessions', sessions: this.sm.list() })
+        this.send(c, { t: 'notes', notes: this.notes.list() })
         break
       case 'list':
         this.send(c, { t: 'sessions', sessions: this.sm.list() })
@@ -173,6 +178,18 @@ export class HostServer {
         this.recheckFlow(msg.id)
         break
       }
+      case 'notes:list':
+        this.send(c, { t: 'notes', notes: this.notes.list() })
+        break
+      case 'notes:add':
+        this.notes.add(msg.text, { kind: 'user' })
+        break
+      case 'notes:update':
+        this.notes.update(msg.id, { text: msg.text, done: msg.done })
+        break
+      case 'notes:delete':
+        this.notes.remove(msg.id)
+        break
       case 'shutdown':
         this.onShutdown()
         break

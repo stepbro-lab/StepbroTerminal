@@ -16,6 +16,9 @@ import { Toasts } from '@/components/Toasts'
 import { ContextMenu } from '@/components/ContextMenu'
 import { playNotificationSound } from '@/lib/sound'
 import { useUpdates } from '@/stores/updates'
+import { useNotes } from '@/stores/notes'
+import { NotesPanel } from '@/components/notes/NotesPanel'
+import { NoteFlight } from '@/components/notes/NoteFlight'
 
 export default function App() {
   const prefs = usePrefs((s) => s.prefs)
@@ -62,9 +65,11 @@ export default function App() {
       s.on('ui:command', (name) => runCommand(name as Command)),
       s.on('ui:sound', playNotificationSound),
       s.on('ui:update', (state) => useUpdates.getState().set(state)),
+      s.on('notes:update', (notes, added) => useNotes.getState().receive(notes, added)),
       s.on('win:maximized', (m) => useUi.getState().setMaximized(m))
     ]
     void s.invoke('win:isMaximized').then((m) => useUi.getState().setMaximized(m))
+    void s.invoke('notes:list').then((notes) => useNotes.getState().receive(notes))
     const onKey = (ev: KeyboardEvent): void => {
       if (handleKeydown(ev)) {
         ev.preventDefault()
@@ -137,6 +142,8 @@ export default function App() {
       </div>
       {settingsOpen && <SettingsView />}
       <CommandPalette />
+      <NotesPanel />
+      <NoteFlight />
       <ContextMenu />
       <Toasts />
     </div>

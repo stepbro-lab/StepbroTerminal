@@ -11,7 +11,8 @@ import type {
   Session,
   TranscriptDetails,
   WorkspaceState,
-  UpdateState
+  UpdateState,
+  Note
 } from './types'
 
 export interface CreateRequest {
@@ -57,6 +58,7 @@ export interface InvokeMap {
   'updates:state': () => UpdateState
   'updates:check': () => UpdateState
   'updates:install': () => void
+  'notes:list': () => Note[]
 }
 
 /** Renderer -> main fire-and-forget channels. */
@@ -81,6 +83,9 @@ export interface SendMap {
   'win:setOverlay': (color: string, symbolColor: string) => void
   'clipboard:write': (text: string) => void
   'workspace:set': (state: WorkspaceState) => void
+  'notes:add': (text: string) => void
+  'notes:update': (id: string, patch: { text?: string; done?: boolean }) => void
+  'notes:delete': (id: string) => void
 }
 
 /** Main -> renderer events. */
@@ -102,6 +107,8 @@ export interface EventMap {
   /** Play the notification sound; the renderer owns the audio file. */
   'ui:sound': () => void
   'ui:update': (state: UpdateState) => void
+  /** The notes list changed; `added` is the note an agent just saved, for the animation. */
+  'notes:update': (notes: Note[], added?: Note) => void
   'win:maximized': (maximized: boolean) => void
   'theme:system': (dark: boolean) => void
 }
