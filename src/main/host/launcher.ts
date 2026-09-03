@@ -53,7 +53,12 @@ export async function ensureHost(opts: EnsureHostOpts): Promise<HostInfo> {
     stdio: 'ignore',
     windowsHide: true,
     cwd: stepDir(),
-    env: { ...opts.env, ELECTRON_RUN_AS_NODE: '1', STEP_VERSION: opts.version }
+    env: {
+      ...opts.env,
+      ...(process.env['STEP_HOME'] ? { STEP_HOME: process.env['STEP_HOME'] } : {}),
+      ELECTRON_RUN_AS_NODE: '1',
+      STEP_VERSION: opts.version
+    }
   })
   child.unref()
   const startedAt = Date.now()

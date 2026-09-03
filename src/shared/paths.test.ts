@@ -1,7 +1,17 @@
 import { describe, expect, it } from 'vitest'
-import { encodeClaudeProjectDir, hostSocketPath, normalizeProjectPath, projectName, sameProject } from './paths'
+import { encodeClaudeProjectDir, hostSocketPath, normalizeProjectPath, projectName, sameProject, stepDir } from './paths'
 
 describe('paths', () => {
+  it('moves the host directory and pipe with STEP_HOME', () => {
+    process.env['STEP_HOME'] = 'C:\\tmp\\step dev'
+    try {
+      expect(stepDir()).toBe('C:\\tmp\\step dev')
+      expect(hostSocketPath('win32', 'kevin')).toBe('\\\\.\\pipe\\step-host-kevin-step_dev')
+    } finally {
+      delete process.env['STEP_HOME']
+    }
+  })
+
   it('encodes claude project dirs like Claude Code does', () => {
     expect(encodeClaudeProjectDir('C:\\Users\\x\\proj')).toBe('C--Users-x-proj')
     expect(encodeClaudeProjectDir('/Users/x/proj')).toBe('-Users-x-proj')

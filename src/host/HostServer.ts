@@ -2,6 +2,7 @@ import net from 'node:net'
 import fs from 'node:fs'
 import { encodeFrame, FrameParser, type ClientMsg, type HostMsg } from '@shared/protocol'
 import type { SessionManager } from './SessionManager'
+import { SizeOwners } from './sizeOwners'
 import { log } from './log'
 
 interface Client {
@@ -21,6 +22,7 @@ const RESUME_BELOW = 256 * 1024
 export class HostServer {
   private server: net.Server
   private clients = new Set<Client>()
+  private owners = new SizeOwners<Client>()
   onClientsChange: () => void = () => {}
   onShutdown: () => void = () => {}
 
@@ -37,6 +39,7 @@ export class HostServer {
         c.unacked.delete(id)
         c.pending.delete(id)
       }
+      this.owners.forget(id)
       this.broadcast({ t: 'removed', id })
     })
     sm.on('clear', (id) => this.broadcast({ t: 'clear', id }))
@@ -92,7 +95,10 @@ export class HostServer {
       if (!this.clients.has(c)) return
       this.clients.delete(c)
       if (c.flushTimer) clearTimeout(c.flushTimer)
-      for (const id of c.attached) this.recheckFlow(id)
+      for (const id of c.attached) {
+        this.recheckFlow(id)
+        this.letGo(c, id)
+      }
       this.onClientsChange()
     }
     sock.on('close', drop)
@@ -119,6 +125,7 @@ export class HostServer {
       }
       case 'attach': {
         c.attached.add(msg.id)
+        this.owners.claim(msg.id, c)
         void this.sm.snapshot(msg.id).then((snap) => {
           if (!c.attached.has(msg.id) || c.sock.destroyed) return
           c.unacked.set(msg.id, snap.byteLength)
@@ -132,12 +139,15 @@ export class HostServer {
         c.unacked.delete(msg.id)
         c.pending.delete(msg.id)
         this.recheckFlow(msg.id)
+        this.letGo(c, msg.id)
         break
       case 'input':
         this.sm.input(msg.id, bin)
         break
       case 'resize':
-        this.sm.resize(msg.id, msg.cols, msg.rows)
+        // Only the client that got to the session first sizes it; see SizeOwners.
+        this.owners.note(msg.id, c, { cols: msg.cols, rows: msg.rows })
+        if (this.owners.owns(msg.id, c)) this.sm.resize(msg.id, msg.cols, msg.rows)
         break
       case 'kill':
         this.sm.kill(msg.id)
@@ -167,6 +177,13 @@ export class HostServer {
         this.onShutdown()
         break
     }
+  }
+
+  /** `c` stopped looking at `id`; whoever inherits the session gets the size they asked for. */
+  private letGo(c: Client, id: string): void {
+    const others = [...this.clients].filter((o) => o !== c && o.attached.has(id))
+    const size = this.owners.release(id, c, others)
+    if (size) this.sm.resize(id, size.cols, size.rows)
   }
 
   private queueOutput(id: string, bytes: Uint8Array): void {

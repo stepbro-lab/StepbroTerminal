@@ -1,12 +1,13 @@
 import os from 'node:os'
 import path from 'node:path'
 
+/** Where the host keeps its socket, state and logs. STEP_HOME moves it, so a dev build gets a host of its own. */
 export function stepDir(home = os.homedir()): string {
-  return path.join(home, '.step')
+  return process.env['STEP_HOME'] || path.join(home, '.step')
 }
 
 export function hostSocketPath(platform = process.platform, user = safeUser()): string {
-  if (platform === 'win32') return `\\\\.\\pipe\\step-host-${user}`
+  if (platform === 'win32') return `\\\\.\\pipe\\step-host-${user}${pipeSuffix()}`
   return path.join(stepDir(), 'host.sock')
 }
 
@@ -47,6 +48,12 @@ export function encodeClaudeProjectDir(p: string): string {
 export function projectName(p: string): string {
   const parts = p.split(/[\\/]/).filter(Boolean)
   return parts[parts.length - 1] || p
+}
+
+/** Keeps a STEP_HOME host on its own pipe; Windows has no socket file to tell them apart. */
+function pipeSuffix(): string {
+  const home = process.env['STEP_HOME']
+  return home ? '-' + path.basename(home).replace(/[^a-zA-Z0-9_-]/g, '_') : ''
 }
 
 function safeUser(): string {

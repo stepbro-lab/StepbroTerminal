@@ -24,6 +24,9 @@ import type { Ctx } from './context'
 const VERSION = app.getVersion()
 process.env['STEP_VERSION'] = VERSION
 
+// Dev only: another data folder lets a dev build run next to the installed app.
+if (!app.isPackaged && process.env['STEP_USER_DATA']) app.setPath('userData', resolve(process.env['STEP_USER_DATA']))
+
 // step:// links come back from notification buttons (Windows) and open-url (macOS).
 if (app.isPackaged) app.setAsDefaultProtocolClient('step')
 else if (process.argv[1]) app.setAsDefaultProtocolClient('step', process.execPath, [resolve(process.argv[1])])
