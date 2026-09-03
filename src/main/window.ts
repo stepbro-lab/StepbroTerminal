@@ -5,8 +5,8 @@ import type { Prefs } from '@shared/types'
 export const TITLEBAR_HEIGHT = 38
 
 const COLORS = {
-  light: { bg: '#f4f4f5', symbol: '#1c1c1e' },
-  dark: { bg: '#1c1c1f', symbol: '#e6e6e8' }
+  light: { bg: '#f6f3f2', symbol: '#1c1b1b' },
+  dark: { bg: '#1c1b1b', symbol: '#e5e2e1' }
 }
 
 export function isDark(prefs: Prefs): boolean {

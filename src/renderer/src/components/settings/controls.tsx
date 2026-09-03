@@ -84,8 +84,8 @@ export function Toggle({ value, onChange, disabled }: { value: boolean; onChange
       style={{ background: value ? 'var(--accent)' : 'var(--border-strong)' }}
     >
       <span
-        className="absolute top-[2px] h-[16px] w-[16px] rounded-full bg-white transition-all"
-        style={{ left: value ? 16 : 2, boxShadow: '0 1px 2px rgba(0,0,0,0.3)' }}
+        className="absolute top-[2px] h-[16px] w-[16px] rounded-full transition-all"
+        style={{ left: value ? 16 : 2, background: value ? 'var(--on-accent)' : '#ffffff', boxShadow: '0 1px 2px rgba(0,0,0,0.3)' }}
       />
     </button>
   )

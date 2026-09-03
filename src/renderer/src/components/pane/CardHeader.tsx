@@ -98,7 +98,7 @@ export function CardHeader({ session, split = false, dim = false }: { session: S
       {session.previewUrl && (
         <button
           className="ml-1 flex h-6 items-center gap-1.5 rounded-full px-2 text-[11.5px] font-medium transition hover:brightness-110"
-          style={{ background: previewOpen ? 'var(--accent)' : 'var(--accent-soft)', color: previewOpen ? '#fff' : 'var(--accent)' }}
+          style={{ background: previewOpen ? 'var(--accent)' : 'var(--accent-soft)', color: previewOpen ? 'var(--on-accent)' : 'var(--accent)' }}
           title={`Preview ${session.previewUrl} beside the terminal`}
           onClick={() => setSide(previewOpen ? null : { kind: 'preview', url: session.previewUrl!, sessionId: session.id })}
         >
@@ -115,7 +115,7 @@ export function CardHeader({ session, split = false, dim = false }: { session: S
         >
           <FileDiff size={14} />
           {changedCount > 0 && (
-            <span className="absolute -right-0.5 -top-0.5 min-w-[14px] rounded-full px-1 text-center text-[9px] font-semibold leading-[14px] text-white" style={{ background: 'var(--accent)' }}>
+            <span className="absolute -right-0.5 -top-0.5 min-w-[14px] rounded-full px-1 text-center text-[9px] font-semibold leading-[14px]" style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}>
               {changedCount}
             </span>
           )}
