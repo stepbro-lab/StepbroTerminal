@@ -4,6 +4,12 @@ copyright: Copyright © 2026 Kevin
 directories:
   buildResources: build
   output: release
+# Installers go to the public releases repository.
+publish:
+  provider: github
+  owner: kevin9038440334
+  repo: StepbroTerminal-releases
+  releaseType: release
 # node-pty ships N-API prebuilds that work in Electron without a rebuild.
 npmRebuild: false
 files:
