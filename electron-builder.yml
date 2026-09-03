@@ -33,9 +33,12 @@ nsis:
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: true
 mac:
+  # Both architectures come out of one Apple Silicon runner.
   target:
-    - dmg
-    - zip
+    - target: dmg
+      arch: [x64, arm64]
+    - target: zip
+      arch: [x64, arm64]
   icon: build/icon.png
   category: public.app-category.developer-tools
   hardenedRuntime: false
