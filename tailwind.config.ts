@@ -13,6 +13,7 @@ export default {
         secondary: 'var(--text-secondary)',
         elevated: 'var(--bg-elevated)',
         muted: 'var(--text-muted)',
+        faint: 'var(--text-faint)',
         line: 'var(--border)',
         accent: 'var(--accent)',
         attention: 'var(--attention)',

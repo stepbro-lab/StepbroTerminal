@@ -8,6 +8,7 @@ export interface Toast {
 }
 
 export type PaletteMode = 'all' | 'resume'
+export type SettingsPage = 'appearance' | 'terminal' | 'agents' | 'notifications' | 'shortcuts' | 'advanced'
 
 interface UiState {
   activeId: string | null
@@ -17,6 +18,7 @@ interface UiState {
   paletteMode: PaletteMode
   paletteProject: string | null
   settingsOpen: boolean
+  settingsPage: SettingsPage
   searchOpen: boolean
   renamingId: string | null
   toasts: Toast[]
@@ -28,6 +30,7 @@ interface UiState {
   closePalette: () => void
   setPaletteQuery: (q: string) => void
   setSettingsOpen: (v: boolean) => void
+  setSettingsPage: (p: SettingsPage) => void
   setSearchOpen: (v: boolean) => void
   setRenaming: (id: string | null) => void
   toast: (text: string, tone?: Toast['tone']) => void
@@ -46,6 +49,7 @@ export const useUi = create<UiState>((set, get) => ({
   paletteMode: 'all',
   paletteProject: null,
   settingsOpen: false,
+  settingsPage: 'appearance',
   searchOpen: false,
   renamingId: null,
   toasts: [],
@@ -69,6 +73,7 @@ export const useUi = create<UiState>((set, get) => ({
     set({ settingsOpen })
     if (!settingsOpen) refocusTerminal(get().activeId)
   },
+  setSettingsPage: (settingsPage) => set({ settingsPage }),
   setSearchOpen: (searchOpen) => set({ searchOpen }),
   setRenaming: (renamingId) => set({ renamingId }),
   toast: (text, tone = 'info') => {

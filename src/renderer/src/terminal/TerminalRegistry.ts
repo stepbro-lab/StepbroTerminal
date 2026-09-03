@@ -78,12 +78,12 @@ class TerminalRegistry {
     const p = this.prefs
     const term = new Terminal({
       allowProposedApi: true,
-      cursorBlink: true,
-      cursorStyle: 'bar',
+      cursorBlink: p?.cursorBlink ?? true,
+      cursorStyle: p?.cursorStyle ?? 'bar',
       cursorWidth: 2,
       fontFamily: fontStack(p?.fontFamily),
       fontSize: p?.fontSize ?? 13,
-      lineHeight: 1.2,
+      lineHeight: p?.lineHeight ?? 1.2,
       letterSpacing: 0,
       fontWeight: window.devicePixelRatio < 1.5 ? '500' : '400',
       fontWeightBold: '700',
@@ -221,7 +221,11 @@ class TerminalRegistry {
 
   applyPrefs(prefs: Prefs, dark: boolean): void {
     const fontChanged =
-      !this.prefs || this.prefs.fontFamily !== prefs.fontFamily || this.prefs.fontSize !== prefs.fontSize || this.prefs.ligatures !== prefs.ligatures
+      !this.prefs ||
+      this.prefs.fontFamily !== prefs.fontFamily ||
+      this.prefs.fontSize !== prefs.fontSize ||
+      this.prefs.lineHeight !== prefs.lineHeight ||
+      this.prefs.ligatures !== prefs.ligatures
     const themeChanged = this.dark !== dark
     this.prefs = prefs
     this.dark = dark
@@ -229,7 +233,10 @@ class TerminalRegistry {
       if (fontChanged) {
         e.term.options.fontFamily = fontStack(prefs.fontFamily)
         e.term.options.fontSize = prefs.fontSize
+        e.term.options.lineHeight = prefs.lineHeight
       }
+      e.term.options.cursorStyle = prefs.cursorStyle
+      e.term.options.cursorBlink = prefs.cursorBlink
       if (themeChanged) e.term.options.theme = dark ? darkTerminal : lightTerminal
       if (this.prefs && e.term.options.scrollback !== prefs.scrollback) e.term.options.scrollback = prefs.scrollback
       if ((fontChanged || themeChanged) && e.mounted) {

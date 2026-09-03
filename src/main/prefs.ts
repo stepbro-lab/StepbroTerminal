@@ -5,9 +5,13 @@ import type { Prefs } from '@shared/types'
 
 export const defaultPrefs: Prefs = {
   theme: 'system',
+  accent: 'blue',
   fontFamily: 'JetBrains Mono',
   fontSize: 13,
+  lineHeight: 1.2,
   ligatures: false,
+  cursorStyle: 'bar',
+  cursorBlink: true,
   scrollback: 5000,
   notifications: true,
   sound: false,

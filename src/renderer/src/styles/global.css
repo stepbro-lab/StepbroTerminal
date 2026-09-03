@@ -251,6 +251,113 @@ kbd {
   color: var(--text-muted);
 }
 
+/* ---- settings ---- */
+.nav-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: var(--radius-row);
+  color: var(--text-secondary);
+  font-weight: 500;
+  transition: background-color 100ms var(--ease);
+}
+.nav-row:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+.nav-row[data-on='true'] {
+  background: var(--bg-active);
+  color: var(--text);
+}
+.nav-row svg {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+.nav-row[data-on='true'] svg {
+  color: var(--text);
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 40px;
+  padding: 6px 0;
+}
+.setting-row + .setting-row {
+  border-top: 1px solid var(--border);
+}
+
+.seg-mac {
+  display: inline-flex;
+  padding: 2px;
+  border-radius: 7px;
+  background: var(--bg-input);
+  box-shadow: 0 0 0 1px var(--border) inset;
+}
+.seg-mac button {
+  height: 22px;
+  min-width: 52px;
+  padding: 0 10px;
+  border-radius: 5px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  transition:
+    background-color 120ms var(--ease),
+    color 120ms var(--ease);
+}
+.seg-mac button[data-on='true'] {
+  background: var(--accent);
+  color: #fff;
+}
+
+.slider-mac {
+  -webkit-appearance: none;
+  width: 140px;
+  height: 14px;
+  margin: 0;
+  background: transparent;
+  outline: none;
+  --fill: 0%;
+}
+.slider-mac::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background:
+    linear-gradient(var(--accent), var(--accent)) 0 0 / var(--fill) 100% no-repeat,
+    repeating-linear-gradient(90deg, var(--border-strong) 0 2px, transparent 2px 7px);
+}
+.slider-mac::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  margin-top: -5px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow:
+    0 0 0 0.5px rgba(0, 0, 0, 0.25),
+    0 1px 3px rgba(0, 0, 0, 0.35);
+}
+
+.swatch {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12) inset;
+  transition: transform 120ms var(--ease);
+}
+.swatch:hover {
+  transform: scale(1.1);
+}
+.swatch[data-on='true'] {
+  box-shadow:
+    0 0 0 2px var(--bg-card),
+    0 0 0 3.5px var(--text);
+}
+
 /* ---- scrollbars in ui ---- */
 .scroll-thin {
   overflow-y: auto;

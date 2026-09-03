@@ -9,7 +9,7 @@ import { TitleBar } from '@/components/TitleBar'
 import { Sidebar, useSidebarModel } from '@/components/sidebar/Sidebar'
 import { TerminalPane } from '@/components/pane/TerminalPane'
 import { CommandPalette } from '@/components/CommandPalette'
-import { Settings } from '@/components/Settings'
+import { SettingsView } from '@/components/settings/SettingsView'
 import { Toasts } from '@/components/Toasts'
 
 export default function App() {
@@ -18,6 +18,7 @@ export default function App() {
   const sessions = useData((s) => s.sessions)
   const hostState = useData((s) => s.hostState)
   const activeId = useUi((s) => s.activeId)
+  const settingsOpen = useUi((s) => s.settingsOpen)
   const model = useSidebarModel()
 
   // ---- boot: prefs, data, event wiring ----
@@ -100,12 +101,13 @@ export default function App() {
   return (
     <div className="relative flex h-full w-full flex-col overflow-hidden">
       <TitleBar />
-      <div className="flex min-h-0 flex-1">
+      {/* The workspace stays mounted behind Settings so terminals keep their state and size. */}
+      <div className="flex min-h-0 flex-1" style={{ display: settingsOpen ? 'none' : undefined }}>
         <Sidebar />
         <TerminalPane />
       </div>
+      {settingsOpen && <SettingsView />}
       <CommandPalette />
-      <Settings />
       <Toasts />
     </div>
   )

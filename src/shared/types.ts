@@ -111,11 +111,18 @@ export interface CustomPreset {
   color: string
 }
 
+export type AccentId = 'graphite' | 'blue' | 'orange' | 'yellow' | 'green' | 'teal' | 'purple' | 'pink'
+
 export interface Prefs {
   theme: 'system' | 'light' | 'dark'
+  /** Tints the accent and, very slightly, the window chrome. */
+  accent: AccentId
   fontFamily: string
   fontSize: number
+  lineHeight: number
   ligatures: boolean
+  cursorStyle: 'bar' | 'block' | 'underline'
+  cursorBlink: boolean
   scrollback: number
   notifications: boolean
   sound: boolean

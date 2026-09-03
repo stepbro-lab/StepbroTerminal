@@ -1,8 +1,10 @@
 :root,
 :root[data-theme='light'] {
   color-scheme: light;
-  --bg-sidebar: #f5f5f7;
-  --bg-card: #ffffff;
+  --bg-sidebar-base: #f5f5f7;
+  --bg-card-base: #ffffff;
+  --bg-sidebar: color-mix(in srgb, var(--bg-sidebar-base) calc(100% - var(--wash-amount, 0%)), var(--wash, var(--bg-sidebar-base)));
+  --bg-card: color-mix(in srgb, var(--bg-card-base) calc(100% - var(--wash-amount, 0%) / 2), var(--wash, var(--bg-card-base)));
   --bg-hover: rgba(0, 0, 0, 0.045);
   --bg-active: #e6e6ea;
   --bg-overlay: rgba(255, 255, 255, 0.94);
@@ -26,8 +28,10 @@
 
 :root[data-theme='dark'] {
   color-scheme: dark;
-  --bg-sidebar: #1e1e22;
-  --bg-card: #141418;
+  --bg-sidebar-base: #1e1e22;
+  --bg-card-base: #141418;
+  --bg-sidebar: color-mix(in srgb, var(--bg-sidebar-base) calc(100% - var(--wash-amount, 0%)), var(--wash, var(--bg-sidebar-base)));
+  --bg-card: color-mix(in srgb, var(--bg-card-base) calc(100% - var(--wash-amount, 0%) / 2), var(--wash, var(--bg-card-base)));
   --bg-hover: rgba(255, 255, 255, 0.05);
   --bg-active: #2d2d33;
   --bg-overlay: rgba(30, 30, 34, 0.94);
@@ -58,4 +62,9 @@
   --titlebar-h: 40px;
   --row-h: 27px;
   --ease: cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* On macOS the system font is the right call; elsewhere Inter is the closest thing to it. */
+:root[data-platform='darwin'] {
+  --font-ui: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter Variable', sans-serif;
 }
