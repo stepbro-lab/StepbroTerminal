@@ -74,12 +74,9 @@ export function runCommand(cmd: Command): void {
       else ui.openPalette('', 'prompts')
       break
     case 'split-right':
-    case 'split-down': {
-      const dir = cmd === 'split-right' ? 'row' : 'column'
-      if (ui.panes.length > 1 && ui.splitDir === dir) ui.unsplit()
-      else void splitWithNewShell(dir)
+    case 'split-down':
+      void splitWithNewShell(cmd === 'split-right' ? 'row' : 'column')
       break
-    }
   }
 }
 

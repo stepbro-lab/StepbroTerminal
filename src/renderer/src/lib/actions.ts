@@ -1,6 +1,6 @@
 import type { HistorySession, MenuItemSpec, Session } from '@shared/types'
 import { useData } from '@/stores/data'
-import { useUi, type SplitDir } from '@/stores/ui'
+import { paneIds, useUi, type SplitDir } from '@/stores/ui'
 import { usePrefs } from '@/stores/prefs'
 import { registry } from '@/terminal/TerminalRegistry'
 import { popup, sep } from './menus'
@@ -37,9 +37,10 @@ export async function createSession(
 
 export const newShell = (projectPath: string): Promise<Session | null> => createSession(projectPath, 'shell')
 
-/** Opens a new shell beside (or under) the focused session, in the same folder. */
-export async function splitWithNewShell(dir: SplitDir): Promise<void> {
+/** Opens a new shell beside (or under) a pane (the focused one by default), in the same folder. */
+export async function splitWithNewShell(dir: SplitDir, besideId?: string): Promise<void> {
   const ui = useUi.getState()
+  if (besideId && besideId !== ui.activeId) ui.setActive(besideId)
   const current = ui.activeId ? useData.getState().sessions[ui.activeId] : undefined
   const projectPath = current?.projectPath ?? ui.activeProject ?? useData.getState().projects[0]?.path
   if (!projectPath) {
@@ -64,7 +65,7 @@ export async function closeSession(id: string): Promise<void> {
   }
   const ui = useUi.getState()
   const wasFocused = ui.activeId === id
-  const alone = ui.panes.length <= 1
+  const alone = paneIds().length <= 1
   ui.dropPane(id)
   if (wasFocused && alone) ui.setActive(nextSessionId(id))
   registry.dispose(id)

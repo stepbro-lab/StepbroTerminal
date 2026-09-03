@@ -1,5 +1,8 @@
 import { create } from 'zustand'
 import { registry } from '@/terminal/TerminalRegistry'
+import { dropOnto, hasLeaf, leaf, leaves, removeLeaf, replaceLeaf, setRatio, splitLeaf, type DropZone, type LayoutNode, type SplitDir } from '@/lib/layout'
+
+export type { SplitDir, DropZone, LayoutNode }
 
 export interface Toast {
   id: number
@@ -9,17 +12,16 @@ export interface Toast {
 
 export type PaletteMode = 'all' | 'resume' | 'prompts'
 export type SettingsPage = 'appearance' | 'terminal' | 'agents' | 'notifications' | 'shortcuts' | 'advanced'
-export type SplitDir = 'row' | 'column'
 
 interface UiState {
-  /** The focused session; always equals panes[focus]. */
+  /** The focused session; always one of the layout's leaves. */
   activeId: string | null
+  /** Terminal panes as a tree of splits. */
+  layout: LayoutNode | null
+  /** Session being dragged from the sidebar or a card header, for drop zones. */
+  dragging: string | null
   /** Side panel next to the terminals: a dev-server preview or the changes of a session. */
   side: { kind: 'preview'; url: string; sessionId: string } | { kind: 'changes'; sessionId: string } | null
-  /** One or two sessions shown side by side. */
-  panes: string[]
-  focus: number
-  splitDir: SplitDir
   activeProject: string | null
   paletteOpen: boolean
   paletteQuery: string
@@ -33,11 +35,13 @@ interface UiState {
   spinnerFrame: number
   maximized: boolean
   setActive: (id: string | null) => void
-  setSide: (side: UiState['side']) => void
-  focusPane: (index: number) => void
   split: (dir: SplitDir, id: string) => void
   unsplit: () => void
   dropPane: (id: string) => void
+  dropSession: (id: string, target: string, zone: DropZone) => void
+  setDragging: (id: string | null) => void
+  setRatio: (path: Array<'a' | 'b'>, ratio: number) => void
+  setSide: (side: UiState['side']) => void
   setActiveProject: (path: string | null) => void
   openPalette: (query?: string, mode?: PaletteMode, project?: string | null) => void
   closePalette: () => void
@@ -54,12 +58,16 @@ interface UiState {
 
 let toastSeq = 1
 
+function announce(id: string | null): void {
+  window.step.send('win:setActiveSession', id)
+  if (id) window.step.send('host:viewed', id)
+}
+
 export const useUi = create<UiState>((set, get) => ({
   activeId: null,
+  layout: null,
+  dragging: null,
   side: null,
-  panes: [],
-  focus: 0,
-  splitDir: 'row',
   activeProject: null,
   paletteOpen: false,
   paletteQuery: '',
@@ -72,52 +80,56 @@ export const useUi = create<UiState>((set, get) => ({
   toasts: [],
   spinnerFrame: 0,
   maximized: false,
+
   // Selecting a session shows it in the focused pane; if it is already in a pane, that pane takes focus.
   setActive: (id) => {
-    const { panes, focus, activeId } = get()
+    const { layout, activeId } = get()
     if (id === null) {
-      if (activeId === null && panes.length === 0) return
-      set({ activeId: null, panes: [], focus: 0, searchOpen: false })
-      window.step.send('win:setActiveSession', null)
+      if (activeId === null && !layout) return
+      set({ activeId: null, layout: null, searchOpen: false })
+      announce(null)
       return
     }
-    const idx = panes.indexOf(id)
-    if (idx >= 0) {
+    if (hasLeaf(layout, id)) {
       if (activeId === id) return
-      set({ activeId: id, focus: idx, searchOpen: false })
+      set({ activeId: id, searchOpen: false })
     } else {
-      const next = panes.length ? [...panes] : [id]
-      if (panes.length) next[focus] = id
-      set({ activeId: id, panes: next, searchOpen: false })
+      const next = layout && activeId ? replaceLeaf(layout, activeId, id) : leaf(id)
+      set({ activeId: id, layout: next, searchOpen: false })
     }
-    window.step.send('win:setActiveSession', id)
-    window.step.send('host:viewed', id)
-  },
-  setSide: (side) => set({ side }),
-  focusPane: (index) => {
-    const id = get().panes[index]
-    if (id) get().setActive(id)
+    announce(id)
   },
   split: (dir, id) => {
-    const { activeId } = get()
-    const panes = activeId && activeId !== id ? [activeId, id] : [id]
-    set({ panes, focus: panes.length - 1, splitDir: dir, activeId: id, searchOpen: false })
-    window.step.send('win:setActiveSession', id)
-    window.step.send('host:viewed', id)
+    const { layout, activeId } = get()
+    const base = layout && hasLeaf(layout, id) ? removeLeaf(layout, id) : layout
+    const next = base && activeId && activeId !== id && hasLeaf(base, activeId) ? splitLeaf(base, activeId, dir, id) : leaf(id)
+    set({ layout: next, activeId: id, searchOpen: false })
+    announce(id)
   },
   unsplit: () => {
     const { activeId } = get()
-    set({ panes: activeId ? [activeId] : [], focus: 0 })
+    set({ layout: activeId ? leaf(activeId) : null })
   },
   dropPane: (id) => {
-    const { panes, focus } = get()
-    if (!panes.includes(id)) return
-    const next = panes.filter((p) => p !== id)
-    const f = Math.min(focus, Math.max(0, next.length - 1))
-    const activeId = next[f] ?? null
-    set({ panes: next, focus: f, activeId })
-    window.step.send('win:setActiveSession', activeId)
+    const { layout, activeId } = get()
+    if (!hasLeaf(layout, id)) return
+    const next = removeLeaf(layout, id)
+    const nextActive = activeId === id ? (leaves(next)[0] ?? null) : activeId
+    set({ layout: next, activeId: nextActive })
+    if (nextActive !== activeId) announce(nextActive)
   },
+  dropSession: (id, target, zone) => {
+    const { layout } = get()
+    const next = dropOnto(layout, id, target, zone)
+    set({ layout: next, activeId: id, dragging: null, searchOpen: false })
+    announce(id)
+  },
+  setDragging: (dragging) => set({ dragging }),
+  setRatio: (path, ratio) => {
+    const { layout } = get()
+    if (layout) set({ layout: setRatio(layout, path, ratio) })
+  },
+  setSide: (side) => set({ side }),
   setActiveProject: (path) => set({ activeProject: path }),
   openPalette: (query = '', mode = 'all', project = null) =>
     set({ paletteOpen: true, paletteQuery: query, paletteMode: mode, paletteProject: project }),
@@ -142,6 +154,11 @@ export const useUi = create<UiState>((set, get) => ({
   tickSpinner: () => set((s) => ({ spinnerFrame: (s.spinnerFrame + 1) % 10 })),
   setMaximized: (maximized) => set({ maximized })
 }))
+
+/** Ids of the sessions currently shown in panes. */
+export function paneIds(): string[] {
+  return leaves(useUi.getState().layout)
+}
 
 /** Give focus back to the active terminal after an overlay closes, once React has unmounted it. */
 function refocusTerminal(id: string | null): void {

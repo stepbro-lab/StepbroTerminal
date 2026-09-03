@@ -7,6 +7,7 @@ import { closeSession, copyText, killSession, openFolder, pinSession, renameSess
 import { popup, sep } from '@/lib/menus'
 import { defaultTitle, rowPresetId } from '@/lib/sidebarModel'
 import { StatusGlyph } from '../sidebar/StatusGlyph'
+import { DRAG_TYPE } from './TerminalPane'
 import { SearchBar } from './SearchBar'
 
 export function CardHeader({ session, split = false, dim = false }: { session: Session; split?: boolean; dim?: boolean }) {
@@ -14,7 +15,6 @@ export function CardHeader({ session, split = false, dim = false }: { session: S
   const searchOpen = useUi((s) => s.searchOpen)
   const setSearchOpen = useUi((s) => s.setSearchOpen)
   const activeId = useUi((s) => s.activeId)
-  const splitDir = useUi((s) => s.splitDir)
   const side = useUi((s) => s.side)
   const setSide = useUi((s) => s.setSide)
   const previewOpen = side?.kind === 'preview' && side.sessionId === session.id
@@ -34,7 +34,7 @@ export function CardHeader({ session, split = false, dim = false }: { session: S
         sep,
         { id: 'split-right', label: 'Split right' },
         { id: 'split-down', label: 'Split down' },
-        { id: 'unsplit', label: 'Close other pane', enabled: split },
+        { id: 'unsplit', label: 'Close other panes', enabled: split },
         sep,
         { id: 'restart', label: canResume ? 'Restart and resume conversation' : 'Restart' },
         { id: 'kill', label: 'Kill process', enabled: session.alive },
@@ -85,7 +85,18 @@ export function CardHeader({ session, split = false, dim = false }: { session: S
   }
 
   return (
-    <div className="flex h-9 shrink-0 items-center gap-2 border-b border-line pl-3 pr-1.5" style={{ opacity: dim ? 0.75 : 1 }}>
+    <div
+      className="flex h-9 shrink-0 items-center gap-2 border-b border-line pl-3 pr-1.5"
+      style={{ opacity: dim ? 0.75 : 1 }}
+      draggable
+      onDragStart={(e) => {
+        e.dataTransfer.setData(DRAG_TYPE, session.id)
+        e.dataTransfer.effectAllowed = 'move'
+        useUi.getState().setDragging(session.id)
+      }}
+      onDragEnd={() => useUi.getState().setDragging(null)}
+      title="Drag to move this pane"
+    >
       <StatusGlyph status={session.status} color={color} size={14} />
       {editing ? (
         <TitleInput session={session} onDone={() => setEditing(false)} />
@@ -127,20 +138,10 @@ export function CardHeader({ session, split = false, dim = false }: { session: S
             <Search size={14} />
           </button>
         )}
-        <button
-          className="icon-btn"
-          title={split && splitDir === 'row' ? 'Close other pane' : 'Split right (Ctrl/Cmd+\\)'}
-          data-on={split && splitDir === 'row'}
-          onClick={() => (split && splitDir === 'row' ? useUi.getState().unsplit() : void splitWithNewShell('row'))}
-        >
+        <button className="icon-btn" title="Split right with a new shell (Ctrl/Cmd+\\)" onClick={() => void splitWithNewShell('row', session.id)}>
           <Columns2 size={14} />
         </button>
-        <button
-          className="icon-btn"
-          title={split && splitDir === 'column' ? 'Close other pane' : 'Split down (Ctrl/Cmd+Shift+\\)'}
-          data-on={split && splitDir === 'column'}
-          onClick={() => (split && splitDir === 'column' ? useUi.getState().unsplit() : void splitWithNewShell('column'))}
-        >
+        <button className="icon-btn" title="Split down with a new shell (Ctrl/Cmd+Shift+\\)" onClick={() => void splitWithNewShell('column', session.id)}>
           <Rows2 size={14} />
         </button>
         <button className="icon-btn" title="More" onClick={(e) => void more(e.currentTarget)}>

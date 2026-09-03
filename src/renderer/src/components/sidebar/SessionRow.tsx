@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { Pin } from 'lucide-react'
 import type { SidebarSession } from '@/lib/sidebarModel'
 import { useUi } from '@/stores/ui'
+import { hasLeaf } from '@/lib/layout'
+import { DRAG_TYPE } from '../pane/TerminalPane'
 import { useData } from '@/stores/data'
 import { closeSession, renameSession, sessionMenu } from '@/lib/actions'
 import { StatusGlyph } from './StatusGlyph'
@@ -13,7 +15,7 @@ interface Props {
 
 export function SessionRow({ row }: Props) {
   const activeId = useUi((s) => s.activeId)
-  const inPane = useUi((s) => s.panes.includes(row.id))
+  const inPane = useUi((s) => hasLeaf(s.layout, row.id))
   const renamingId = useUi((s) => s.renamingId)
   const setRenaming = useUi((s) => s.setRenaming)
   const setActive = useUi((s) => s.setActive)
@@ -35,6 +37,13 @@ export function SessionRow({ row }: Props) {
       data-active={active}
       data-pane={inPane && !active}
       title={row.session.projectPath}
+      draggable
+      onDragStart={(e) => {
+        e.dataTransfer.setData(DRAG_TYPE, row.id)
+        e.dataTransfer.effectAllowed = 'move'
+        useUi.getState().setDragging(row.id)
+      }}
+      onDragEnd={() => useUi.getState().setDragging(null)}
       onClick={() => {
         setActiveProject(row.session.projectPath)
         setActive(row.id)
