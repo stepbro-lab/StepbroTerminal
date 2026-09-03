@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { app } from 'electron'
-import type { Prefs } from '@shared/types'
+import type { Prefs, WorkspaceState } from '@shared/types'
 
 export const defaultPrefs: Prefs = {
   theme: 'system',
@@ -35,6 +35,32 @@ export function loadPrefs(): Prefs {
   } catch {
     return { ...defaultPrefs }
   }
+}
+
+function workspaceFile(): string {
+  return path.join(app.getPath('userData'), 'workspace.json')
+}
+
+export function loadWorkspace(): WorkspaceState | null {
+  try {
+    const w = JSON.parse(fs.readFileSync(workspaceFile(), 'utf8')) as WorkspaceState
+    return Array.isArray(w?.views) ? w : null
+  } catch {
+    return null
+  }
+}
+
+let workspaceTimer: NodeJS.Timeout | null = null
+export function saveWorkspace(state: WorkspaceState): void {
+  if (workspaceTimer) clearTimeout(workspaceTimer)
+  workspaceTimer = setTimeout(() => {
+    workspaceTimer = null
+    try {
+      fs.writeFileSync(workspaceFile(), JSON.stringify(state))
+    } catch {
+      /* non-fatal */
+    }
+  }, 300)
 }
 
 export function savePrefs(p: Prefs): void {

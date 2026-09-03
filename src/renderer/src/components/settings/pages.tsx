@@ -222,6 +222,7 @@ const SHORTCUTS: Array<[string, string]> = [
   ['Split right with a new shell', `${modKey} \\`],
   ['Split down with a new shell', `${modKey} ⇧ \\`],
   ['Arrange panes', 'drag a session from the sidebar or a card title onto an edge'],
+  ['Next / previous view', `${modKey} ⇧ ] and ${modKey} ⇧ [`],
   ['Close session', `${modKey} W`],
   ['Restart session', `${modKey} ⇧ R`],
   ['Rename session', 'F2'],

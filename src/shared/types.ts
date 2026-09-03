@@ -165,6 +165,16 @@ export interface Prefs {
   presetUsage: Record<string, number>
 }
 
+export type SplitDir = 'row' | 'column'
+export type LayoutNode = { kind: 'leaf'; id: string } | { kind: 'split'; dir: SplitDir; ratio: number; a: LayoutNode; b: LayoutNode }
+
+/** Pane arrangements the user built, saved between launches. */
+export interface WorkspaceState {
+  views: LayoutNode[]
+  activeView: number
+  activeId: string | null
+}
+
 export interface HostInfo {
   pid: number
   socketPath: string

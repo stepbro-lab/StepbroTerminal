@@ -23,6 +23,8 @@ export type Command =
   | 'split-down'
   | 'next-attention'
   | 'prompt-history'
+  | 'next-view'
+  | 'prev-view'
 
 let modelRef: SidebarProject[] = []
 export function setSidebarModelRef(m: SidebarProject[]): void {
@@ -69,6 +71,12 @@ export function runCommand(cmd: Command): void {
     case 'next-attention':
       if (!jumpToAttention()) ui.toast('Nothing needs you right now')
       break
+    case 'next-view':
+      ui.cycleView(1)
+      break
+    case 'prev-view':
+      ui.cycleView(-1)
+      break
     case 'prompt-history':
       if (ui.paletteOpen && ui.paletteMode === 'prompts') ui.closePalette()
       else ui.openPalette('', 'prompts')
@@ -89,6 +97,8 @@ export function commandFor(ev: KeyboardEvent): Command | 'jump' | null {
     if (k === 'r') return 'restart-session'
     if (k === 'o') return 'add-project'
     if (k === 'h') return 'prompt-history'
+    if (ev.key === ']' || ev.key === '}') return 'next-view'
+    if (ev.key === '[' || ev.key === '{') return 'prev-view'
     if (ev.key === '\\' || ev.key === '|') return 'split-down'
     return null
   }

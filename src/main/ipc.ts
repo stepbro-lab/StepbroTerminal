@@ -5,6 +5,7 @@ import { normalizeProjectPath } from '@shared/paths'
 import { readTranscriptDetails, transcriptPath } from './claude/transcript'
 import { buildLaunchSpec } from './presets/launchSpec'
 import { gitChanges, gitDiff, gitRevert } from './git'
+import { loadWorkspace, saveWorkspace } from './prefs'
 import { TITLEBAR_HEIGHT } from './window'
 import type { Ctx } from './context'
 
@@ -108,6 +109,8 @@ export function registerIpc(ctx: Ctx): void {
   handle('git:changes', (projectPath, since, touched) => gitChanges(projectPath, since, touched))
   handle('git:diff', (root, rel, untracked) => gitDiff(root, rel, untracked))
   handle('git:revert', (root, rel, untracked) => gitRevert(root, rel, untracked))
+  handle('workspace:get', () => loadWorkspace())
+  on('workspace:set', (state) => saveWorkspace(state))
 
   handle('menu:popup', (items: MenuItemSpec[]) => popupMenu(ctx, items))
   handle('app:openExternal', (url) => {

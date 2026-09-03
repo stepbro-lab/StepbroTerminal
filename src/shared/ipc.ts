@@ -9,7 +9,8 @@ import type {
   Prefs,
   Project,
   Session,
-  TranscriptDetails
+  TranscriptDetails,
+  WorkspaceState
 } from './types'
 
 export interface CreateRequest {
@@ -51,6 +52,7 @@ export interface InvokeMap {
   'git:changes': (projectPath: string, since: number, touched: string[]) => GitChanges
   'git:diff': (root: string, rel: string, untracked: boolean) => string
   'git:revert': (root: string, rel: string, untracked: boolean) => void
+  'workspace:get': () => WorkspaceState | null
 }
 
 /** Renderer -> main fire-and-forget channels. */
@@ -74,6 +76,7 @@ export interface SendMap {
   /** Windows only: keep the native caption buttons on the same color as our title bar. */
   'win:setOverlay': (color: string, symbolColor: string) => void
   'clipboard:write': (text: string) => void
+  'workspace:set': (state: WorkspaceState) => void
 }
 
 /** Main -> renderer events. */

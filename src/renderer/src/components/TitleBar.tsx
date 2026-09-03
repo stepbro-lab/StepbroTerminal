@@ -3,6 +3,7 @@ import { usePrefs } from '@/stores/prefs'
 import { useUi } from '@/stores/ui'
 import { useData } from '@/stores/data'
 import { ActivityPulse } from './ActivityPulse'
+import { ViewSwitcher } from './ViewSwitcher'
 import { StatusGlyph } from './sidebar/StatusGlyph'
 import { defaultTitle, rowPresetId } from '@/lib/sidebarModel'
 
@@ -13,6 +14,7 @@ export function TitleBar() {
   const setPrefs = usePrefs((s) => s.set)
   const activeId = useUi((s) => s.activeId)
   const maximized = useUi((s) => s.maximized)
+  const viewCount = useUi((s) => s.views.length)
   const session = useData((s) => (activeId ? s.sessions[activeId] : undefined))
   const presets = useData((s) => s.presets)
   const collapsed = prefs?.sidebarCollapsed ?? false
@@ -39,11 +41,17 @@ export function TitleBar() {
         <ActivityPulse />
       </div>
       <div className="pointer-events-none absolute inset-x-0 flex items-center justify-center gap-1.5 text-[12.5px] text-muted">
-        {session && (
-          <>
-            <StatusGlyph status={session.status} color={color} size={12} />
-            <span className="max-w-[46vw] truncate">{session.title || defaultTitle(session)}</span>
-          </>
+        {viewCount >= 2 ? (
+          <div className="pointer-events-auto">
+            <ViewSwitcher />
+          </div>
+        ) : (
+          session && (
+            <>
+              <StatusGlyph status={session.status} color={color} size={12} />
+              <span className="max-w-[46vw] truncate">{session.title || defaultTitle(session)}</span>
+            </>
+          )
         )}
       </div>
       {platform === 'linux' && (

@@ -22,6 +22,8 @@ interface UiState {
    */
   views: LayoutNode[]
   activeView: number
+  /** True once the saved workspace has been applied; auto-selection waits for it. */
+  booted: boolean
   /** Session being dragged from the sidebar or a card header, for drop zones. */
   dragging: string | null
   /** Side panel next to the terminals: a dev-server preview or the changes of a session. */
@@ -39,6 +41,9 @@ interface UiState {
   spinnerFrame: number
   maximized: boolean
   setActive: (id: string | null) => void
+  restore: (views: LayoutNode[], activeView: number, activeId: string | null) => void
+  closeView: (index: number) => void
+  cycleView: (delta: number) => void
   split: (dir: SplitDir, id: string) => void
   unsplit: () => void
   dropPane: (id: string) => void
@@ -76,6 +81,7 @@ export const useUi = create<UiState>((set, get) => ({
   activeId: null,
   views: [],
   activeView: 0,
+  booted: false,
   dragging: null,
   side: null,
   activeProject: null,
@@ -108,6 +114,30 @@ export const useUi = create<UiState>((set, get) => ({
       set({ activeId: id, views: [...views, leaf(id)], activeView: views.length, searchOpen: false })
     }
     announce(id)
+  },
+  restore: (views, activeView, activeId) => {
+    const view = Math.min(Math.max(0, activeView), Math.max(0, views.length - 1))
+    const focus = activeId && hasLeaf(views[view] ?? null, activeId) ? activeId : (leaves(views[view] ?? null)[0] ?? null)
+    set({ views, activeView: view, activeId: focus, booted: true })
+    announce(focus)
+  },
+  // Drops a whole arrangement; its sessions stay in the sidebar.
+  closeView: (index) => {
+    const { views, activeView, activeId } = get()
+    if (!views[index]) return
+    const next = views.filter((_, i) => i !== index)
+    const view = Math.min(activeView > index ? activeView - 1 : activeView, Math.max(0, next.length - 1))
+    const focus = next[view] && activeId && hasLeaf(next[view], activeId) ? activeId : (leaves(next[view] ?? null)[0] ?? null)
+    set({ views: next, activeView: view, activeId: focus })
+    announce(focus)
+  },
+  cycleView: (delta) => {
+    const { views, activeView, activeId } = get()
+    if (views.length < 2) return
+    const view = (activeView + delta + views.length) % views.length
+    const focus = activeId && hasLeaf(views[view], activeId) ? activeId : (leaves(views[view])[0] ?? null)
+    set({ activeView: view, activeId: focus, searchOpen: false })
+    announce(focus)
   },
   // Puts `id` beside the focused pane of the current view.
   split: (dir, id) => {

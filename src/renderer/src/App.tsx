@@ -6,6 +6,7 @@ import { registry } from '@/terminal/TerminalRegistry'
 import { handleKeydown, runCommand, setSidebarModelRef, type Command } from '@/lib/shortcuts'
 import { terminalContextMenu } from '@/lib/terminalMenu'
 import { defaultTitle } from '@/lib/sidebarModel'
+import { pruneLayout, type LayoutNode } from '@/lib/layout'
 import { TitleBar } from '@/components/TitleBar'
 import { Sidebar, useSidebarModel } from '@/components/sidebar/Sidebar'
 import { TerminalPane } from '@/components/pane/TerminalPane'
@@ -26,7 +27,23 @@ export default function App() {
   // ---- boot: prefs, data, event wiring ----
   useEffect(() => {
     void usePrefs.getState().load()
-    void useData.getState().load()
+    void useData
+      .getState()
+      .load()
+      .then(() => window.step.invoke('workspace:get'))
+      .then((saved) => {
+        // Bring back the pane arrangements, dropping sessions that no longer exist.
+        const sessions = useData.getState().sessions
+        const views = (saved?.views ?? []).map((v) => pruneLayout(v, (id) => !!sessions[id])).filter((v): v is LayoutNode => v !== null)
+        useUi.getState().restore(views, saved?.activeView ?? 0, saved?.activeId ?? null)
+      })
+    const persist = (): void => {
+      const { views, activeView, activeId, booted } = useUi.getState()
+      if (booted) window.step.send('workspace:set', { views, activeView, activeId })
+    }
+    const offWorkspace = useUi.subscribe((s, prev) => {
+      if (s.views !== prev.views || s.activeView !== prev.activeView || s.activeId !== prev.activeId) persist()
+    })
     const offData = subscribeData()
     const s = window.step
     const offs = [
@@ -58,6 +75,7 @@ export default function App() {
     mq.addEventListener('change', onMq)
     return () => {
       offData()
+      offWorkspace()
       offs.forEach((off) => off())
       window.removeEventListener('keydown', onKey, true)
       mq.removeEventListener('change', onMq)
@@ -83,7 +101,7 @@ export default function App() {
   }, [model])
   useEffect(() => {
     const ui = useUi.getState()
-    if (hostState.kind !== 'connected') return
+    if (hostState.kind !== 'connected' || !ui.booted) return
     for (const id of allPaneIds()) if (!sessions[id]) ui.dropPane(id)
     if (!useUi.getState().activeId) {
       const first = Object.values(sessions).sort((a, b) => b.updatedAt - a.updatedAt)[0]
