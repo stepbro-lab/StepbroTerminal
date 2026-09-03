@@ -110,6 +110,9 @@ export function registerIpc(ctx: Ctx): void {
   handle('git:diff', (root, rel, untracked) => gitDiff(root, rel, untracked))
   handle('git:revert', (root, rel, untracked) => gitRevert(root, rel, untracked))
   handle('workspace:get', () => loadWorkspace())
+  handle('updates:state', () => ctx.updates.state)
+  handle('updates:check', () => ctx.updates.check())
+  handle('updates:install', () => ctx.updates.install())
   on('workspace:set', (state) => saveWorkspace(state))
 
   handle('menu:popup', (items: MenuItemSpec[]) => popupMenu(ctx, items))

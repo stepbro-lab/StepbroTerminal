@@ -7,6 +7,7 @@ import type { LiveClaudeWatcher } from './claude/liveSessions'
 import type { Notifier } from './notifications'
 import type { StepTray } from './tray'
 import type { PromptLog } from './prompts'
+import type { Updates } from './updates'
 
 /** Everything the main process keeps in memory, shared between index.ts and ipc.ts. */
 export interface Ctx {
@@ -24,6 +25,7 @@ export interface Ctx {
   notifier: Notifier
   tray: StepTray
   prompts: PromptLog
+  updates: Updates
   log: (...a: unknown[]) => void
   emit: <K extends EventName>(channel: K, ...args: Parameters<EventMap[K]>) => void
   setPrefs: (partial: Partial<Prefs>) => Prefs

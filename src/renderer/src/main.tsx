@@ -6,10 +6,11 @@ import { useUi } from './stores/ui'
 import { useData } from './stores/data'
 import { usePrefs } from './stores/prefs'
 import { registry } from './terminal/TerminalRegistry'
+import { useUpdates } from '@/stores/updates'
 
 if (import.meta.env.DEV) {
   // Handy for poking at state from DevTools while developing.
-  ;(window as any).__step = { useUi, useData, usePrefs, registry }
+  ;(window as any).__step = { useUi, useData, usePrefs, useUpdates, registry }
 }
 
 createRoot(document.getElementById('root')!).render(

@@ -8,6 +8,7 @@ import { modKey } from '@/lib/format'
 import { AgentLogo } from '../sidebar/AgentLogo'
 import { Footer, Row, Section, Segmented, Slider, SmallButton, TextField, Toggle } from './controls'
 import { playNotificationSound } from '@/lib/sound'
+import { useUpdates } from '@/stores/updates'
 
 const FONTS = ['JetBrains Mono', 'SF Mono', 'Cascadia Mono', 'Menlo', 'Consolas', 'Fira Code', 'Monaspace Neon', 'Iosevka']
 
@@ -272,11 +273,54 @@ export function ShortcutsPage() {
   )
 }
 
+function UpdatesSection() {
+  const state = useUpdates((s) => s.state)
+  const check = useUpdates((s) => s.check)
+  const install = useUpdates((s) => s.install)
+  const version = window.step.version
+  const direct = window.step.platform === 'win32'
+  const hint =
+    state.kind === 'checking'
+      ? `${version} · checking…`
+      : state.kind === 'available'
+        ? `${version} · ${state.version} is out`
+        : state.kind === 'downloading'
+          ? `${version} · downloading ${state.version}, ${state.percent}%`
+          : state.kind === 'ready'
+            ? `${version} · ${state.version} downloaded, restart to install`
+            : state.kind === 'error'
+              ? `${version} · could not check: ${state.message}`
+              : version
+  const action =
+    state.kind === 'ready'
+      ? { label: 'Restart to update', run: install }
+      : state.kind === 'available'
+        ? { label: state.direct ? 'Download' : 'Open download page', run: install }
+        : state.kind === 'downloading'
+          ? null
+          : { label: 'Check now', run: check }
+  return (
+    <Section
+      title="Updates"
+      description={
+        direct
+          ? 'New versions download in the background and install when you restart.'
+          : 'New versions are announced here and in the title bar. The download page has the installer for your system.'
+      }
+    >
+      <Row label="Version" hint={hint}>
+        {action && <SmallButton onClick={() => void action.run()}>{action.label}</SmallButton>}
+      </Row>
+    </Section>
+  )
+}
+
 export function AdvancedPage() {
   const hostState = useData((s) => s.hostState)
   const dir = window.step.platform === 'win32' ? '%USERPROFILE%\\.step' : '~/.step'
   return (
     <>
+      <UpdatesSection />
       <Section
         title="Session host"
         description="A small background process owns every shell so they survive the window. Restarting it ends the shells that are open right now."

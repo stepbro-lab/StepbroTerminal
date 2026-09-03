@@ -179,6 +179,17 @@ export interface WorkspaceState {
   activeId: string | null
 }
 
+/** Where the app stands with respect to a newer release. */
+export type UpdateState =
+  | { kind: 'idle' }
+  | { kind: 'checking' }
+  /** A newer version exists; `direct` means this build can install it by itself. */
+  | { kind: 'available'; version: string; direct: boolean }
+  | { kind: 'downloading'; version: string; percent: number }
+  /** Downloaded; the next restart installs it. */
+  | { kind: 'ready'; version: string }
+  | { kind: 'error'; message: string }
+
 export interface HostInfo {
   pid: number
   socketPath: string

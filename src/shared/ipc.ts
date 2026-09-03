@@ -10,7 +10,8 @@ import type {
   Project,
   Session,
   TranscriptDetails,
-  WorkspaceState
+  WorkspaceState,
+  UpdateState
 } from './types'
 
 export interface CreateRequest {
@@ -53,6 +54,9 @@ export interface InvokeMap {
   'git:diff': (root: string, rel: string, untracked: boolean) => string
   'git:revert': (root: string, rel: string, untracked: boolean) => void
   'workspace:get': () => WorkspaceState | null
+  'updates:state': () => UpdateState
+  'updates:check': () => UpdateState
+  'updates:install': () => void
 }
 
 /** Renderer -> main fire-and-forget channels. */
@@ -97,6 +101,7 @@ export interface EventMap {
   'ui:command': (name: string) => void
   /** Play the notification sound; the renderer owns the audio file. */
   'ui:sound': () => void
+  'ui:update': (state: UpdateState) => void
   'win:maximized': (maximized: boolean) => void
   'theme:system': (dark: boolean) => void
 }

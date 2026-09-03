@@ -3,6 +3,7 @@ import { usePrefs } from '@/stores/prefs'
 import { useUi } from '@/stores/ui'
 import { useData } from '@/stores/data'
 import { ActivityPulse } from './ActivityPulse'
+import { UpdatePill } from './UpdatePill'
 import { ViewSwitcher } from './ViewSwitcher'
 import { StatusGlyph } from './sidebar/StatusGlyph'
 import { defaultTitle, rowPresetId } from '@/lib/sidebarModel'
@@ -39,6 +40,7 @@ export function TitleBar() {
           <PanelLeft size={15} />
         </button>
         <ActivityPulse />
+        <UpdatePill />
       </div>
       <div className="pointer-events-none absolute inset-x-0 flex items-center justify-center gap-1.5 text-[12.5px] text-muted">
         {viewCount >= 2 ? (

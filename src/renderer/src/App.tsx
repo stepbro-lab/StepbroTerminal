@@ -15,6 +15,7 @@ import { SettingsView } from '@/components/settings/SettingsView'
 import { Toasts } from '@/components/Toasts'
 import { ContextMenu } from '@/components/ContextMenu'
 import { playNotificationSound } from '@/lib/sound'
+import { useUpdates } from '@/stores/updates'
 
 export default function App() {
   const prefs = usePrefs((s) => s.prefs)
@@ -60,6 +61,7 @@ export default function App() {
       }),
       s.on('ui:command', (name) => runCommand(name as Command)),
       s.on('ui:sound', playNotificationSound),
+      s.on('ui:update', (state) => useUpdates.getState().set(state)),
       s.on('win:maximized', (m) => useUi.getState().setMaximized(m))
     ]
     void s.invoke('win:isMaximized').then((m) => useUi.getState().setMaximized(m))

@@ -19,13 +19,14 @@ import { PromptLog } from './prompts'
 import { registerIpc } from './ipc'
 import { buildAppMenu } from './menu'
 import { APP_ID, ensureWindowsShortcut, migrateUserData } from './branding'
+import { Updates } from './updates'
 import type { Ctx } from './context'
 
 const VERSION = app.getVersion()
 process.env['STEP_VERSION'] = VERSION
 
-// Dev only: another data folder lets a dev build run next to the installed app.
-if (!app.isPackaged && process.env['STEP_USER_DATA']) app.setPath('userData', resolve(process.env['STEP_USER_DATA']))
+// Another data folder lets a second copy (a dev build, a test install) run next to the installed app.
+if (process.env['STEP_USER_DATA']) app.setPath('userData', resolve(process.env['STEP_USER_DATA']))
 
 // step:// links come back from notification buttons (Windows) and open-url (macOS).
 if (app.isPackaged) app.setAsDefaultProtocolClient('step')
@@ -77,6 +78,7 @@ async function boot(): Promise<void> {
     notifier: null as unknown as Notifier,
     tray: null as unknown as StepTray,
     prompts: new PromptLog(),
+    updates: null as unknown as Updates,
     log,
     emit: <K extends EventName>(channel: K, ...args: Parameters<EventMap[K]>): void => {
       if (ctx.win && !ctx.win.isDestroyed()) ctx.win.webContents.send(channel, ...args)
@@ -135,9 +137,11 @@ async function boot(): Promise<void> {
     if (ctx.win && ctx.prefs.theme === 'system') applyWindowTheme(ctx.win, ctx.prefs)
   })
 
+  ctx.updates = new Updates({ emit: (state) => ctx.emit('ui:update', state), log })
   registerIpc(ctx)
   buildAppMenu(ctx)
   ctx.win = createWindow(ctx.prefs)
+  ctx.updates.start()
   ctx.win.on('closed', () => {
     ctx.win = null
   })
