@@ -57,7 +57,7 @@
 }
 
 :root {
-  --font-ui: 'Inter Variable', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI Variable Text', 'Segoe UI', sans-serif;
+  --font-ui: 'DM Sans Variable', 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI Variable Text', 'Segoe UI', sans-serif;
   --font-mono: 'JetBrains Mono', 'SF Mono', 'Cascadia Mono', Menlo, Consolas, monospace;
   --radius-card: 10px;
   --radius-row: 7px;
@@ -67,7 +67,3 @@
   --ease: cubic-bezier(0.2, 0, 0, 1);
 }
 
-/* On macOS the system font is the right call; elsewhere Inter is the closest thing to it. */
-:root[data-platform='darwin'] {
-  --font-ui: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter Variable', sans-serif;
-}
