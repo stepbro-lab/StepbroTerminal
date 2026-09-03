@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import type { EventMap, EventName, InvokeMap, SendMap } from '@shared/ipc'
 
 type Invoke = <K extends keyof InvokeMap>(channel: K, ...args: Parameters<InvokeMap[K]>) => Promise<ReturnType<InvokeMap[K]>>
@@ -18,7 +18,9 @@ const api = {
   version: process.env['STEP_VERSION'] ?? '0.0.0',
   invoke,
   send,
-  on
+  on,
+  /** Absolute path of a File dropped into the window. */
+  pathForFile: (file: File): string => webUtils.getPathForFile(file)
 }
 
 export type StepApi = typeof api

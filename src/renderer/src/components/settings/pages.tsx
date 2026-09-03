@@ -227,7 +227,8 @@ const SHORTCUTS: Array<[string, string]> = [
   ['Add folder', `${modKey} ⇧ O`],
   ['Settings', `${modKey} ,`],
   ['Copy selection', window.step.platform === 'darwin' ? '⌘ C' : 'Ctrl ⇧ C, or Ctrl C with a selection'],
-  ['Paste', window.step.platform === 'darwin' ? '⌘ V' : 'Ctrl ⇧ V']
+  ['Paste text, or hand an image to the agent', window.step.platform === 'darwin' ? '⌘ V' : 'Ctrl V'],
+  ['Drop files onto the terminal', 'inserts their paths']
 ]
 
 export function ShortcutsPage() {

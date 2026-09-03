@@ -109,6 +109,19 @@ class TerminalRegistry {
     const container = document.createElement('div')
     container.className = 'absolute inset-0'
     container.dataset['sessionId'] = id
+    // Dropping files pastes their paths, quoted when needed.
+    container.addEventListener('dragover', (ev) => ev.preventDefault())
+    container.addEventListener('drop', (ev) => {
+      ev.preventDefault()
+      const files = Array.from(ev.dataTransfer?.files ?? [])
+      if (!files.length) return
+      const text = files
+        .map((f) => window.step.pathForFile(f))
+        .filter(Boolean)
+        .map((p) => (/[\s"']/.test(p) ? `"${p}"` : p))
+        .join(' ')
+      if (text) term.paste(text)
+    })
 
     const entry: Entry = {
       id,
@@ -313,8 +326,10 @@ class TerminalRegistry {
       this.copySelection(e)
       return false
     }
-    if (!mac && ev.ctrlKey && ev.shiftKey && ev.key.toLowerCase() === 'v') {
-      void navigator.clipboard.readText().then((t) => t && e.term.paste(t))
+    const isPaste = mac ? ev.metaKey && ev.key.toLowerCase() === 'v' : ev.ctrlKey && ev.key.toLowerCase() === 'v'
+    if (isPaste) {
+      ev.preventDefault()
+      void this.paste(e)
       return false
     }
     if (!mac && ev.ctrlKey && !ev.shiftKey && ev.key.toLowerCase() === 'c' && e.term.hasSelection()) {
@@ -326,11 +341,25 @@ class TerminalRegistry {
       this.copySelection(e)
       return false
     }
-    if (mac && mod && ev.key.toLowerCase() === 'v') {
-      void navigator.clipboard.readText().then((t) => t && e.term.paste(t))
-      return false
-    }
     return true
+  }
+
+  /**
+   * Text is pasted as usual. An image is handed to the program instead: agents such as Claude Code
+   * read the clipboard themselves and show it as an [Image #n] chip. Claude listens for Ctrl+V on
+   * macOS and Linux, and for Alt+V on Windows (where terminals usually swallow Ctrl+V).
+   */
+  private async paste(e: Entry): Promise<void> {
+    const kind = await window.step.invoke('clipboard:kind')
+    if (kind === 'image') {
+      const key = window.step.platform === 'win32' ? [0x1b, 0x76] : [0x16]
+      window.step.send('host:input', e.id, new Uint8Array(key))
+      return
+    }
+    if (kind === 'text') {
+      const text = await window.step.invoke('clipboard:readText')
+      if (text) e.term.paste(text)
+    }
   }
 
   private copySelection(e: Entry): void {

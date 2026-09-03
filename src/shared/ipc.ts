@@ -42,6 +42,9 @@ export interface InvokeMap {
   'menu:popup': (items: MenuItemSpec[]) => string | null
   'app:openExternal': (url: string) => void
   'app:openPath': (path: string) => void
+  /** What the system clipboard holds right now, so paste can be routed correctly. */
+  'clipboard:kind': () => 'image' | 'text' | 'none'
+  'clipboard:readText': () => string
 }
 
 /** Renderer -> main fire-and-forget channels. */

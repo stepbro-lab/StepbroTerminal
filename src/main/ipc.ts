@@ -97,6 +97,12 @@ export function registerIpc(ctx: Ctx): void {
     }
   })
   on('clipboard:write', (text) => clipboard.writeText(text))
+  handle('clipboard:kind', () => {
+    const formats = clipboard.availableFormats()
+    if (formats.some((f) => f.startsWith('image/')) || !clipboard.readImage().isEmpty()) return 'image'
+    return clipboard.readText() ? 'text' : 'none'
+  })
+  handle('clipboard:readText', () => clipboard.readText())
 
   handle('menu:popup', (items: MenuItemSpec[]) => popupMenu(ctx, items))
   handle('app:openExternal', (url) => {
