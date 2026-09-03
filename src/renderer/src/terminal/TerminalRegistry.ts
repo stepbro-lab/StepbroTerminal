@@ -6,6 +6,7 @@ import { Unicode11Addon } from '@xterm/addon-unicode11'
 import type { Prefs } from '@shared/types'
 import { darkTerminal, lightTerminal } from '@/theme/terminalThemes'
 import { InputLine, hintFor } from '@/lib/flagHints'
+import { newlineSequence } from '@/lib/agentKeys'
 
 interface Entry {
   id: string
@@ -37,6 +38,8 @@ const measure = document.createElement('canvas').getContext('2d')
 
 type AppKeyHandler = (ev: KeyboardEvent) => boolean
 type ContextMenuHandler = (id: string, x: number, y: number) => void
+/** Which agent, if any, is in front in a session: it decides what Shift+Enter sends. */
+type AgentResolver = (id: string) => string | null
 
 /**
  * Keeps xterm instances alive outside React. Only the mounted terminal owns a WebGL
@@ -49,6 +52,7 @@ class TerminalRegistry {
   private webglSupported = true
   private appKeyHandler: AppKeyHandler = () => false
   private contextMenuHandler: ContextMenuHandler = () => {}
+  private agentResolver: AgentResolver = () => null
   private webglCtor: (new () => IDisposable) | null = null
 
   constructor() {
@@ -62,6 +66,10 @@ class TerminalRegistry {
 
   setContextMenuHandler(fn: ContextMenuHandler): void {
     this.contextMenuHandler = fn
+  }
+
+  setAgentResolver(fn: AgentResolver): void {
+    this.agentResolver = fn
   }
 
   /** Clipboard-aware paste into a session (text, or the image key for agents). */
@@ -373,6 +381,16 @@ class TerminalRegistry {
         ev.preventDefault()
         e.hintMuted = true
         this.clearHint(e)
+        return false
+      }
+    }
+    if (ev.key === 'Enter' && ev.shiftKey && !ev.ctrlKey && !ev.altKey && !ev.metaKey) {
+      // Agents take Enter as send; give them their own line-break sequence instead.
+      const seq = newlineSequence(this.agentResolver(e.id))
+      if (seq) {
+        ev.preventDefault()
+        window.step.send('host:input', e.id, encoder.encode(seq))
+        this.noteInput(e, seq)
         return false
       }
     }

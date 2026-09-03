@@ -74,6 +74,10 @@ export default function App() {
     window.addEventListener('keydown', onKey, true)
     registry.setAppKeyHandler((ev) => !!(handleKeydown(ev) && (ev.preventDefault(), true)))
     registry.setContextMenuHandler((id, x, y) => void terminalContextMenu(id, x, y))
+    registry.setAgentResolver((id) => {
+      const s = useData.getState().sessions[id]
+      return s ? (s.agent.detectedPreset ?? (s.presetId !== 'shell' ? s.presetId : null)) : null
+    })
     const mq = window.matchMedia('(prefers-color-scheme: dark)')
     const onMq = (e: MediaQueryListEvent): void => usePrefs.getState().setSystemDark(e.matches)
     mq.addEventListener('change', onMq)
