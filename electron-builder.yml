@@ -20,8 +20,11 @@ extraResources:
   - from: resources/icons
     to: icons
 # The host runs as a plain Node process, so it and node-pty must live outside the asar.
+# The host runs as a plain Node process outside the asar, so everything it requires must be
+# unpacked with it: its entry, the chunks it shares with the main process, and node-pty.
 asarUnpack:
   - out/main/host.js
+  - out/main/chunks/**
   - '**/node_modules/node-pty/**'
 win:
   target:

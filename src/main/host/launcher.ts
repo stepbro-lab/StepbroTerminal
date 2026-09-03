@@ -1,6 +1,7 @@
 import { spawn } from 'node:child_process'
 import fs from 'node:fs'
 import net from 'node:net'
+import path from 'node:path'
 import { hostInfoPath, stepDir } from '@shared/paths'
 import type { HostInfo } from '@shared/types'
 
@@ -39,6 +40,19 @@ export function probe(socketPath: string, timeoutMs = 800): Promise<boolean> {
 
 const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms))
 
+/** The first lines the host wrote to stderr before dying: the message sits at the top of a Node stack trace. */
+function stderrTail(file: string): string {
+  try {
+    const lines = fs
+      .readFileSync(file, 'utf8')
+      .split(/\r?\n/)
+      .filter((l) => l.trim())
+    return lines.length ? '\n' + lines.slice(0, 6).join('\n') : ''
+  } catch {
+    return ''
+  }
+}
+
 /** Returns a reachable host, spawning a detached one when needed. */
 export async function ensureHost(opts: EnsureHostOpts): Promise<HostInfo> {
   const existing = readInfo()
@@ -48,9 +62,17 @@ export async function ensureHost(opts: EnsureHostOpts): Promise<HostInfo> {
   }
   fs.mkdirSync(stepDir(), { recursive: true })
   opts.log('spawning host', opts.entry)
+  // Whatever the host prints before dying lands in host.err, so a failed start can say why.
+  const errPath = path.join(stepDir(), 'host.err')
+  let errFd: number | undefined
+  try {
+    errFd = fs.openSync(errPath, 'w')
+  } catch {
+    errFd = undefined
+  }
   const child = spawn(process.execPath, [opts.entry], {
     detached: true,
-    stdio: 'ignore',
+    stdio: ['ignore', 'ignore', errFd ?? 'ignore'],
     windowsHide: true,
     cwd: stepDir(),
     env: {
@@ -61,6 +83,7 @@ export async function ensureHost(opts: EnsureHostOpts): Promise<HostInfo> {
     }
   })
   child.unref()
+  if (errFd !== undefined) fs.closeSync(errFd)
   const startedAt = Date.now()
   let lastErr: unknown
   while (Date.now() - startedAt < 10_000) {
@@ -68,7 +91,7 @@ export async function ensureHost(opts: EnsureHostOpts): Promise<HostInfo> {
     const info = readInfo()
     if (info && (info.pid === child.pid || info.version === opts.version) && (await probe(info.socketPath))) return info
     if (child.exitCode !== null && child.exitCode !== 0) {
-      lastErr = new Error(`host exited with code ${child.exitCode}`)
+      lastErr = new Error(`host exited with code ${child.exitCode}${stderrTail(errPath)}`)
       break
     }
   }
