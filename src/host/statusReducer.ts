@@ -11,6 +11,8 @@ export type ReducerEvent =
   | { kind: 'spawned' }
   /** Status reported by Claude Code's live session registry for a claude typed inside a shell. */
   | { kind: 'registry'; status: string }
+  /** What the screen of an agent without hooks shows once output settles: a permission question or not. */
+  | { kind: 'screen'; waiting: boolean }
 
 export interface StatusPatch {
   status?: SessionStatus
@@ -44,10 +46,16 @@ export function reduceStatus(s: Input, e: ReducerEvent): StatusPatch | null {
     case 'output':
       if (s.status === 'exited') return null
       if (s.launch.hooks || s.agent.registryPid) return null
+      // A question on screen stays one while the program repaints; the next quiet look decides.
+      if (s.status === 'attention') return null
       return s.status === 'working' ? null : { status: 'working' }
     case 'quiet':
       if (s.launch.hooks || s.agent.registryPid) return null
       return s.status === 'working' || s.status === 'starting' ? { status: 'idle' } : null
+    case 'screen':
+      if (s.launch.hooks || s.agent.registryPid || s.status === 'exited') return null
+      if (e.waiting) return s.status === 'attention' ? null : { status: 'attention', agent: { lastMessage: 'Waiting for your approval' } }
+      return s.status === 'attention' ? { status: 'idle' } : null
     case 'registry': {
       const v = e.status.toLowerCase()
       if (v === 'busy' || v === 'working' || v === 'running') return s.status === 'working' ? null : { status: 'working' }

@@ -89,3 +89,27 @@ describe('reduceStatus', () => {
     expect(reduceStatus(base('idle', false), { kind: 'registry', status: 'idle' })).toBeNull()
   })
 })
+
+describe('screen questions from agents without hooks', () => {
+  const codex = (status: SessionStatus) => base(status, false, { detectedPreset: 'codex' })
+
+  it('turns a permission box on screen into attention and back once it is gone', () => {
+    expect(reduceStatus(codex('working'), { kind: 'screen', waiting: true })).toEqual({
+      status: 'attention',
+      agent: { lastMessage: 'Waiting for your approval' }
+    })
+    expect(reduceStatus(codex('attention'), { kind: 'screen', waiting: true })).toBeNull()
+    expect(reduceStatus(codex('attention'), { kind: 'screen', waiting: false })).toEqual({ status: 'idle' })
+    expect(reduceStatus(codex('idle'), { kind: 'screen', waiting: false })).toBeNull()
+  })
+
+  it('keeps attention while the box repaints', () => {
+    expect(reduceStatus(codex('attention'), { kind: 'output' })).toBeNull()
+    expect(reduceStatus(codex('attention'), { kind: 'quiet' })).toBeNull()
+  })
+
+  it('leaves sessions with hooks or a registry entry to their own signals', () => {
+    expect(reduceStatus(base('working', true), { kind: 'screen', waiting: true })).toBeNull()
+    expect(reduceStatus(base('working', false, { registryPid: 12 }), { kind: 'screen', waiting: true })).toBeNull()
+  })
+})

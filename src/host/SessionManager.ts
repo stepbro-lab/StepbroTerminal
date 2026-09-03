@@ -12,6 +12,7 @@ import { reduceStatus, type ReducerEvent } from './statusReducer'
 import { ptyEnv, resolveCommand, substituteArgs, writeHooksSettings } from './launch'
 import { findAncestor, processTable } from './procTree'
 import { log } from './log'
+import { waitingForApproval } from './screenPrompts'
 
 export interface SessionManagerOpts {
   stateFile: string
@@ -548,7 +549,22 @@ export class SessionManager extends EventEmitter {
       l.quietTimer = undefined
       l.burstStart = 0
       this.apply(l, { kind: 'quiet' })
+      void this.lookAtScreen(l)
     }, QUIET_MS)
+  }
+
+  /** Agents without hooks only show their permission questions on screen; look once output settles. */
+  private async lookAtScreen(l: Live): Promise<void> {
+    const s = l.s
+    if (s.launch.hooks || s.agent.registryPid || !s.alive) return
+    if (!s.agent.detectedPreset && s.presetId === 'shell') return
+    await l.drained
+    if (!this.live.has(s.id)) return
+    // The whole visible screen: the question sits wherever the program's live area is.
+    const buf = l.screen.buffer.active
+    const lines: string[] = []
+    for (let y = buf.baseY; y < buf.baseY + l.screen.rows; y++) lines.push(buf.getLine(y)?.translateToString(true) ?? '')
+    this.apply(l, { kind: 'screen', waiting: waitingForApproval(lines) })
   }
 
   private feedScreen(l: Live, data: string | Uint8Array): void {
