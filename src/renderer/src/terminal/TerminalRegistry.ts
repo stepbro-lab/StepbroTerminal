@@ -364,10 +364,13 @@ class TerminalRegistry {
     if (e.hint) {
       const plain = !ev.ctrlKey && !ev.altKey && !ev.metaKey && !ev.shiftKey
       if (plain && (ev.key === 'Tab' || ev.key === 'ArrowRight')) {
+        // Returning false only keeps xterm out of it; the browser would still move focus on Tab.
+        ev.preventDefault()
         this.acceptHint(e)
         return false
       }
       if (plain && ev.key === 'Escape') {
+        ev.preventDefault()
         e.hintMuted = true
         this.clearHint(e)
         return false
