@@ -13,6 +13,7 @@ import { applyAgentWrap, findOnPath, ptyEnv, resolveCommand, shellArgsWithAgents
 import { findAncestor, processTable } from './procTree'
 import { log } from './log'
 import { waitingForApproval } from './screenPrompts'
+import { conptyReply, isControlOnly } from './conptyReply'
 import { isOwnEndpoint, previewUrlIn } from './previewUrl'
 
 export interface SessionManagerOpts {
@@ -543,8 +544,16 @@ export class SessionManager extends EventEmitter {
     s.pid = p.pid
     s.exitCode = undefined
     this.openLog(l)
+    // Answer ConPTY's startup probes so the shell does not sit blocked for ~3s. The window closes
+    // on the first printable output, before any renderer attaches, so no reply is ever doubled.
+    let probing = true
     p.onData((data) => {
       if (l.pty !== p) return
+      if (probing) {
+        const reply = conptyReply(data)
+        if (reply) p.write(reply)
+        if (!isControlOnly(data)) probing = false
+      }
       this.onOutput(l, data)
     })
     p.onExit(({ exitCode }) => {
