@@ -105,6 +105,9 @@ export class HostClient extends EventEmitter {
       case 'exit':
         this.emit('exit', msg.id, msg.code)
         break
+      case 'prompt':
+        this.emit('prompt', msg.prompt)
+        break
       case 'error': {
         const p = msg.reqId ? this.pending.get(msg.reqId) : undefined
         if (p && msg.reqId) {

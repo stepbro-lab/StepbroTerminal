@@ -15,6 +15,32 @@ export interface AgentMeta {
   permissionMode?: string
   costUsd?: number
   tokens?: number
+  /** Files the agent edited in this session (from Claude Code hooks), newest last. */
+  changedFiles?: string[]
+}
+
+export interface ChangedFile {
+  path: string
+  rel: string
+  status: 'added' | 'deleted' | 'modified' | 'renamed'
+  untracked: boolean
+  /** Edited by this session (hook evidence) or modified after it started. */
+  bySession: boolean
+  mtime: number
+}
+
+export interface GitChanges {
+  root: string | null
+  files: ChangedFile[]
+}
+
+/** A prompt the user sent to an agent, kept for the history palette. */
+export interface PromptRecord {
+  ts: number
+  sessionId: string
+  projectPath: string
+  presetId: string
+  text: string
 }
 
 export interface LaunchSpec {
@@ -45,6 +71,8 @@ export interface Session {
   pid?: number
   agent: AgentMeta
   launch: LaunchSpec
+  /** Last local dev-server URL seen in the output, for the preview pane. */
+  previewUrl?: string
 }
 
 export interface CreateSessionOpts {

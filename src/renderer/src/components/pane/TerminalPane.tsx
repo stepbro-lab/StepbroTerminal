@@ -6,12 +6,15 @@ import { closeSession, restartSession } from '@/lib/actions'
 import { CardHeader } from './CardHeader'
 import { EmptyState } from './EmptyState'
 import { HostBanner } from './HostBanner'
+import { PreviewPane } from './PreviewPane'
+import { ChangesPane } from './ChangesPane'
 
 /** One or two terminal cards, side by side or stacked. Clicking a card focuses its session. */
 export function TerminalPane() {
   const panes = useUi((s) => s.panes)
   const focus = useUi((s) => s.focus)
   const splitDir = useUi((s) => s.splitDir)
+  const side = useUi((s) => s.side)
   const hostState = useData((s) => s.hostState)
   const sessions = useData((s) => s.sessions)
   const connected = hostState.kind === 'connected'
@@ -25,11 +28,16 @@ export function TerminalPane() {
     )
   }
 
+  const sidePanel = side && sessions[side.sessionId] ? (side.kind === 'preview' ? <PreviewPane key={side.url} url={side.url} /> : <ChangesPane sessionId={side.sessionId} />) : null
+
   return (
-    <main className="flex min-w-0 flex-1 gap-2 pb-2 pr-2" style={{ flexDirection: splitDir === 'row' ? 'row' : 'column' }}>
-      {live.map((id, i) => (
-        <PaneCard key={id} id={id} index={i} focused={live.length === 1 || i === focus} split={live.length > 1} connected={connected} />
-      ))}
+    <main className="flex min-w-0 flex-1 gap-2 pb-2 pr-2">
+      <div className="flex min-w-0 flex-1 gap-2" style={{ flexDirection: splitDir === 'row' ? 'row' : 'column' }}>
+        {live.map((id, i) => (
+          <PaneCard key={id} id={id} index={i} focused={live.length === 1 || i === focus} split={live.length > 1} connected={connected} />
+        ))}
+      </div>
+      {sidePanel && <div className="flex min-w-0 flex-[0_0_44%]">{sidePanel}</div>}
     </main>
   )
 }

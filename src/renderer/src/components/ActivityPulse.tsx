@@ -1,24 +1,129 @@
+import { useEffect, useRef, useState } from 'react'
+import { Check, X } from 'lucide-react'
 import { useData } from '@/stores/data'
 import { useUi } from '@/stores/ui'
+import { attentionCounts, attentionQueue, respondToPrompt } from '@/lib/attention'
+import { defaultTitle, rowPresetId } from '@/lib/sidebarModel'
+import { modKey } from '@/lib/format'
 import { DotSpinner } from './sidebar/DotSpinner'
+import { AgentLogo } from './sidebar/AgentLogo'
+import { StatusGlyph } from './sidebar/StatusGlyph'
 
-/** Title-bar pulse: spins while any session works, turns amber when one needs you. Click opens the palette. */
+/**
+ * Title-bar pulse and inbox. Spins while agents work, shows an amber count when some need you.
+ * Click opens the inbox: every waiting session with jump, allow and deny at hand.
+ */
 export function ActivityPulse() {
   const sessions = useData((s) => s.sessions)
+  const presets = useData((s) => s.presets)
+  const setActive = useUi((s) => s.setActive)
+  const setActiveProject = useUi((s) => s.setActiveProject)
   const openPalette = useUi((s) => s.openPalette)
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
   const list = Object.values(sessions)
-  const attention = list.some((s) => s.status === 'attention' || s.status === 'error')
-  const working = list.filter((s) => s.status === 'working' || s.status === 'starting').length
-  const title = attention ? 'A session needs you' : working ? `${working} working` : 'All quiet'
+  const { needsYou, done, working } = attentionCounts(list)
+  const queue = attentionQueue(list)
+  const title = needsYou ? `${needsYou} need${needsYou === 1 ? 's' : ''} you · ${modKey} J` : working ? `${working} working` : 'All quiet'
+
+  useEffect(() => {
+    if (!open) return
+    const onDown = (e: MouseEvent): void => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    window.addEventListener('mousedown', onDown, true)
+    window.addEventListener('keydown', onKey, true)
+    return () => {
+      window.removeEventListener('mousedown', onDown, true)
+      window.removeEventListener('keydown', onKey, true)
+    }
+  }, [open])
+
+  const jump = (id: string, projectPath: string): void => {
+    setActiveProject(projectPath)
+    setActive(id)
+    setOpen(false)
+  }
+
   return (
-    <button className="icon-btn no-drag" title={title} onClick={() => openPalette('')}>
-      {attention ? (
-        <span className="pulse-once rounded-full" style={{ width: 8, height: 8, background: 'var(--attention)' }} />
-      ) : working ? (
-        <DotSpinner size={14} color="var(--accent)" />
-      ) : (
-        <span className="rounded-full" style={{ width: 7, height: 7, background: 'var(--text-faint)' }} />
+    <div ref={ref} className="no-drag relative">
+      <button
+        className="icon-btn relative"
+        title={title}
+        onClick={() => (queue.length ? setOpen((v) => !v) : openPalette(''))}
+        style={{ width: needsYou ? 'auto' : undefined, paddingRight: needsYou ? 6 : undefined, paddingLeft: needsYou ? 6 : undefined }}
+      >
+        {needsYou ? (
+          <span className="flex items-center gap-1.5">
+            <span className="pulse-once rounded-full" style={{ width: 8, height: 8, background: 'var(--attention)' }} />
+            <span className="text-[12px] font-semibold tabular-nums" style={{ color: 'var(--attention)' }}>
+              {needsYou}
+            </span>
+          </span>
+        ) : working ? (
+          <DotSpinner size={14} color="var(--accent)" />
+        ) : done ? (
+          <span className="rounded-full" style={{ width: 7, height: 7, background: 'var(--accent)' }} />
+        ) : (
+          <span className="rounded-full" style={{ width: 7, height: 7, background: 'var(--text-faint)' }} />
+        )}
+      </button>
+
+      {open && (
+        <div
+          className="fade-in absolute left-0 top-full z-40 mt-1 w-[320px] rounded-[10px] p-1"
+          style={{ background: 'var(--bg-elevated)', boxShadow: '0 0 0 1px var(--border-strong) inset, var(--shadow-pop)' }}
+        >
+          <div className="flex items-center px-2.5 pb-1 pt-1.5 text-[11px] font-medium text-muted">
+            <span>Needs you</span>
+            <span className="ml-auto">
+              <kbd>{modKey}</kbd> <kbd>J</kbd> next
+            </span>
+          </div>
+          {queue.map((s) => {
+            const presetId = rowPresetId(s)
+            const color = presets.find((p) => p.id === presetId)?.color ?? '#8a8a90'
+            const waiting = s.status === 'attention'
+            return (
+              <div key={s.id} className="group flex h-8 items-center gap-2 rounded-[6px] px-2 hover:bg-hover" onClick={() => jump(s.id, s.projectPath)}>
+                <StatusGlyph status={s.status} color={color} size={14} />
+                <span className="min-w-0 flex-1 truncate text-[13px]">{s.title || defaultTitle(s)}</span>
+                <span className="text-[11px] text-muted">{waiting ? 'waiting' : s.status === 'error' ? 'error' : 'done'}</span>
+                <span style={{ color: 'var(--text-faint)' }}>
+                  <AgentLogo presetId={presetId} size={12} />
+                </span>
+                {waiting && (
+                  <span className="ml-1 hidden items-center gap-0.5 group-hover:flex">
+                    <button
+                      className="icon-btn h-6 w-6"
+                      title="Allow (Enter)"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        respondToPrompt(s.id, true)
+                      }}
+                    >
+                      <Check size={13} style={{ color: 'var(--success)' }} />
+                    </button>
+                    <button
+                      className="icon-btn h-6 w-6"
+                      title="Deny (Esc)"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        respondToPrompt(s.id, false)
+                      }}
+                    >
+                      <X size={13} style={{ color: 'var(--danger)' }} />
+                    </button>
+                  </span>
+                )}
+              </div>
+            )
+          })}
+        </div>
       )}
-    </button>
+    </div>
   )
 }

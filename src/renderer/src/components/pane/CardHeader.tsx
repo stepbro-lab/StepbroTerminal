@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Columns2, MoreHorizontal, Pin, Rows2, Search, X } from 'lucide-react'
+import { Columns2, FileDiff, Globe, MoreHorizontal, Pin, Rows2, Search, X } from 'lucide-react'
 import type { Session } from '@shared/types'
 import { useData } from '@/stores/data'
 import { useUi } from '@/stores/ui'
@@ -15,6 +15,11 @@ export function CardHeader({ session, split = false, dim = false }: { session: S
   const setSearchOpen = useUi((s) => s.setSearchOpen)
   const activeId = useUi((s) => s.activeId)
   const splitDir = useUi((s) => s.splitDir)
+  const side = useUi((s) => s.side)
+  const setSide = useUi((s) => s.setSide)
+  const previewOpen = side?.kind === 'preview' && side.sessionId === session.id
+  const changesOpen = side?.kind === 'changes' && side.sessionId === session.id
+  const changedCount = session.agent.changedFiles?.length ?? 0
   const [editing, setEditing] = useState(false)
   const color = presets.find((p) => p.id === rowPresetId(session))?.color ?? '#8a8a90'
   const title = session.title || defaultTitle(session)
@@ -90,7 +95,31 @@ export function CardHeader({ session, split = false, dim = false }: { session: S
         </span>
       )}
       {session.pinned && <Pin size={12} className="text-muted" />}
+      {session.previewUrl && (
+        <button
+          className="ml-1 flex h-6 items-center gap-1.5 rounded-full px-2 text-[11.5px] font-medium transition hover:brightness-110"
+          style={{ background: previewOpen ? 'var(--accent)' : 'var(--accent-soft)', color: previewOpen ? '#fff' : 'var(--accent)' }}
+          title={`Preview ${session.previewUrl} beside the terminal`}
+          onClick={() => setSide(previewOpen ? null : { kind: 'preview', url: session.previewUrl!, sessionId: session.id })}
+        >
+          <Globe size={12} />
+          {session.previewUrl.replace(/^https?:\/\//, '')}
+        </button>
+      )}
       <div className="ml-auto flex items-center gap-0.5">
+        <button
+          className="icon-btn relative"
+          title="Changes in this folder"
+          data-on={changesOpen}
+          onClick={() => setSide(changesOpen ? null : { kind: 'changes', sessionId: session.id })}
+        >
+          <FileDiff size={14} />
+          {changedCount > 0 && (
+            <span className="absolute -right-0.5 -top-0.5 min-w-[14px] rounded-full px-1 text-center text-[9px] font-semibold leading-[14px] text-white" style={{ background: 'var(--accent)' }}>
+              {changedCount}
+            </span>
+          )}
+        </button>
         {searchOpen && isActive ? (
           <SearchBar id={session.id} onClose={() => setSearchOpen(false)} />
         ) : (

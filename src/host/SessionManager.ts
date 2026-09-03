@@ -260,6 +260,17 @@ export class SessionManager extends EventEmitter {
         l.s.agent.detectedPreset = agent
         this.emitSession(l)
       }
+      // Lines typed into an agent are prompts worth remembering; the launch command itself is not.
+      const isAgent = l.s.launch.hooks || !!l.s.agent.detectedPreset || l.s.presetId !== 'shell'
+      if (isAgent && !agent && line.length >= 2) {
+        this.emit('prompt', {
+          ts: Date.now(),
+          sessionId: l.s.id,
+          projectPath: l.s.projectPath,
+          presetId: l.s.agent.detectedPreset ?? l.s.presetId,
+          text: line
+        })
+      }
     }
     l.pty.write(Buffer.from(bytes).toString('utf8'))
   }
@@ -341,9 +352,22 @@ export class SessionManager extends EventEmitter {
   applyHook(agentSessionId: string, name: string, payload: Record<string, unknown>): void {
     for (const l of this.live.values()) {
       if (l.s.agent.sessionId !== agentSessionId) continue
+      if (name === 'PostToolUse') this.noteEditedFile(l, payload)
       this.apply(l, { kind: 'hook', name, payload })
       return
     }
+  }
+
+  private noteEditedFile(l: Live, payload: Record<string, unknown>): void {
+    const tool = String(payload['tool_name'] ?? '')
+    if (!/^(Edit|Write|MultiEdit|NotebookEdit)$/.test(tool)) return
+    const input = payload['tool_input'] as Record<string, unknown> | undefined
+    const file = input?.['file_path'] ?? input?.['notebook_path']
+    if (typeof file !== 'string' || !file) return
+    const list = (l.s.agent.changedFiles ?? []).filter((f) => f !== file)
+    list.push(file)
+    l.s.agent.changedFiles = list.slice(-200)
+    this.emitSession(l)
   }
 
   /** Maps Claude Code registry entries (claude typed inside a Step shell) to sessions and applies their status. */
@@ -515,6 +539,7 @@ export class SessionManager extends EventEmitter {
     this.appendLog(l, bytes)
     this.emit('output', l.s.id, bytes)
     for (const t of l.osc.feed(bytes)) this.onOscTitle(l, t)
+    this.spotPreviewUrl(l, data)
     const now = Date.now()
     if (!l.burstStart) l.burstStart = now
     if (now - l.burstStart >= BUSY_AFTER_MS) this.apply(l, { kind: 'output' })
@@ -535,6 +560,17 @@ export class SessionManager extends EventEmitter {
         resolve()
       }
     })
+  }
+
+  /** Dev servers print their address; keep the latest local URL so the UI can offer a preview. */
+  private spotPreviewUrl(l: Live, data: string): void {
+    if (!/localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1?\]/.test(data)) return
+    const m = data.match(/https?:\/\/(?:localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1?\])(?::\d{2,5})?(?:\/[^\s"'<>)\]]*)?/)
+    if (!m) return
+    const url = m[0].replace(/0\.0\.0\.0|\[::1?\]/, 'localhost').replace(/[.,;:]+$/, '')
+    if (l.s.previewUrl === url) return
+    l.s.previewUrl = url
+    this.emitSession(l)
   }
 
   private onOscTitle(l: Live, title: string): void {

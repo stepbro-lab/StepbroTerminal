@@ -1,5 +1,7 @@
 import type {
+  GitChanges,
   HistorySession,
+  PromptRecord,
   HostState,
   LiveClaude,
   MenuItemSpec,
@@ -45,6 +47,10 @@ export interface InvokeMap {
   /** What the system clipboard holds right now, so paste can be routed correctly. */
   'clipboard:kind': () => 'image' | 'text' | 'none'
   'clipboard:readText': () => string
+  'prompts:list': () => PromptRecord[]
+  'git:changes': (projectPath: string, since: number, touched: string[]) => GitChanges
+  'git:diff': (root: string, rel: string, untracked: boolean) => string
+  'git:revert': (root: string, rel: string, untracked: boolean) => void
 }
 
 /** Renderer -> main fire-and-forget channels. */

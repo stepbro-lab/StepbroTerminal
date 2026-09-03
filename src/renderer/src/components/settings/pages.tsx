@@ -216,6 +216,8 @@ export function NotificationsPage() {
 const SHORTCUTS: Array<[string, string]> = [
   ['New shell', `${modKey} T`],
   ['Command palette', `${modKey} K`],
+  ['Next session that needs you', `${modKey} J`],
+  ['Prompt history', `${modKey} ⇧ H`],
   ['Jump to session 1 to 9', `${modKey} 1…9`],
   ['Split right / close other pane', `${modKey} \\`],
   ['Split down', `${modKey} ⇧ \\`],

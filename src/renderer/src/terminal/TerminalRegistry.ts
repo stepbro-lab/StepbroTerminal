@@ -26,6 +26,7 @@ const ACK_EVERY = 64 * 1024
 const encoder = new TextEncoder()
 
 type AppKeyHandler = (ev: KeyboardEvent) => boolean
+type ContextMenuHandler = (id: string, x: number, y: number) => void
 
 /**
  * Keeps xterm instances alive outside React. Only the mounted terminal owns a WebGL
@@ -37,6 +38,7 @@ class TerminalRegistry {
   private dark = false
   private webglSupported = true
   private appKeyHandler: AppKeyHandler = () => false
+  private contextMenuHandler: ContextMenuHandler = () => {}
   private webglCtor: (new () => IDisposable) | null = null
 
   constructor() {
@@ -46,6 +48,16 @@ class TerminalRegistry {
 
   setAppKeyHandler(fn: AppKeyHandler): void {
     this.appKeyHandler = fn
+  }
+
+  setContextMenuHandler(fn: ContextMenuHandler): void {
+    this.contextMenuHandler = fn
+  }
+
+  /** Clipboard-aware paste into a session (text, or the image key for agents). */
+  pasteInto(id: string): Promise<void> {
+    const e = this.entries.get(id)
+    return e ? this.paste(e) : Promise.resolve()
   }
 
   /** Resolves once the configured terminal font is available (or the fallback is settled). */
@@ -109,6 +121,10 @@ class TerminalRegistry {
     const container = document.createElement('div')
     container.className = 'absolute inset-0'
     container.dataset['sessionId'] = id
+    container.addEventListener('contextmenu', (ev) => {
+      ev.preventDefault()
+      this.contextMenuHandler(id, ev.clientX, ev.clientY)
+    })
     // Dropping files pastes their paths, quoted when needed.
     container.addEventListener('dragover', (ev) => ev.preventDefault())
     container.addEventListener('drop', (ev) => {

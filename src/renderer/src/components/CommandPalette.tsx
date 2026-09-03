@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Folder, History, Moon, PanelLeft, RotateCw, Search, Settings, Sun, Terminal } from 'lucide-react'
+import { Folder, History, MessageSquare, Moon, PanelLeft, RotateCw, Search, Settings, Sun, Terminal } from 'lucide-react'
+import type { PromptRecord } from '@shared/types'
+import { registry } from '@/terminal/TerminalRegistry'
 import { useData } from '@/stores/data'
 import { usePrefs, setChromeDim } from '@/stores/prefs'
 import { useUi } from '@/stores/ui'
@@ -40,11 +42,35 @@ export function CommandPalette() {
   const setPrefs = usePrefs((s) => s.set)
   const dark = usePrefs((s) => s.dark)
   const [cursor, setCursor] = useState(0)
+  const [prompts, setPrompts] = useState<PromptRecord[]>([])
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
 
+  useEffect(() => {
+    if (open && mode === 'prompts') void window.step.invoke('prompts:list').then(setPrompts)
+  }, [open, mode])
+
   const items = useMemo<Item[]>(() => {
     const color = (id: string): string => presets.find((p) => p.id === id)?.color ?? '#8a8a90'
+    if (mode === 'prompts') {
+      return prompts.map((r, i) => ({
+        id: `pr:${i}`,
+        group: 'Prompts you sent',
+        label: r.text,
+        hint: `${projects.find((p) => p.path.toLowerCase() === r.projectPath.toLowerCase())?.name ?? ''} · ${timeAgo(r.ts)}`,
+        icon: (
+          <span style={{ color: color(r.presetId) }}>
+            <AgentLogo presetId={r.presetId} size={13} />
+          </span>
+        ),
+        run: () => {
+          const id = useUi.getState().activeId
+          if (!id) return
+          registry.get(id)?.term.paste(r.text)
+          registry.focus(id)
+        }
+      }))
+    }
     if (mode === 'resume' && paletteProject) {
       return historyFor(paletteProject).map((h) => ({
         id: h.sessionId,
@@ -153,6 +179,14 @@ export function CommandPalette() {
       })
     }
     out.push({
+      id: 'a:prompts',
+      group: 'Actions',
+      label: 'Prompt history…',
+      hint: 'Re-send something you asked an agent before',
+      icon: <MessageSquare size={13} className="text-muted" />,
+      run: () => setTimeout(() => useUi.getState().openPalette('', 'prompts'), 0)
+    })
+    out.push({
       id: 'a:host',
       group: 'Actions',
       label: 'Restart session host',
@@ -161,7 +195,7 @@ export function CommandPalette() {
       run: () => window.step.invoke('host:restartHost')
     })
     return out
-  }, [mode, paletteProject, model, presets, projects, history, activeProject, activeId, dark, prefs, setActive, setActiveProject, setPrefs, setSettingsOpen])
+  }, [mode, paletteProject, prompts, model, presets, projects, history, activeProject, activeId, dark, prefs, setActive, setActiveProject, setPrefs, setSettingsOpen])
 
   const filtered = useMemo(() => filter(items, query, (i) => `${i.label} ${i.hint ?? ''}`), [items, query])
 
@@ -199,7 +233,7 @@ export function CommandPalette() {
             ref={inputRef}
             className="h-11 flex-1 bg-transparent text-[14px] outline-none placeholder:text-muted"
             style={{ userSelect: 'text' }}
-            placeholder={mode === 'resume' ? 'Search past conversations…' : 'Jump to a session, folder or action…'}
+            placeholder={mode === 'resume' ? 'Search past conversations…' : mode === 'prompts' ? 'Search prompts you sent…' : 'Jump to a session, folder or action…'}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => {

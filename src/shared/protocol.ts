@@ -1,4 +1,4 @@
-import type { CreateSessionOpts, Session } from './types'
+import type { CreateSessionOpts, PromptRecord, Session } from './types'
 
 export type ClientMsg =
   | { t: 'hello'; version: string }
@@ -27,6 +27,7 @@ export type HostMsg =
   | { t: 'replay'; id: string }
   | { t: 'clear'; id: string }
   | { t: 'exit'; id: string; code: number }
+  | { t: 'prompt'; prompt: PromptRecord }
   | { t: 'error'; message: string; id?: string; reqId?: string }
 
 const HEADER = 8

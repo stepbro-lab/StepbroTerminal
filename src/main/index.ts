@@ -1,5 +1,5 @@
 import { app, BrowserWindow, nativeTheme } from 'electron'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
 import fs from 'node:fs'
 import { claudeDir, hostLogPath } from '@shared/paths'
 import type { EventMap, EventName } from '@shared/ipc'
@@ -15,6 +15,7 @@ import { computeProjects } from './projects'
 import { applyWindowTheme, createWindow } from './window'
 import { Notifier } from './notifications'
 import { StepTray } from './tray'
+import { PromptLog } from './prompts'
 import { registerIpc } from './ipc'
 import { buildAppMenu } from './menu'
 import type { Ctx } from './context'
@@ -22,13 +23,21 @@ import type { Ctx } from './context'
 const VERSION = app.getVersion()
 process.env['STEP_VERSION'] = VERSION
 
-// Dev only: a random DevTools port, published in <userData>/DevToolsActivePort (see scripts/cdp.mjs).
-if (!app.isPackaged) app.commandLine.appendSwitch('remote-debugging-port', '0')
+// step:// links come back from notification buttons (Windows) and open-url (macOS).
+if (app.isPackaged) app.setAsDefaultProtocolClient('step')
+else if (process.argv[1]) app.setAsDefaultProtocolClient('step', process.execPath, [resolve(process.argv[1])])
 
 if (!app.requestSingleInstanceLock()) {
   app.quit()
 } else {
+  // Dev only: a random DevTools port, published in <userData>/DevToolsActivePort (see scripts/cdp.mjs).
+  // Set after winning the lock so a second instance launched by a step:// link never overwrites it.
+  if (!app.isPackaged) app.commandLine.appendSwitch('remote-debugging-port', '0')
   void boot()
+}
+
+function stepUrlIn(argv: string[]): string | undefined {
+  return argv.find((a) => a.startsWith('step://'))
 }
 
 function hostEntry(): string {
@@ -61,6 +70,7 @@ async function boot(): Promise<void> {
     activeId: null,
     notifier: null as unknown as Notifier,
     tray: null as unknown as StepTray,
+    prompts: new PromptLog(),
     log,
     emit: <K extends EventName>(channel: K, ...args: Parameters<EventMap[K]>): void => {
       if (ctx.win && !ctx.win.isDestroyed()) ctx.win.webContents.send(channel, ...args)
@@ -95,7 +105,9 @@ async function boot(): Promise<void> {
   ctx.notifier = new Notifier({
     getPrefs: () => ctx.prefs,
     getWindow: () => ctx.win,
-    getActive: () => ctx.activeId
+    getActive: () => ctx.activeId,
+    input: (id, bytes) => client.send({ t: 'input', id }, bytes),
+    focusSession: (id) => ctx.emit('ui:focusSession', id)
   })
   ctx.tray = new StepTray({
     getSessions: () => [...ctx.sessions.values()],
@@ -103,6 +115,7 @@ async function boot(): Promise<void> {
     focusSession: (id) => ctx.emit('ui:focusSession', id)
   })
 
+  ctx.prompts.load()
   ctx.refreshPresets()
   wireHostClient(ctx)
   history.on('update', (list) => ctx.emit('history:update', list))
@@ -125,12 +138,21 @@ async function boot(): Promise<void> {
 
   void connectHost(ctx)
 
-  app.on('second-instance', () => {
+  app.on('second-instance', (_e, argv) => {
+    const url = stepUrlIn(argv)
+    if (url) log('protocol link', url)
+    if (url && ctx.notifier.handleUrl(url) && !url.startsWith('step://focus/')) return
     if (!ctx.win) ctx.win = createWindow(ctx.prefs)
     if (ctx.win.isMinimized()) ctx.win.restore()
     ctx.win.show()
     ctx.win.focus()
   })
+  app.on('open-url', (e, url) => {
+    e.preventDefault()
+    ctx.notifier.handleUrl(url)
+  })
+  const launchUrl = stepUrlIn(process.argv)
+  if (launchUrl) ctx.notifier.handleUrl(launchUrl)
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       ctx.win = createWindow(ctx.prefs)
@@ -179,6 +201,7 @@ function wireHostClient(ctx: Ctx): void {
   client.on('replay', (id: string, bytes: Uint8Array) => ctx.emit('host:output', id, bytes, true))
   client.on('clear', (id: string) => ctx.emit('host:clear', id))
   client.on('exit', (id: string, code: number) => ctx.emit('host:exit', id, code))
+  client.on('prompt', (p) => ctx.prompts.add(p))
   client.on('error', (m: string) => ctx.log('host error:', m))
   client.on('disconnected', () => {
     ctx.log('host disconnected, reconnecting')

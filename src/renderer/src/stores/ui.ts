@@ -7,13 +7,15 @@ export interface Toast {
   tone?: 'info' | 'error' | 'success'
 }
 
-export type PaletteMode = 'all' | 'resume'
+export type PaletteMode = 'all' | 'resume' | 'prompts'
 export type SettingsPage = 'appearance' | 'terminal' | 'agents' | 'notifications' | 'shortcuts' | 'advanced'
 export type SplitDir = 'row' | 'column'
 
 interface UiState {
   /** The focused session; always equals panes[focus]. */
   activeId: string | null
+  /** Side panel next to the terminals: a dev-server preview or the changes of a session. */
+  side: { kind: 'preview'; url: string; sessionId: string } | { kind: 'changes'; sessionId: string } | null
   /** One or two sessions shown side by side. */
   panes: string[]
   focus: number
@@ -31,6 +33,7 @@ interface UiState {
   spinnerFrame: number
   maximized: boolean
   setActive: (id: string | null) => void
+  setSide: (side: UiState['side']) => void
   focusPane: (index: number) => void
   split: (dir: SplitDir, id: string) => void
   unsplit: () => void
@@ -53,6 +56,7 @@ let toastSeq = 1
 
 export const useUi = create<UiState>((set, get) => ({
   activeId: null,
+  side: null,
   panes: [],
   focus: 0,
   splitDir: 'row',
@@ -89,6 +93,7 @@ export const useUi = create<UiState>((set, get) => ({
     window.step.send('win:setActiveSession', id)
     window.step.send('host:viewed', id)
   },
+  setSide: (side) => set({ side }),
   focusPane: (index) => {
     const id = get().panes[index]
     if (id) get().setActive(id)

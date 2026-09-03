@@ -4,6 +4,7 @@ import { useUi } from '@/stores/ui'
 import { addProject, closeSession, newShell, restartSession, splitWithNewShell } from './actions'
 import { flatSessions, type SidebarProject } from './sidebarModel'
 import { registry } from '@/terminal/TerminalRegistry'
+import { jumpToAttention } from './attention'
 
 const isMac = window.step.platform === 'darwin'
 
@@ -20,6 +21,8 @@ export type Command =
   | 'rename-session'
   | 'split-right'
   | 'split-down'
+  | 'next-attention'
+  | 'prompt-history'
 
 let modelRef: SidebarProject[] = []
 export function setSidebarModelRef(m: SidebarProject[]): void {
@@ -63,6 +66,13 @@ export function runCommand(cmd: Command): void {
     case 'rename-session':
       if (ui.activeId) ui.setRenaming(ui.activeId)
       break
+    case 'next-attention':
+      if (!jumpToAttention()) ui.toast('Nothing needs you right now')
+      break
+    case 'prompt-history':
+      if (ui.paletteOpen && ui.paletteMode === 'prompts') ui.closePalette()
+      else ui.openPalette('', 'prompts')
+      break
     case 'split-right':
     case 'split-down': {
       const dir = cmd === 'split-right' ? 'row' : 'column'
@@ -81,6 +91,7 @@ export function commandFor(ev: KeyboardEvent): Command | 'jump' | null {
   if (ev.shiftKey) {
     if (k === 'r') return 'restart-session'
     if (k === 'o') return 'add-project'
+    if (k === 'h') return 'prompt-history'
     if (ev.key === '\\' || ev.key === '|') return 'split-down'
     return null
   }
@@ -89,6 +100,8 @@ export function commandFor(ev: KeyboardEvent): Command | 'jump' | null {
   switch (k) {
     case 'k':
       return 'palette'
+    case 'j':
+      return 'next-attention'
     case 'n':
       return 'new-session'
     case 't':

@@ -4,6 +4,7 @@ import { usePrefs } from '@/stores/prefs'
 import { useUi } from '@/stores/ui'
 import { registry } from '@/terminal/TerminalRegistry'
 import { handleKeydown, runCommand, setSidebarModelRef, type Command } from '@/lib/shortcuts'
+import { terminalContextMenu } from '@/lib/terminalMenu'
 import { defaultTitle } from '@/lib/sidebarModel'
 import { TitleBar } from '@/components/TitleBar'
 import { Sidebar, useSidebarModel } from '@/components/sidebar/Sidebar'
@@ -51,6 +52,7 @@ export default function App() {
     }
     window.addEventListener('keydown', onKey, true)
     registry.setAppKeyHandler((ev) => !!(handleKeydown(ev) && (ev.preventDefault(), true)))
+    registry.setContextMenuHandler((id, x, y) => void terminalContextMenu(id, x, y))
     const mq = window.matchMedia('(prefers-color-scheme: dark)')
     const onMq = (e: MediaQueryListEvent): void => usePrefs.getState().setSystemDark(e.matches)
     mq.addEventListener('change', onMq)

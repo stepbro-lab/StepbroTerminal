@@ -41,6 +41,7 @@ export class HostServer {
     })
     sm.on('clear', (id) => this.broadcast({ t: 'clear', id }))
     sm.on('exit', (id, code) => this.broadcast({ t: 'exit', id, code }))
+    sm.on('prompt', (prompt) => this.broadcast({ t: 'prompt', prompt }))
     sm.on('output', (id: string, bytes: Uint8Array) => this.queueOutput(id, bytes))
   }
 

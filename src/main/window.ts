@@ -38,7 +38,8 @@ export function createWindow(prefs: Prefs): BrowserWindow {
       sandbox: false,
       contextIsolation: true,
       spellcheck: false,
-      backgroundThrottling: false
+      backgroundThrottling: false,
+      webviewTag: true
     }
   })
   win.once('ready-to-show', () => win.show())
