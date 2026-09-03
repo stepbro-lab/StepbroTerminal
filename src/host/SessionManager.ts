@@ -13,6 +13,7 @@ import { applyAgentWrap, findOnPath, ptyEnv, resolveCommand, shellArgsWithAgents
 import { findAncestor, processTable } from './procTree'
 import { log } from './log'
 import { waitingForApproval } from './screenPrompts'
+import { isOwnEndpoint, previewUrlIn } from './previewUrl'
 
 export interface SessionManagerOpts {
   stateFile: string
@@ -119,6 +120,7 @@ export class SessionManager extends EventEmitter {
       if (wasAlive || s.status === 'working' || s.status === 'attention' || s.status === 'starting') s.status = 'exited'
       s.agent = s.agent ?? {}
       s.agent.registryPid = undefined
+      if (s.previewUrl && isOwnEndpoint(s.previewUrl)) s.previewUrl = undefined
       const l = this.newLive(s)
       this.replayLogTail(l)
       this.live.set(s.id, l)
@@ -595,13 +597,19 @@ export class SessionManager extends EventEmitter {
 
   /** Dev servers print their address; keep the latest local URL so the UI can offer a preview. */
   private spotPreviewUrl(l: Live, data: string): void {
-    if (!/localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1?\]/.test(data)) return
-    const m = data.match(/https?:\/\/(?:localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1?\])(?::\d{2,5})?(?:\/[^\s"'<>)\]]*)?/)
-    if (!m) return
-    const url = m[0].replace(/0\.0\.0\.0|\[::1?\]/, 'localhost').replace(/[.,;:]+$/, '')
-    if (l.s.previewUrl === url) return
+    const url = previewUrlIn(data, this.ownPort())
+    if (!url || l.s.previewUrl === url) return
     l.s.previewUrl = url
     this.emitSession(l)
+  }
+
+  /** The port of the host's own HTTP endpoints, so their URLs never pass for a dev server. */
+  private ownPort(): number | undefined {
+    try {
+      return Number(new URL(this.opts.hookUrl('x')).port) || undefined
+    } catch {
+      return undefined
+    }
   }
 
   private onOscTitle(l: Live, title: string): void {
