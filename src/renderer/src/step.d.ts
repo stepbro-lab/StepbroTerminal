@@ -4,6 +4,7 @@ declare global {
   interface Window {
     step: {
       platform: NodeJS.Platform
+      osVersion: string
       version: string
       invoke: <K extends keyof InvokeMap>(channel: K, ...args: Parameters<InvokeMap[K]>) => Promise<ReturnType<InvokeMap[K]>>
       send: <K extends keyof SendMap>(channel: K, ...args: Parameters<SendMap[K]>) => void

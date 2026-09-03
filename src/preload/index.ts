@@ -15,6 +15,7 @@ const on: On = (channel, cb) => {
 
 const api = {
   platform: process.platform,
+  osVersion: process.getSystemVersion(),
   version: process.env['STEP_VERSION'] ?? '0.0.0',
   invoke,
   send,

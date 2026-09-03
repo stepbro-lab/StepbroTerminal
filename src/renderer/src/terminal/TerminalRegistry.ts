@@ -96,7 +96,7 @@ class TerminalRegistry {
       drawBoldTextInBrightColors: false,
       scrollOnUserInput: true,
       smoothScrollDuration: 0,
-      windowsPty: window.step.platform === 'win32' ? { backend: 'conpty' } : undefined
+      windowsPty: window.step.platform === 'win32' ? { backend: 'conpty', buildNumber: windowsBuild() } : undefined
     })
     const fit = new FitAddon()
     const search = new SearchAddon()
@@ -366,6 +366,12 @@ class TerminalRegistry {
     const text = e.term.getSelection()
     if (text) window.step.send('clipboard:write', text)
   }
+}
+
+/** Windows build number (e.g. 26200 from "10.0.26200"), so xterm only applies the ConPTY workarounds that build needs. */
+function windowsBuild(): number | undefined {
+  const m = /\.(\d+)$/.exec(window.step.osVersion ?? '')
+  return m ? Number(m[1]) : undefined
 }
 
 function fontStack(family: string | undefined): string {

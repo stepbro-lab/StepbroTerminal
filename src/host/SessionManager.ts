@@ -474,7 +474,10 @@ export class SessionManager extends EventEmitter {
         rows: s.rows,
         cwd: s.projectPath,
         env,
-        useConpty: true
+        useConpty: true,
+        // node-pty bundles a recent ConPTY (1.23+); the one in Windows misplaces the cursor with TUI apps.
+        useConptyDll: true,
+        conptyInheritCursor: true
       })
     } catch (e: any) {
       s.status = 'error'
