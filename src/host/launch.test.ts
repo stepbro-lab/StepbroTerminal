@@ -53,11 +53,18 @@ describe('resolveCommand', () => {
   })
 
   it('resolves plain names on posix and returns null when missing', () => {
-    // Posix PATH uses ':' so on Windows we must avoid the drive letter: use a relative dir.
-    const dir = path.relative(process.cwd(), tmp)
-    fs.writeFileSync(path.join(tmp, 'gemini'), '')
-    expect(resolveCommand('gemini', { PATH: dir }, 'linux')?.file).toBe(path.join(dir, 'gemini'))
-    expect(resolveCommand('nope', { PATH: dir }, 'linux')).toBeNull()
+    // Posix PATH splits on ':' so on Windows the dir must not carry a drive letter. A dir
+    // under the working directory keeps the relative path drive-free even when the temp
+    // folder lives on another drive, as it does on CI runners.
+    const local = fs.mkdtempSync(path.join(process.cwd(), '.step-launch-'))
+    try {
+      const dir = path.relative(process.cwd(), local)
+      fs.writeFileSync(path.join(local, 'gemini'), '')
+      expect(resolveCommand('gemini', { PATH: dir }, 'linux')?.file).toBe(path.join(dir, 'gemini'))
+      expect(resolveCommand('nope', { PATH: dir }, 'linux')).toBeNull()
+    } finally {
+      fs.rmSync(local, { recursive: true, force: true })
+    }
   })
 
   it('accepts absolute paths', () => {

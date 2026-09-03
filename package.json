@@ -5,7 +5,8 @@
   "private": true,
   "description": "StepbroTerminal: a beautiful cross-platform terminal for always-on AI coding agents.",
   "author": {
-    "name": "Kevin"
+    "name": "Kevin",
+    "email": "roloocoste@gmail.com"
   },
   "main": "out/main/index.js",
   "packageManager": "pnpm@10.33.0",
