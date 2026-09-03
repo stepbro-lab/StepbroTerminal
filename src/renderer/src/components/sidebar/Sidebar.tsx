@@ -88,12 +88,13 @@ export function Sidebar() {
           </div>
         ))}
       </div>
-      <div className="flex h-10 shrink-0 items-center justify-between px-2" style={{ width: 'var(--sidebar-w)' }}>
-        <button className="icon-btn" title="Add folder" onClick={() => void addProject()}>
-          <Plus size={15} />
+      <div className="flex h-12 shrink-0 items-center justify-between px-2.5" style={{ width: 'var(--sidebar-w)' }}>
+        <button className="btn btn-secondary" style={{ height: 32, paddingLeft: 10, paddingRight: 12, fontSize: 12.5 }} title="Add folder" onClick={() => void addProject()}>
+          <Plus size={16} />
+          <span>Add folder</span>
         </button>
-        <button className="icon-btn" title="Settings" onClick={() => setSettingsOpen(true)}>
-          <Settings size={15} />
+        <button className="icon-btn" style={{ width: 32, height: 32 }} title="Settings" onClick={() => setSettingsOpen(true)}>
+          <Settings size={18} />
         </button>
       </div>
       {!collapsed && (
