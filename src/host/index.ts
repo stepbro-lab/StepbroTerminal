@@ -49,7 +49,18 @@ async function main(): Promise<void> {
   notes.load()
 
   const hooks = new HookServer(sm, token, (sessionId, req, res) =>
-    handleMcp({ notes, session: (id) => sm.list().find((s) => s.id === id), version }, sessionId, req, res)
+    handleMcp(
+      {
+        notes,
+        session: (id) => sm.get(id),
+        sessions: () => sm.list(),
+        send: (from, to, text, submit) => sm.handoff(from, to, text, submit),
+        version
+      },
+      sessionId,
+      req,
+      res
+    )
   )
   const hookPort = await hooks.listen()
   const hookUrl = hooks.url()

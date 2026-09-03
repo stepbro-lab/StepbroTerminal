@@ -4,10 +4,14 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 import { z } from 'zod'
 import type { Note, NoteSource, Session } from '@shared/types'
 import type { NoteStore } from './NoteStore'
+import { agentOf, pickSession } from './handoff'
 
 export interface McpDeps {
   notes: NoteStore
   session: (id: string) => Session | undefined
+  sessions: () => Session[]
+  /** Types text into another session on behalf of the caller. */
+  send: (from: string, to: string, text: string, submit: boolean) => void
   version: string
 }
 
@@ -88,6 +92,44 @@ function buildServer(deps: McpDeps, sessionId: string): McpServer {
       inputSchema: { id: z.string().describe('Note id') }
     },
     async ({ id }) => text(deps.notes.remove(id) ? `Deleted note ${id}.` : `No note with id ${id}.`)
+  )
+
+  server.registerTool(
+    'list_sessions',
+    {
+      title: 'List sessions',
+      description: 'The other sessions open in this terminal: id, title, which agent or shell is in front, status and folder. Use it to see where something can be sent.',
+      inputSchema: {}
+    },
+    async () => {
+      const list = deps.sessions().filter((s) => s.id !== sessionId)
+      if (!list.length) return text('No other sessions are open.')
+      return text(list.map((s) => `[${s.id.slice(0, 8)}] ${s.title || '(untitled)'} — ${agentOf(s)}, ${s.alive ? s.status : 'exited'}, ${s.projectPath}`).join('\n'))
+    }
+  )
+
+  server.registerTool(
+    'send_to_session',
+    {
+      title: 'Send text to another session',
+      description:
+        'Type text into another session of this terminal and press Enter, as if the user had written it there. Use it when they ask you to send, pass or hand something to another agent or session ("send this to codex"). `to` can be an agent name (codex, claude, gemini), part of the session title, or an id from list_sessions.',
+      inputSchema: {
+        to: z.string().describe('Agent name, title fragment or session id'),
+        text: z.string().min(1).max(20000).describe('What to type there. Make it complete and self-contained: the other agent knows nothing about this conversation.'),
+        submit: z.boolean().optional().describe('Press Enter after typing. On by default.')
+      }
+    },
+    async ({ to, text: body, submit }) => {
+      const target = pickSession(deps.sessions(), to, sessionId)
+      if (!target) {
+        const names = deps.sessions().filter((s) => s.id !== sessionId).map((s) => `${s.title || s.id.slice(0, 8)} (${agentOf(s)})`)
+        return text(names.length ? `No session matches "${to}". Open sessions: ${names.join('; ')}.` : 'No other sessions are open.')
+      }
+      if (!target.alive) return text(`Session "${target.title || target.id.slice(0, 8)}" has exited; nothing is listening there.`)
+      deps.send(sessionId, target.id, body, submit !== false)
+      return text(`Sent to "${target.title || target.id.slice(0, 8)}" (${agentOf(target)}).`)
+    }
   )
 
   return server

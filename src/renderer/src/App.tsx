@@ -19,6 +19,8 @@ import { useUpdates } from '@/stores/updates'
 import { useNotes } from '@/stores/notes'
 import { NotesPanel } from '@/components/notes/NotesPanel'
 import { NoteFlight } from '@/components/notes/NoteFlight'
+import { useHandoff } from '@/stores/handoff'
+import { HandoffFlight } from '@/components/HandoffFlight'
 
 export default function App() {
   const prefs = usePrefs((s) => s.prefs)
@@ -66,6 +68,7 @@ export default function App() {
       s.on('ui:sound', playNotificationSound),
       s.on('ui:update', (state) => useUpdates.getState().set(state)),
       s.on('notes:update', (notes, added) => useNotes.getState().receive(notes, added)),
+      s.on('ui:handoff', (h) => useHandoff.getState().arrive(h)),
       s.on('win:maximized', (m) => useUi.getState().setMaximized(m))
     ]
     void s.invoke('win:isMaximized').then((m) => useUi.getState().setMaximized(m))
@@ -144,6 +147,7 @@ export default function App() {
       <CommandPalette />
       <NotesPanel />
       <NoteFlight />
+      <HandoffFlight />
       <ContextMenu />
       <Toasts />
     </div>

@@ -194,6 +194,13 @@ export interface Note {
   source: NoteSource
 }
 
+/** Text one agent handed to another session, for the flight between panes. */
+export interface Handoff {
+  from: string
+  to: string
+  text: string
+}
+
 /** Where the app stands with respect to a newer release. */
 export type UpdateState =
   | { kind: 'idle' }

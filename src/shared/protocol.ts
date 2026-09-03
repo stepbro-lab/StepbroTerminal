@@ -1,4 +1,4 @@
-import type { CreateSessionOpts, PromptRecord, Session, Note } from './types'
+import type { CreateSessionOpts, PromptRecord, Session, Note, Handoff } from './types'
 
 export type ClientMsg =
   | { t: 'hello'; version: string }
@@ -34,6 +34,8 @@ export type HostMsg =
   | { t: 'prompt'; prompt: PromptRecord }
   /** The whole list after any change; `added` is set when an agent just saved one. */
   | { t: 'notes'; notes: Note[]; added?: Note }
+  /** One agent typed text into another session. */
+  | { t: 'handoff'; handoff: Handoff }
   | { t: 'error'; message: string; id?: string; reqId?: string }
 
 const HEADER = 8

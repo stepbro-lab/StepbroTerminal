@@ -111,6 +111,9 @@ export class HostClient extends EventEmitter {
       case 'notes':
         this.emit('notes', msg.notes, msg.added)
         break
+      case 'handoff':
+        this.emit('handoff', msg.handoff)
+        break
       case 'error': {
         const p = msg.reqId ? this.pending.get(msg.reqId) : undefined
         if (p && msg.reqId) {

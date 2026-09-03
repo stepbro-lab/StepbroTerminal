@@ -3,7 +3,7 @@ import { join, resolve } from 'node:path'
 import fs from 'node:fs'
 import { claudeDir, hostLogPath } from '@shared/paths'
 import type { EventMap, EventName } from '@shared/ipc'
-import type { HostState, Prefs, Session, Note } from '@shared/types'
+import type { HostState, Prefs, Session, Note, Handoff } from '@shared/types'
 import { HostClient } from './host/HostClient'
 import { ensureHost, requestHostShutdown } from './host/launcher'
 import { loadPrefs, savePrefs } from './prefs'
@@ -218,6 +218,7 @@ function wireHostClient(ctx: Ctx): void {
     ctx.notes = notes
     ctx.emit('notes:update', notes, added)
   })
+  client.on('handoff', (h: Handoff) => ctx.emit('ui:handoff', h))
   client.on('error', (m: string) => ctx.log('host error:', m))
   client.on('disconnected', () => {
     ctx.log('host disconnected, reconnecting')

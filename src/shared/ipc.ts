@@ -12,7 +12,8 @@ import type {
   TranscriptDetails,
   WorkspaceState,
   UpdateState,
-  Note
+  Note,
+  Handoff
 } from './types'
 
 export interface CreateRequest {
@@ -109,6 +110,7 @@ export interface EventMap {
   'ui:update': (state: UpdateState) => void
   /** The notes list changed; `added` is the note an agent just saved, for the animation. */
   'notes:update': (notes: Note[], added?: Note) => void
+  'ui:handoff': (handoff: Handoff) => void
   'win:maximized': (maximized: boolean) => void
   'theme:system': (dark: boolean) => void
 }

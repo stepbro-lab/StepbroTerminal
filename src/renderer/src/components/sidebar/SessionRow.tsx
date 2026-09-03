@@ -31,6 +31,7 @@ export function SessionRow({ row }: Props) {
 
   return (
     <div
+      data-session-row={row.id}
       className="row grid-cols-[16px_minmax(0,1fr)_auto_16px] gap-2 pl-[22px]"
       data-active={active}
       title={row.session.projectPath}

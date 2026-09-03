@@ -3,7 +3,7 @@ import fs from 'node:fs'
 import { encodeFrame, FrameParser, type ClientMsg, type HostMsg } from '@shared/protocol'
 import type { SessionManager } from './SessionManager'
 import type { NoteStore } from './NoteStore'
-import type { Note } from '@shared/types'
+import type { Handoff, Note } from '@shared/types'
 import { SizeOwners } from './sizeOwners'
 import { log } from './log'
 
@@ -48,6 +48,7 @@ export class HostServer {
     sm.on('clear', (id) => this.broadcast({ t: 'clear', id }))
     sm.on('exit', (id, code) => this.broadcast({ t: 'exit', id, code }))
     sm.on('prompt', (prompt) => this.broadcast({ t: 'prompt', prompt }))
+    sm.on('handoff', (handoff: Handoff) => this.broadcast({ t: 'handoff', handoff }))
     sm.on('output', (id: string, bytes: Uint8Array) => this.queueOutput(id, bytes))
     notes.on('change', (list: Note[], added?: Note) => this.broadcast({ t: 'notes', notes: list, added }))
   }

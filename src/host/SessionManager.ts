@@ -356,6 +356,15 @@ export class SessionManager extends EventEmitter {
 
   // ---- agent awareness ----
 
+  /** Types `text` into session `to` for `from`, presses Enter when asked, and tells clients so they can show it travelling. */
+  handoff(from: string, to: string, text: string, submit: boolean): void {
+    const l = this.live.get(to)
+    if (!l?.pty) return
+    this.input(to, Buffer.from(text.replace(/\r?\n/g, '\n'), 'utf8'))
+    if (submit) setTimeout(() => this.input(to, Buffer.from('\r')), 350)
+    this.emit('handoff', { from, to, text })
+  }
+
   /** `stepSessionId` comes from the per-session hook URL; older settings files only carry the agent's own id. */
   applyHook(agentSessionId: string, name: string, payload: Record<string, unknown>, stepSessionId?: string): void {
     const l = (stepSessionId && this.live.get(stepSessionId)) || [...this.live.values()].find((x) => x.s.agent.sessionId === agentSessionId)
