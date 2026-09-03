@@ -4,7 +4,7 @@ import { useData } from '@/stores/data'
 import { usePrefs } from '@/stores/prefs'
 import { useUi } from '@/stores/ui'
 import { buildSidebar } from '@/lib/sidebarModel'
-import { addProject } from '@/lib/actions'
+import { addProject, sidebarMenu } from '@/lib/actions'
 import { ProjectRow } from './ProjectRow'
 import { SessionRow } from './SessionRow'
 
@@ -63,7 +63,16 @@ export function Sidebar() {
         transition: dragging.current ? undefined : 'width 200ms var(--ease)'
       }}
     >
-      <div className="scroll-thin flex-1 px-2 pt-1" style={{ width: 'var(--sidebar-w)' }}>
+      <div
+        className="scroll-thin flex-1 px-2 pt-1"
+        style={{ width: 'var(--sidebar-w)' }}
+        onContextMenu={(e) => {
+          // Rows bring their own menus; this one is for the space below them.
+          if ((e.target as HTMLElement).closest('.row')) return
+          e.preventDefault()
+          void sidebarMenu({ x: e.clientX, y: e.clientY })
+        }}
+      >
         {model.length === 0 && (
           <div className="flex flex-col items-center gap-3 px-2 pt-10 text-center text-muted">
             <p>No folders yet.</p>

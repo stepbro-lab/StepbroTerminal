@@ -245,6 +245,33 @@ export async function projectMenu(project: SidebarProject, pos: MenuPosition = {
   }
 }
 
+/**
+ * Right-click on empty sidebar space. Starts something in the folder in use (the one last
+ * clicked, else the active session's, else the first), or offers to add a folder.
+ */
+export async function sidebarMenu(pos: MenuPosition = {}): Promise<void> {
+  const data = useData.getState()
+  const ui = useUi.getState()
+  const active = ui.activeId ? data.sessions[ui.activeId] : undefined
+  const wanted = (ui.activeProject ?? active?.projectPath)?.toLowerCase()
+  const folder = data.projects.find((p) => p.path.toLowerCase() === wanted) ?? data.projects[0]
+  const presets = data.presets.filter((p) => p.installed && p.id !== 'shell')
+  const where = folder && data.projects.length > 1 ? ` in ${folder.name}` : ''
+  const items: MenuItemSpec[] = folder
+    ? [
+        { id: 'shell', label: `New shell${where}` },
+        { label: `New agent session${where}`, submenu: presets.map((p) => ({ id: `new:${p.id}`, label: p.name })), enabled: presets.length > 0 },
+        sep,
+        { id: 'add', label: 'Add folder…' }
+      ]
+    : [{ id: 'add', label: 'Add folder…' }]
+  const pick = await popup(items, pos)
+  if (!pick) return
+  if (pick === 'add') await addProject()
+  else if (folder && pick === 'shell') await newShell(folder.path)
+  else if (folder && pick.startsWith('new:')) await createSession(folder.path, pick.slice(4))
+}
+
 export function toggleProjectCollapsed(path: string): void {
   const prefs = usePrefs.getState()
   const cur = prefs.prefs?.collapsedProjects ?? []
