@@ -21,11 +21,13 @@ extraResources:
     to: icons
 # The host runs as a plain Node process, so it and node-pty must live outside the asar.
 # The host runs as a plain Node process outside the asar, so everything it requires must be
-# unpacked with it: its entry, the chunks it shares with the main process, and node-pty.
+# unpacked with it: the bytecode loader, its own bytecode, the chunk it shares with the main
+# process, and node-pty.
 asarUnpack:
-  - out/main/host.js
-  - out/main/chunks/**
+  - out/main/**
   - '**/node_modules/node-pty/**'
+# Flips Electron's fuses on the packed binary: no debugger flags, no NODE_OPTIONS injection.
+afterPack: scripts/after-pack.cjs
 win:
   target:
     - nsis
