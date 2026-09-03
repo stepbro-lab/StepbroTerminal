@@ -3,9 +3,9 @@ import { encodeClaudeProjectDir, hostSocketPath, normalizeProjectPath, projectNa
 
 describe('paths', () => {
   it('moves the host directory and pipe with STEP_HOME', () => {
-    process.env['STEP_HOME'] = 'C:\\tmp\\step dev'
+    process.env['STEP_HOME'] = '/tmp/step dev'
     try {
-      expect(stepDir()).toBe('C:\\tmp\\step dev')
+      expect(stepDir()).toBe('/tmp/step dev')
       expect(hostSocketPath('win32', 'kevin')).toBe('\\\\.\\pipe\\step-host-kevin-step_dev')
     } finally {
       delete process.env['STEP_HOME']
