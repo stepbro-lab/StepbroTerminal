@@ -25,7 +25,7 @@ export function ProjectRow({ project, isActiveProject }: Props) {
         onContextMenu={(e) => {
           e.preventDefault()
           setActiveProject(project.path)
-          void projectMenu(project)
+          void projectMenu(project, { x: e.clientX, y: e.clientY })
         }}
         title={project.path}
       >

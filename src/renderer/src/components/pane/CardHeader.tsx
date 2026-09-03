@@ -18,7 +18,7 @@ export function CardHeader({ session }: { session: Session }) {
   const title = session.title || defaultTitle(session)
   const canResume = !!session.launch.resumeArgs && !!session.agent.sessionId
 
-  const more = async (): Promise<void> => {
+  const more = async (anchor: HTMLElement): Promise<void> => {
     const pick = await popup([
       { id: 'rename', label: 'Rename' },
       { id: 'pin', label: session.pinned ? 'Unpin' : 'Pin' },
@@ -31,7 +31,7 @@ export function CardHeader({ session }: { session: Session }) {
       { id: 'copyId', label: 'Copy session id', enabled: !!session.agent.sessionId },
       sep,
       { id: 'close', label: 'Close session' }
-    ])
+    ], { anchor })
     switch (pick) {
       case 'rename':
         setEditing(true)
@@ -82,7 +82,7 @@ export function CardHeader({ session }: { session: Session }) {
         <button className="icon-btn" title={canResume ? 'Restart and resume' : 'Restart'} onClick={() => restartSession(session.id)}>
           <RotateCw size={14} />
         </button>
-        <button className="icon-btn" title="More" onClick={() => void more()}>
+        <button className="icon-btn" title="More" onClick={(e) => void more(e.currentTarget)}>
           <MoreHorizontal size={15} />
         </button>
         <button className="icon-btn" title="Close session" onClick={() => void closeSession(session.id)}>

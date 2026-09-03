@@ -40,7 +40,7 @@ export function SessionRow({ row }: Props) {
       onDoubleClick={() => setRenaming(row.id)}
       onContextMenu={(e) => {
         e.preventDefault()
-        void sessionMenu(row)
+        void sessionMenu(row, { x: e.clientX, y: e.clientY })
       }}
       onAuxClick={(e) => {
         if (e.button === 1) void closeSession(row.id)

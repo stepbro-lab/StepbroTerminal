@@ -4,6 +4,7 @@ import { useUi } from '@/stores/ui'
 import { usePrefs } from '@/stores/prefs'
 import { registry } from '@/terminal/TerminalRegistry'
 import { popup, sep } from './menus'
+import type { MenuPosition } from '@/components/ContextMenu'
 import type { SidebarProject, SidebarSession } from './sidebarModel'
 
 function currentDims(): { cols: number; rows: number } {
@@ -131,7 +132,7 @@ export async function newSessionMenu(projectPath: string): Promise<void> {
   else if (pick.startsWith('new:')) await createSession(projectPath, pick.slice(4))
 }
 
-export async function sessionMenu(row: SidebarSession): Promise<void> {
+export async function sessionMenu(row: SidebarSession, pos: MenuPosition = {}): Promise<void> {
   const ui = useUi.getState()
   const s = row.session
   const canResume = !!s.launch.resumeArgs && !!s.agent.sessionId
@@ -147,7 +148,7 @@ export async function sessionMenu(row: SidebarSession): Promise<void> {
     { id: 'copyId', label: 'Copy Claude session id', enabled: !!s.agent.sessionId },
     sep,
     { id: 'close', label: 'Close' }
-  ])
+  ], pos)
   switch (pick) {
     case 'rename':
       ui.setRenaming(s.id)
@@ -176,7 +177,7 @@ export async function sessionMenu(row: SidebarSession): Promise<void> {
   }
 }
 
-export async function projectMenu(project: SidebarProject): Promise<void> {
+export async function projectMenu(project: SidebarProject, pos: MenuPosition = {}): Promise<void> {
   const presets = useData.getState().presets.filter((p) => p.installed && p.id !== 'shell')
   const prefs = usePrefs.getState()
   const pick = await popup([
@@ -189,7 +190,7 @@ export async function projectMenu(project: SidebarProject): Promise<void> {
     sep,
     { id: 'collapseAll', label: 'Collapse all projects' },
     { id: 'remove', label: 'Remove from sidebar' }
-  ])
+  ], pos)
   if (!pick) return
   if (pick.startsWith('new:')) {
     await createSession(project.path, pick.slice(4))

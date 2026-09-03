@@ -11,6 +11,7 @@ import { TerminalPane } from '@/components/pane/TerminalPane'
 import { CommandPalette } from '@/components/CommandPalette'
 import { SettingsView } from '@/components/settings/SettingsView'
 import { Toasts } from '@/components/Toasts'
+import { ContextMenu } from '@/components/ContextMenu'
 
 export default function App() {
   const prefs = usePrefs((s) => s.prefs)
@@ -108,6 +109,7 @@ export default function App() {
       </div>
       {settingsOpen && <SettingsView />}
       <CommandPalette />
+      <ContextMenu />
       <Toasts />
     </div>
   )
