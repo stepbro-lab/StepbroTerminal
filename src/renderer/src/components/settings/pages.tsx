@@ -7,6 +7,7 @@ import { ACCENTS } from '@/theme/accents'
 import { modKey } from '@/lib/format'
 import { AgentLogo } from '../sidebar/AgentLogo'
 import { Footer, Row, Section, Segmented, Slider, SmallButton, TextField, Toggle } from './controls'
+import { playNotificationSound } from '@/lib/sound'
 
 const FONTS = ['JetBrains Mono', 'SF Mono', 'Cascadia Mono', 'Menlo', 'Consolas', 'Fira Code', 'Monaspace Neon', 'Iosevka']
 
@@ -217,6 +218,14 @@ export function NotificationsPage() {
         <Row label="Play a sound">
           <Toggle value={p.sound} disabled={!p.notifications} onChange={(sound) => upd({ sound })} />
         </Row>
+        {p.notifications && p.sound && (
+          <Row label="Volume">
+            <div className="flex items-center gap-3">
+              <Slider value={p.soundVolume} min={0} max={100} step={5} onChange={(soundVolume) => upd({ soundVolume })} format={(v) => `${v}%`} />
+              <SmallButton onClick={() => playNotificationSound(p.soundVolume)}>Try it</SmallButton>
+            </div>
+          </Row>
+        )}
       </Section>
     </>
   )

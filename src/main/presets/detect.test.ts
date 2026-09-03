@@ -19,6 +19,7 @@ const prefs = (over: Partial<Prefs> = {}): Prefs => ({
   scrollback: 1000,
   notifications: true,
   sound: false,
+  soundVolume: 80,
   sidebarWidth: 240,
   sidebarCollapsed: false,
   collapsedProjects: [],

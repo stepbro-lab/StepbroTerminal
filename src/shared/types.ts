@@ -154,6 +154,8 @@ export interface Prefs {
   scrollback: number
   notifications: boolean
   sound: boolean
+  /** Notification sound level, 0 to 100. */
+  soundVolume: number
   sidebarWidth: number
   sidebarCollapsed: boolean
   collapsedProjects: string[]
