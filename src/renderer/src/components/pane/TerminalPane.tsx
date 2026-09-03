@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
 import { useData } from '@/stores/data'
-import { useUi, type DropZone, type LayoutNode } from '@/stores/ui'
+import { activeLayout, useUi, type DropZone, type LayoutNode } from '@/stores/ui'
 import { useTerminalMount } from '@/terminal/useTerminalMount'
 import { registry } from '@/terminal/TerminalRegistry'
 import { closeSession, restartSession } from '@/lib/actions'
@@ -15,7 +15,7 @@ export const DRAG_TYPE = 'application/x-step-session'
 
 /** Terminal cards arranged by the layout tree, plus an optional side panel. */
 export function TerminalPane() {
-  const layout = useUi((s) => s.layout)
+  const layout = useUi(activeLayout)
   const side = useUi((s) => s.side)
   const hostState = useData((s) => s.hostState)
   const sessions = useData((s) => s.sessions)

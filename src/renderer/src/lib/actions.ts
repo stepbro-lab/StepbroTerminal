@@ -35,20 +35,9 @@ export async function createSession(
   }
 }
 
-/**
- * A new session takes the single pane like a tab would, but never evicts an agent from a split
- * arrangement: with several panes it opens beside the focused one, on the side with more room.
- */
+/** A new session always opens on its own; whatever arrangement was on screen stays intact behind it. */
 function showNewSession(id: string): void {
-  const ui = useUi.getState()
-  if (paneIds().length <= 1) {
-    ui.setActive(id)
-    return
-  }
-  const card = ui.activeId ? registry.get(ui.activeId)?.container.closest('.card') : null
-  const rect = card?.getBoundingClientRect()
-  const dir: SplitDir = rect && rect.height > rect.width * 0.9 ? 'column' : 'row'
-  ui.split(dir, id)
+  useUi.getState().setActive(id)
 }
 
 export const newShell = (projectPath: string): Promise<Session | null> => createSession(projectPath, 'shell')

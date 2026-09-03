@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { registry } from '@/terminal/TerminalRegistry'
-import { dropOnto, hasLeaf, leaf, leaves, removeLeaf, replaceLeaf, setRatio, splitLeaf, type DropZone, type LayoutNode, type SplitDir } from '@/lib/layout'
+import { dropOnto, hasLeaf, leaf, leaves, removeLeaf, setRatio, splitLeaf, type DropZone, type LayoutNode, type SplitDir } from '@/lib/layout'
 
 export type { SplitDir, DropZone, LayoutNode }
 
@@ -14,10 +14,14 @@ export type PaletteMode = 'all' | 'resume' | 'prompts'
 export type SettingsPage = 'appearance' | 'terminal' | 'agents' | 'notifications' | 'shortcuts' | 'advanced'
 
 interface UiState {
-  /** The focused session; always one of the layout's leaves. */
+  /** The focused session; always a leaf of the active view. */
   activeId: string | null
-  /** Terminal panes as a tree of splits. */
-  layout: LayoutNode | null
+  /**
+   * Every arrangement of panes the user has built is a view; one is shown at a time.
+   * A session lives in at most one view. New sessions get a view of their own.
+   */
+  views: LayoutNode[]
+  activeView: number
   /** Session being dragged from the sidebar or a card header, for drop zones. */
   dragging: string | null
   /** Side panel next to the terminals: a dev-server preview or the changes of a session. */
@@ -63,9 +67,15 @@ function announce(id: string | null): void {
   if (id) window.step.send('host:viewed', id)
 }
 
+/** Takes `id` out of whichever view holds it; views left empty disappear. */
+function withoutSession(views: LayoutNode[], id: string): LayoutNode[] {
+  return views.map((v) => (hasLeaf(v, id) ? removeLeaf(v, id) : v)).filter((v): v is LayoutNode => v !== null)
+}
+
 export const useUi = create<UiState>((set, get) => ({
   activeId: null,
-  layout: null,
+  views: [],
+  activeView: 0,
   dragging: null,
   side: null,
   activeProject: null,
@@ -81,53 +91,80 @@ export const useUi = create<UiState>((set, get) => ({
   spinnerFrame: 0,
   maximized: false,
 
-  // Selecting a session shows it in the focused pane; if it is already in a pane, that pane takes focus.
+  // Showing a session brings its view forward; a session with no view gets one of its own.
   setActive: (id) => {
-    const { layout, activeId } = get()
+    const { views, activeId } = get()
     if (id === null) {
-      if (activeId === null && !layout) return
-      set({ activeId: null, layout: null, searchOpen: false })
+      if (activeId === null && views.length === 0) return
+      set({ activeId: null, views: [], activeView: 0, searchOpen: false })
       announce(null)
       return
     }
-    if (hasLeaf(layout, id)) {
-      if (activeId === id) return
-      set({ activeId: id, searchOpen: false })
+    const idx = views.findIndex((v) => hasLeaf(v, id))
+    if (idx >= 0) {
+      if (activeId === id && get().activeView === idx) return
+      set({ activeId: id, activeView: idx, searchOpen: false })
     } else {
-      const next = layout && activeId ? replaceLeaf(layout, activeId, id) : leaf(id)
-      set({ activeId: id, layout: next, searchOpen: false })
+      set({ activeId: id, views: [...views, leaf(id)], activeView: views.length, searchOpen: false })
     }
     announce(id)
   },
+  // Puts `id` beside the focused pane of the current view.
   split: (dir, id) => {
-    const { layout, activeId } = get()
-    const base = layout && hasLeaf(layout, id) ? removeLeaf(layout, id) : layout
-    const next = base && activeId && activeId !== id && hasLeaf(base, activeId) ? splitLeaf(base, activeId, dir, id) : leaf(id)
-    set({ layout: next, activeId: id, searchOpen: false })
+    const { activeId } = get()
+    const views = withoutSession(get().views, id)
+    const idx = activeId ? views.findIndex((v) => hasLeaf(v, activeId)) : -1
+    if (idx < 0 || !activeId) {
+      set({ activeId: id, views: [...views, leaf(id)], activeView: views.length, searchOpen: false })
+    } else {
+      const next = views.slice()
+      next[idx] = splitLeaf(views[idx], activeId, dir, id)!
+      set({ activeId: id, views: next, activeView: idx, searchOpen: false })
+    }
     announce(id)
   },
+  // Keeps only the focused pane in the current view; the others are left to the sidebar.
   unsplit: () => {
-    const { activeId } = get()
-    set({ layout: activeId ? leaf(activeId) : null })
+    const { views, activeView, activeId } = get()
+    if (!activeId || !views[activeView]) return
+    const next = views.slice()
+    next[activeView] = leaf(activeId)
+    set({ views: next })
   },
   dropPane: (id) => {
-    const { layout, activeId } = get()
-    if (!hasLeaf(layout, id)) return
-    const next = removeLeaf(layout, id)
-    const nextActive = activeId === id ? (leaves(next)[0] ?? null) : activeId
-    set({ layout: next, activeId: nextActive })
+    const { views, activeView, activeId } = get()
+    const holder = views.findIndex((v) => hasLeaf(v, id))
+    if (holder < 0) return
+    const next = withoutSession(views, id)
+    let view = Math.min(activeView, Math.max(0, next.length - 1))
+    if (holder < activeView || (holder === activeView && !next[holder])) view = Math.max(0, Math.min(view, next.length - 1))
+    const nextActive = activeId === id ? (leaves(next[view] ?? null)[0] ?? null) : activeId
+    set({ views: next, activeView: view, activeId: nextActive })
     if (nextActive !== activeId) announce(nextActive)
   },
+  // Drops `id` onto `target`'s pane edge (or center) inside whatever view holds the target.
   dropSession: (id, target, zone) => {
-    const { layout } = get()
-    const next = dropOnto(layout, id, target, zone)
-    set({ layout: next, activeId: id, dragging: null, searchOpen: false })
+    const { views } = get()
+    const targetIdx = views.findIndex((v) => hasLeaf(v, target))
+    if (targetIdx < 0 || id === target) {
+      set({ dragging: null })
+      return
+    }
+    const sameView = hasLeaf(views[targetIdx], id)
+    const base = sameView ? views : withoutSession(views, id)
+    const idx = base.findIndex((v) => hasLeaf(v, target))
+    const next = base.slice()
+    next[idx] = dropOnto(base[idx], id, target, zone)!
+    set({ views: next, activeView: idx, activeId: id, dragging: null, searchOpen: false })
     announce(id)
   },
   setDragging: (dragging) => set({ dragging }),
   setRatio: (path, ratio) => {
-    const { layout } = get()
-    if (layout) set({ layout: setRatio(layout, path, ratio) })
+    const { views, activeView } = get()
+    if (!views[activeView]) return
+    const next = views.slice()
+    next[activeView] = setRatio(views[activeView], path, ratio)
+    set({ views: next })
   },
   setSide: (side) => set({ side }),
   setActiveProject: (path) => set({ activeProject: path }),
@@ -155,9 +192,17 @@ export const useUi = create<UiState>((set, get) => ({
   setMaximized: (maximized) => set({ maximized })
 }))
 
-/** Ids of the sessions currently shown in panes. */
+/** The view on screen. */
+export const activeLayout = (s: { views: LayoutNode[]; activeView: number }): LayoutNode | null => s.views[s.activeView] ?? null
+
+/** Sessions shown in the current view. */
 export function paneIds(): string[] {
-  return leaves(useUi.getState().layout)
+  return leaves(activeLayout(useUi.getState()))
+}
+
+/** Sessions placed in any view. */
+export function allPaneIds(): string[] {
+  return useUi.getState().views.flatMap((v) => leaves(v))
 }
 
 /** Give focus back to the active terminal after an overlay closes, once React has unmounted it. */

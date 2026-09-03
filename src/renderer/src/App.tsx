@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useData, subscribeData } from '@/stores/data'
 import { usePrefs } from '@/stores/prefs'
-import { paneIds, useUi } from '@/stores/ui'
+import { allPaneIds, useUi } from '@/stores/ui'
 import { registry } from '@/terminal/TerminalRegistry'
 import { handleKeydown, runCommand, setSidebarModelRef, type Command } from '@/lib/shortcuts'
 import { terminalContextMenu } from '@/lib/terminalMenu'
@@ -84,7 +84,7 @@ export default function App() {
   useEffect(() => {
     const ui = useUi.getState()
     if (hostState.kind !== 'connected') return
-    for (const id of paneIds()) if (!sessions[id]) ui.dropPane(id)
+    for (const id of allPaneIds()) if (!sessions[id]) ui.dropPane(id)
     if (!useUi.getState().activeId) {
       const first = Object.values(sessions).sort((a, b) => b.updatedAt - a.updatedAt)[0]
       if (first) {

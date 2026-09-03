@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Pin } from 'lucide-react'
 import type { SidebarSession } from '@/lib/sidebarModel'
-import { useUi } from '@/stores/ui'
+import { activeLayout, useUi } from '@/stores/ui'
 import { hasLeaf } from '@/lib/layout'
 import { DRAG_TYPE } from '../pane/TerminalPane'
 import { useData } from '@/stores/data'
@@ -15,7 +15,7 @@ interface Props {
 
 export function SessionRow({ row }: Props) {
   const activeId = useUi((s) => s.activeId)
-  const inPane = useUi((s) => hasLeaf(s.layout, row.id))
+  const inPane = useUi((s) => hasLeaf(activeLayout(s), row.id))
   const renamingId = useUi((s) => s.renamingId)
   const setRenaming = useUi((s) => s.setRenaming)
   const setActive = useUi((s) => s.setActive)
