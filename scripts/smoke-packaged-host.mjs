@@ -21,7 +21,22 @@ function findApp() {
       return { exe, resources: path.join(bundle, 'Contents', 'Resources') }
     }
     if (!entry.endsWith('-unpacked')) continue
-    const exe = fs.readdirSync(dir).find((f) => (process.platform === 'win32' ? /\.exe$/i.test(f) && !/uninstall/i.test(f) : /^stepbro/i.test(f)))
+    const files = fs.readdirSync(dir)
+    // Windows names the binary after the product; Linux after the package. Match either, then fall
+    // back to any executable next to resources/ that is not one of Chromium's helpers.
+    const pkg = JSON.parse(fs.readFileSync(path.resolve('package.json'), 'utf8'))
+    const wanted = [pkg.productName, pkg.name].filter(Boolean).map((n) => String(n).toLowerCase())
+    const exe =
+      files.find((f) => wanted.includes(f.replace(/\.exe$/i, '').toLowerCase())) ??
+      files.find((f) => {
+        if (/^chrome|^uninstall|\./i.test(f)) return false
+        try {
+          const st = fs.statSync(path.join(dir, f))
+          return st.isFile() && (process.platform === 'win32' || (st.mode & 0o111) !== 0)
+        } catch {
+          return false
+        }
+      })
     if (exe) return { exe: path.join(dir, exe), resources: path.join(dir, 'resources') }
   }
   throw new Error(`no unpacked app found under ${releaseDir}`)
@@ -50,9 +65,17 @@ const timer = setInterval(() => {
   if (text.includes('listening')) {
     clearInterval(timer)
     console.log('host is listening; ok')
+    // Tidy up only once the host is gone; a failure to remove the temp dir is not a failed test.
+    child.once('exit', () => {
+      try {
+        fs.rmSync(home, { recursive: true, force: true })
+      } catch {
+        /* leave it to the runner */
+      }
+      process.exit(0)
+    })
     child.kill()
-    fs.rmSync(home, { recursive: true, force: true })
-    process.exit(0)
+    setTimeout(() => process.exit(0), 3000)
   }
   if (child.exitCode !== null || Date.now() - started > 15000) {
     clearInterval(timer)
