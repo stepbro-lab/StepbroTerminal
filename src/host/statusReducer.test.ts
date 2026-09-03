@@ -113,3 +113,16 @@ describe('screen questions from agents without hooks', () => {
     expect(reduceStatus(base('working', false, { registryPid: 12 }), { kind: 'screen', waiting: true })).toBeNull()
   })
 })
+
+describe('agents started by hand inside a shell', () => {
+  it('lets hooks run the status and ignores output while they arrive', () => {
+    const hooked = base('idle', false, { hooked: true, detectedPreset: 'claude' })
+    expect(reduceStatus(hooked, { kind: 'output' })).toBeNull()
+    expect(reduceStatus({ ...hooked, status: 'working' }, { kind: 'quiet' })).toBeNull()
+    expect(reduceStatus(hooked, hook('UserPromptSubmit'))).toEqual({ status: 'working', agent: { tool: undefined } })
+    expect(reduceStatus({ ...hooked, status: 'working' }, hook('Stop', { last_assistant_message: 'done' }))).toEqual({
+      status: 'done',
+      agent: { tool: undefined, lastMessage: 'done' }
+    })
+  })
+})

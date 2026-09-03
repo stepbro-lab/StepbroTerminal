@@ -9,7 +9,7 @@ import type { CreateSessionOpts, LiveClaude, Session } from '@shared/types'
 import { TitleCapture, detectAgentFromCommand } from './titleCapture'
 import { OscTitleParser, isBoringTitle, stripTitleGlyph } from './oscTitle'
 import { reduceStatus, type ReducerEvent } from './statusReducer'
-import { ptyEnv, resolveCommand, substituteArgs, writeHooksSettings, writeMcpConfig } from './launch'
+import { applyAgentWrap, findOnPath, ptyEnv, resolveCommand, shellArgsWithAgents, substituteArgs, writeHooksSettings, writeMcpConfig, type AgentWrap } from './launch'
 import { findAncestor, processTable } from './procTree'
 import { log } from './log'
 import { waitingForApproval } from './screenPrompts'
@@ -18,7 +18,9 @@ export interface SessionManagerOpts {
   stateFile: string
   logDir: string
   hooksDir: string
-  hookUrl: () => string
+  hookUrl: (sessionId: string) => string
+  /** Where the posix shims live; goes first on PATH inside every session. */
+  binDir: string
   /** The per-session MCP endpoint (notes tools) for agents that take one. */
   mcpUrl: (sessionId: string) => string
   scrollback: number
@@ -352,13 +354,16 @@ export class SessionManager extends EventEmitter {
 
   // ---- agent awareness ----
 
-  applyHook(agentSessionId: string, name: string, payload: Record<string, unknown>): void {
-    for (const l of this.live.values()) {
-      if (l.s.agent.sessionId !== agentSessionId) continue
-      if (name === 'PostToolUse') this.noteEditedFile(l, payload)
-      this.apply(l, { kind: 'hook', name, payload })
-      return
+  /** `stepSessionId` comes from the per-session hook URL; older settings files only carry the agent's own id. */
+  applyHook(agentSessionId: string, name: string, payload: Record<string, unknown>, stepSessionId?: string): void {
+    const l = (stepSessionId && this.live.get(stepSessionId)) || [...this.live.values()].find((x) => x.s.agent.sessionId === agentSessionId)
+    if (!l) return
+    if (!l.s.launch.hooks) {
+      // An agent the user started by hand inside this shell: its hooks run the status while it lives.
+      l.s.agent.hooked = name !== 'SessionEnd'
     }
+    if (name === 'PostToolUse') this.noteEditedFile(l, payload)
+    this.apply(l, { kind: 'hook', name, payload })
   }
 
   private noteEditedFile(l: Live, payload: Record<string, unknown>): void {
@@ -388,7 +393,7 @@ export class SessionManager extends EventEmitter {
         if (!pid) continue
         const e = byPid.get(pid)
         if (e) {
-          if (e.status) this.apply(l, { kind: 'registry', status: e.status })
+          if (e.status && !l.s.agent.hooked) this.apply(l, { kind: 'registry', status: e.status })
           byPid.delete(pid)
         } else {
           l.s.agent.registryPid = undefined
@@ -417,7 +422,7 @@ export class SessionManager extends EventEmitter {
           log('mapped claude', e.pid, '->', l.s.id)
           // A freshly mapped agent that is not busy is simply idle; "done" is reserved for finished turns.
           const busy = /busy|working|running/i.test(e.status ?? '')
-          if (busy) this.apply(l, { kind: 'registry', status: e.status! })
+          if (busy && !l.s.agent.hooked) this.apply(l, { kind: 'registry', status: e.status! })
           else {
             l.s.status = 'idle'
             l.s.statusAt = Date.now()
@@ -475,26 +480,24 @@ export class SessionManager extends EventEmitter {
     s.error = undefined
     const env = ptyEnv(this.opts.baseEnv, { ...(s.launch.env ?? {}), STEP_SESSION_ID: s.id })
     const sessionId = s.agent.sessionId ?? s.id
-    let hooksSettings = ''
-    if (s.launch.hooks) {
+    // Every session gets its hook and notes files. Agents started from the menu take them as
+    // arguments; agents the user types inside a shell pick them up through the shell itself.
+    const tryWrite = (what: string, fn: () => string): string => {
       try {
-        hooksSettings = writeHooksSettings(this.opts.hooksDir, s.id, this.opts.hookUrl())
+        return fn()
       } catch (e) {
-        log('hooks settings write failed', e)
+        log(`${what} write failed`, e)
+        return ''
       }
     }
-    const template = resume && s.launch.resumeArgs ? s.launch.resumeArgs : s.launch.args
+    const hooksSettings = tryWrite('hooks settings', () => writeHooksSettings(this.opts.hooksDir, s.id, this.opts.hookUrl(s.id)))
     const mcpUrl = this.opts.mcpUrl(s.id)
-    let mcpConfig = ''
-    if (template.some((a) => a.includes('{mcpConfig}'))) {
-      try {
-        mcpConfig = writeMcpConfig(this.opts.hooksDir, s.id, mcpUrl)
-      } catch (e) {
-        log('mcp config write failed', e)
-      }
-    }
+    const mcpConfig = tryWrite('mcp config', () => writeMcpConfig(this.opts.hooksDir, s.id, mcpUrl))
+    const template = resume && s.launch.resumeArgs ? s.launch.resumeArgs : s.launch.args
     const args = substituteArgs(template, { sessionId, hooksSettings, mcpConfig, mcpUrl })
+    // Resolve against the plain PATH, before the shims go in front of it.
     const resolved = resolveCommand(s.launch.command, env)
+    const wrap: AgentWrap = { hooksSettings, mcpConfig, mcpUrl, claude: findOnPath('claude', env), codex: findOnPath('codex', env) }
     if (!resolved) {
       s.status = 'error'
       s.error = `Command not found: ${s.launch.command}`
@@ -504,7 +507,8 @@ export class SessionManager extends EventEmitter {
     }
     let p: nodePty.IPty
     try {
-      p = nodePty.spawn(resolved.file, [...resolved.argsPrefix, ...args], {
+      applyAgentWrap(env, wrap, this.opts.binDir)
+      p = nodePty.spawn(resolved.file, shellArgsWithAgents(resolved.file, [...resolved.argsPrefix, ...args], wrap), {
         name: 'xterm-256color',
         cols: s.cols,
         rows: s.rows,

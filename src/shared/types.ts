@@ -9,6 +9,8 @@ export interface AgentMeta {
   detectedPreset?: string
   /** Pid of a Claude Code process mapped to this session through the live registry. */
   registryPid?: number
+  /** Hooks are arriving from an agent the user started inside this shell; they drive the status until it ends. */
+  hooked?: boolean
   model?: string
   tool?: string
   lastMessage?: string

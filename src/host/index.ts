@@ -7,6 +7,7 @@ import type { HostInfo } from '@shared/types'
 import { SessionManager } from './SessionManager'
 import { HostServer } from './HostServer'
 import { HookServer } from './HookServer'
+import { writeShims } from './launch'
 import { NoteStore } from './NoteStore'
 import { handleMcp } from './mcp'
 import { initLog, log } from './log'
@@ -22,13 +23,22 @@ async function main(): Promise<void> {
   log(`step-host ${version} starting pid=${process.pid}`)
 
   const token = randomBytes(16).toString('hex')
-  let hookUrl = ''
+  let hookUrlFor: (sessionId: string) => string = () => ''
   let mcpUrlFor: (sessionId: string) => string = () => ''
+  const binDir = path.join(dir, 'bin')
+  if (process.platform !== 'win32') {
+    try {
+      writeShims(binDir)
+    } catch (e) {
+      log('shims write failed', e)
+    }
+  }
   const sm = new SessionManager({
     stateFile: path.join(dir, 'state.json'),
     logDir: path.join(dir, 'sessions'),
     hooksDir: path.join(dir, 'hooks'),
-    hookUrl: () => hookUrl,
+    hookUrl: (id) => hookUrlFor(id),
+    binDir,
     mcpUrl: (id) => mcpUrlFor(id),
     scrollback: SCROLLBACK_LINES,
     baseEnv: process.env
@@ -42,7 +52,8 @@ async function main(): Promise<void> {
     handleMcp({ notes, session: (id) => sm.list().find((s) => s.id === id), version }, sessionId, req, res)
   )
   const hookPort = await hooks.listen()
-  hookUrl = hooks.url()
+  const hookUrl = hooks.url()
+  hookUrlFor = (id) => hooks.url(id)
   mcpUrlFor = (id) => hooks.mcpUrl(id)
 
   const socketPath = hostSocketPath()

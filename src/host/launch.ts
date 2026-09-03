@@ -52,6 +52,75 @@ export function writeMcpConfig(dir: string, sessionId: string, url: string): str
   return file
 }
 
+/** What an agent typed inside a shell needs to find its hooks and notes. */
+export interface AgentWrap {
+  hooksSettings: string
+  mcpConfig: string
+  mcpUrl: string
+  /** The real binaries on PATH, when installed. */
+  claude?: string
+  codex?: string
+}
+
+/** Puts the files and real binaries in the environment; on posix the shim dir goes first on PATH. */
+export function applyAgentWrap(env: Record<string, string>, w: AgentWrap, binDir: string, platform: NodeJS.Platform = process.platform): void {
+  env['STEP_HOOKS_SETTINGS'] = w.hooksSettings
+  env['STEP_MCP_CONFIG'] = w.mcpConfig
+  env['STEP_MCP_URL'] = w.mcpUrl
+  if (w.claude) env['STEP_REAL_CLAUDE'] = w.claude
+  if (w.codex) {
+    env['STEP_REAL_CODEX'] = w.codex
+    env['STEP_CODEX_MCP_ARG'] = `mcp_servers.stepbro.url=${w.mcpUrl}`
+  }
+  if (platform !== 'win32') {
+    const key = Object.keys(env).find((k) => k.toLowerCase() === 'path') ?? 'PATH'
+    env[key] = binDir + path.delimiter + (env[key] ?? '')
+  }
+}
+
+/**
+ * Arguments for a shell so that `claude` and `codex` typed inside it run with the session's
+ * hooks and notes: PowerShell gets functions, cmd gets doskey macros, other shells find the
+ * shims on PATH. Anything that is not a plain interactive shell is left alone.
+ */
+export function shellArgsWithAgents(file: string, args: string[], w: AgentWrap, platform: NodeJS.Platform = process.platform): string[] {
+  if (!w.claude && !w.codex) return args
+  const base = (file.split(/[\\/]/).pop() ?? '').toLowerCase().replace(/\.exe$/, '')
+  if (base === 'powershell' || base === 'pwsh') {
+    if (args.some((a) => /^-(c|command|f|file|encodedcommand)$/i.test(a))) return args
+    const defs: string[] = []
+    if (w.claude) defs.push('function claude { & $env:STEP_REAL_CLAUDE --settings $env:STEP_HOOKS_SETTINGS --mcp-config $env:STEP_MCP_CONFIG @args }')
+    if (w.codex) defs.push('function codex { & $env:STEP_REAL_CODEX -c $env:STEP_CODEX_MCP_ARG @args }')
+    return [...args, '-NoExit', '-Command', defs.join('; ')]
+  }
+  if (base === 'cmd' && platform === 'win32') {
+    if (args.some((a) => /^\/[kc]$/i.test(a))) return args
+    const macros: string[] = []
+    if (w.claude) macros.push('doskey claude="%STEP_REAL_CLAUDE%" --settings "%STEP_HOOKS_SETTINGS%" --mcp-config "%STEP_MCP_CONFIG%" $*')
+    if (w.codex) macros.push('doskey codex="%STEP_REAL_CODEX%" -c %STEP_CODEX_MCP_ARG% $*')
+    return [...args, '/k', macros.join(' & ')]
+  }
+  return args
+}
+
+/** Scripts named like the agents for posix shells; each runs the real binary with the session's hooks and notes. */
+export function writeShims(binDir: string): void {
+  fs.mkdirSync(binDir, { recursive: true })
+  const write = (name: string, body: string): void => {
+    const file = path.join(binDir, name)
+    fs.writeFileSync(file, body)
+    fs.chmodSync(file, 0o755)
+  }
+  write(
+    'claude',
+    '#!/bin/sh\nif [ -z "$STEP_REAL_CLAUDE" ]; then echo "claude: not found" >&2; exit 127; fi\nexec "$STEP_REAL_CLAUDE" --settings "$STEP_HOOKS_SETTINGS" --mcp-config "$STEP_MCP_CONFIG" "$@"\n'
+  )
+  write(
+    'codex',
+    '#!/bin/sh\nif [ -z "$STEP_REAL_CODEX" ]; then echo "codex: not found" >&2; exit 127; fi\nexec "$STEP_REAL_CODEX" -c "mcp_servers.stepbro.url=\\"$STEP_MCP_URL\\"" "$@"\n'
+  )
+}
+
 export { resolveCommand, findOnPath, type ResolvedCommand } from '@shared/resolveCommand'
 
 /**

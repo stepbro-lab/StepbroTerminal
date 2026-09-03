@@ -35,6 +35,11 @@ function str(v: unknown): string | undefined {
   return typeof v === 'string' && v.length ? v : undefined
 }
 
+/** Sessions whose status comes from hooks or the Claude registry ignore what the output looks like. */
+function managed(s: Input): boolean {
+  return s.launch.hooks || !!s.agent.hooked || !!s.agent.registryPid
+}
+
 export function reduceStatus(s: Input, e: ReducerEvent): StatusPatch | null {
   switch (e.kind) {
     case 'spawned':
@@ -45,15 +50,15 @@ export function reduceStatus(s: Input, e: ReducerEvent): StatusPatch | null {
       return s.status === 'done' ? { status: 'idle' } : null
     case 'output':
       if (s.status === 'exited') return null
-      if (s.launch.hooks || s.agent.registryPid) return null
+      if (managed(s)) return null
       // A question on screen stays one while the program repaints; the next quiet look decides.
       if (s.status === 'attention') return null
       return s.status === 'working' ? null : { status: 'working' }
     case 'quiet':
-      if (s.launch.hooks || s.agent.registryPid) return null
+      if (managed(s)) return null
       return s.status === 'working' || s.status === 'starting' ? { status: 'idle' } : null
     case 'screen':
-      if (s.launch.hooks || s.agent.registryPid || s.status === 'exited') return null
+      if (managed(s) || s.status === 'exited') return null
       if (e.waiting) return s.status === 'attention' ? null : { status: 'attention', agent: { lastMessage: 'Waiting for your approval' } }
       return s.status === 'attention' ? { status: 'idle' } : null
     case 'registry': {
