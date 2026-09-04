@@ -84,6 +84,7 @@ button {
 
 /* ---- sidebar rows ---- */
 .row {
+  position: relative;
   display: grid;
   align-items: center;
   height: var(--row-h);
@@ -108,6 +109,40 @@ button {
 .row[data-active='true']:hover {
   background: var(--bg-active);
   color: var(--text);
+}
+/* Where a dragged session would land: a line with a dot, above or below the row. */
+.row[data-insert]::before,
+.row[data-insert]::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+  background: var(--accent);
+  z-index: 1;
+}
+.row[data-insert]::after {
+  left: 22px;
+  right: 4px;
+  height: 2px;
+  border-radius: 1px;
+}
+.row[data-insert]::before {
+  left: 17px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1.5px var(--bg-sidebar);
+}
+.row[data-insert='before']::after {
+  top: -2px;
+}
+.row[data-insert='before']::before {
+  top: -4.5px;
+}
+.row[data-insert='after']::after {
+  bottom: -2px;
+}
+.row[data-insert='after']::before {
+  bottom: -4.5px;
 }
 .row-title {
   overflow: hidden;

@@ -1,5 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { Plus, Settings } from 'lucide-react'
+import gsap from 'gsap'
+import { Flip } from 'gsap/Flip'
 import { useData } from '@/stores/data'
 import { usePrefs } from '@/stores/prefs'
 import { useUi } from '@/stores/ui'
@@ -7,6 +9,9 @@ import { buildSidebar } from '@/lib/sidebarModel'
 import { addProject, sidebarMenu } from '@/lib/actions'
 import { ProjectRow } from './ProjectRow'
 import { SessionRow } from './SessionRow'
+import { useReorder } from './useReorder'
+
+gsap.registerPlugin(Flip)
 
 export function useSidebarModel() {
   const projects = useData((s) => s.projects)
@@ -27,6 +32,21 @@ export function Sidebar() {
   const width = prefs?.sidebarWidth ?? 240
   const collapsed = prefs?.sidebarCollapsed ?? false
   const dragging = useRef(false)
+  const list = useRef<HTMLDivElement>(null)
+
+  // Rows slide to their new places after a drop: remember where they were just before.
+  const before = useRef<ReturnType<typeof Flip.getState> | null>(null)
+  const remember = useCallback(() => {
+    if (!list.current || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    before.current = Flip.getState(list.current.querySelectorAll('[data-session-row]'))
+  }, [])
+  const reorder = useReorder(model, remember)
+  useLayoutEffect(() => {
+    if (!before.current) return
+    const state = before.current
+    before.current = null
+    Flip.from(state, { duration: 0.32, ease: 'power3.out', simple: true })
+  }, [model])
 
   const onDragStart = useCallback(
     (e: React.MouseEvent) => {
@@ -64,8 +84,10 @@ export function Sidebar() {
       }}
     >
       <div
+        ref={list}
         className="scroll-thin flex-1 px-2 pt-1"
         style={{ width: 'var(--sidebar-w)' }}
+        onDragLeave={reorder.onDragLeave}
         onContextMenu={(e) => {
           // Rows bring their own menus; this one is for the space below them.
           if ((e.target as HTMLElement).closest('.row')) return
@@ -84,7 +106,16 @@ export function Sidebar() {
         {model.map((p) => (
           <div key={p.path} className="mb-1">
             <ProjectRow project={p} isActiveProject={activeProject?.toLowerCase() === p.path.toLowerCase()} />
-            {!p.collapsed && p.sessions.map((row) => <SessionRow key={row.key} row={row} />)}
+            {!p.collapsed &&
+              p.sessions.map((row) => (
+                <SessionRow
+                  key={row.key}
+                  row={row}
+                  insert={reorder.insert?.id === row.id ? (reorder.insert.after ? 'after' : 'before') : undefined}
+                  onDragOver={reorder.onDragOver}
+                  onDrop={reorder.onDrop}
+                />
+              ))}
           </div>
         ))}
       </div>

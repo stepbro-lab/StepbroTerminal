@@ -31,7 +31,7 @@ export function rowPresetId(s: Session): string {
   return s.agent.detectedPreset ?? s.presetId
 }
 
-/** Sidebar = user projects, each with the sessions opened in Step (pinned first, newest next). */
+/** Sidebar = user projects, each with the sessions opened in Step (pinned first, then in the user's order, newest last). */
 export function buildSidebar(projects: Project[], sessions: Session[], prefs: Prefs | null): SidebarProject[] {
   const collapsedSet = new Set((prefs?.collapsedProjects ?? []).map((p) => p.toLowerCase()))
   const out: SidebarProject[] = []
@@ -50,7 +50,7 @@ export function buildSidebar(projects: Project[], sessions: Session[], prefs: Pr
       }))
       .sort((a, b) => {
         if (a.pinned !== b.pinned) return a.pinned ? -1 : 1
-        return a.session.createdAt - b.session.createdAt
+        return a.session.order - b.session.order || a.session.createdAt - b.session.createdAt
       })
     out.push({
       path: p.path,

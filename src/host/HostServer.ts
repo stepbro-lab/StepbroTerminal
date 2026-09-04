@@ -170,6 +170,9 @@ export class HostServer {
       case 'pin':
         this.sm.pin(msg.id, msg.pinned)
         break
+      case 'reorder':
+        this.sm.reorder(msg.ids)
+        break
       case 'viewed':
         this.sm.viewed(msg.id)
         break

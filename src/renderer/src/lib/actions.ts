@@ -110,6 +110,16 @@ export function pinSession(id: string, pinned: boolean): void {
   window.step.send('host:pin', id, pinned)
 }
 
+/** Puts a project's sessions in this order, on screen right away and in the host after. */
+export function reorderSessions(ids: string[]): void {
+  const { sessions, patchSession } = useData.getState()
+  ids.forEach((id, order) => {
+    const s = sessions[id]
+    if (s && s.order !== order) patchSession({ ...s, order })
+  })
+  window.step.send('host:reorder', ids)
+}
+
 export function openFolder(path: string): void {
   void window.step.invoke('projects:openFolder', path)
 }

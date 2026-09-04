@@ -61,6 +61,8 @@ export interface Session {
   title: string
   titleSource: TitleSource
   pinned: boolean
+  /** Place in the sidebar within its project; lower comes first. New sessions go last. */
+  order: number
   createdAt: number
   updatedAt: number
   status: SessionStatus

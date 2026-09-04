@@ -10,10 +10,15 @@ import { AgentLogo } from './AgentLogo'
 
 interface Props {
   row: SidebarSession
+  /** A drop here would put the dragged session above or below this row. */
+  insert?: 'before' | 'after'
+  onDragOver?: (row: SidebarSession, e: React.DragEvent) => void
+  onDrop?: (row: SidebarSession, e: React.DragEvent) => void
 }
 
-export function SessionRow({ row }: Props) {
+export function SessionRow({ row, insert, onDragOver, onDrop }: Props) {
   const activeId = useUi((s) => s.activeId)
+  const lifted = useUi((s) => s.dragging === row.id)
   const renamingId = useUi((s) => s.renamingId)
   const setRenaming = useUi((s) => s.setRenaming)
   const setActive = useUi((s) => s.setActive)
@@ -34,6 +39,7 @@ export function SessionRow({ row }: Props) {
       data-session-row={row.id}
       className="row grid-cols-[16px_minmax(0,1fr)_auto_16px] gap-2 pl-[22px]"
       data-active={active}
+      data-insert={insert}
       title={row.session.projectPath}
       draggable
       onDragStart={(e) => {
@@ -42,6 +48,8 @@ export function SessionRow({ row }: Props) {
         useUi.getState().setDragging(row.id)
       }}
       onDragEnd={() => useUi.getState().setDragging(null)}
+      onDragOver={onDragOver && ((e) => onDragOver(row, e))}
+      onDrop={onDrop && ((e) => onDrop(row, e))}
       onClick={() => {
         setActiveProject(row.session.projectPath)
         setActive(row.id)
@@ -54,7 +62,7 @@ export function SessionRow({ row }: Props) {
       onAuxClick={(e) => {
         if (e.button === 1) void closeSession(row.id)
       }}
-      style={{ color: titleColor, fontWeight: active || row.status === 'attention' ? 550 : undefined }}
+      style={{ color: titleColor, fontWeight: active || row.status === 'attention' ? 550 : undefined, opacity: lifted ? 0.4 : undefined }}
     >
       <StatusGlyph status={row.status} color={color} />
       {renaming ? (

@@ -73,6 +73,7 @@ export interface SendMap {
   'host:restart': (id: string) => void
   'host:rename': (id: string, title: string) => void
   'host:pin': (id: string, pinned: boolean) => void
+  'host:reorder': (ids: string[]) => void
   'host:viewed': (id: string) => void
   'host:ack': (id: string, bytes: number) => void
   'win:minimize': () => void

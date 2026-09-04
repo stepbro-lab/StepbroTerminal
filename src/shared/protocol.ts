@@ -13,6 +13,8 @@ export type ClientMsg =
   | { t: 'restart'; id: string }
   | { t: 'rename'; id: string; title: string }
   | { t: 'pin'; id: string; pinned: boolean }
+  /** The sessions of one project in the order the sidebar should show them. */
+  | { t: 'reorder'; ids: string[] }
   | { t: 'viewed'; id: string }
   | { t: 'ack'; id: string; bytes: number }
   | { t: 'notes:list' }

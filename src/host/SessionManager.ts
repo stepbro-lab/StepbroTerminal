@@ -121,6 +121,7 @@ export class SessionManager extends EventEmitter {
       if (wasAlive || s.status === 'working' || s.status === 'attention' || s.status === 'starting') s.status = 'exited'
       s.agent = s.agent ?? {}
       s.agent.registryPid = undefined
+      if (typeof s.order !== 'number') s.order = s.createdAt
       if (s.previewUrl && isOwnEndpoint(s.previewUrl)) s.previewUrl = undefined
       const l = this.newLive(s)
       this.replayLogTail(l)
@@ -158,6 +159,7 @@ export class SessionManager extends EventEmitter {
       title: opts.title ?? '',
       titleSource: opts.title ? 'history' : 'none',
       pinned: false,
+      order: now,
       createdAt: now,
       updatedAt: now,
       status: 'starting',
@@ -347,6 +349,16 @@ export class SessionManager extends EventEmitter {
     if (!l) return
     l.s.pinned = pinned
     this.emitSession(l)
+  }
+
+  /** Numbers the given sessions 0, 1, 2… so the sidebar shows them in this order. */
+  reorder(ids: string[]): void {
+    ids.forEach((id, i) => {
+      const l = this.live.get(id)
+      if (!l || l.s.order === i) return
+      l.s.order = i
+      this.emitSession(l)
+    })
   }
 
   viewed(id: string): void {

@@ -34,6 +34,7 @@ export function registerIpc(ctx: Ctx): void {
   on('host:restart', (id) => ctx.client.send({ t: 'restart', id }))
   on('host:rename', (id, title) => ctx.client.send({ t: 'rename', id, title }))
   on('host:pin', (id, pinned) => ctx.client.send({ t: 'pin', id, pinned }))
+  on('host:reorder', (ids) => ctx.client.send({ t: 'reorder', ids }))
   on('host:viewed', (id) => ctx.client.send({ t: 'viewed', id }))
   on('host:ack', (id, bytes) => ctx.client.send({ t: 'ack', id, bytes }))
 
