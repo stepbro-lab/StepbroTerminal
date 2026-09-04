@@ -40,6 +40,8 @@ interface UiState {
   toasts: Toast[]
   spinnerFrame: number
   maximized: boolean
+  /** Windows: the pointer is over the title bar, so the caption buttons show. */
+  captionHover: boolean
   setActive: (id: string | null) => void
   restore: (views: LayoutNode[], activeView: number, activeId: string | null) => void
   closeView: (index: number) => void
@@ -63,6 +65,7 @@ interface UiState {
   dismissToast: (id: number) => void
   tickSpinner: () => void
   setMaximized: (v: boolean) => void
+  setCaptionHover: (v: boolean) => void
 }
 
 let toastSeq = 1
@@ -96,6 +99,7 @@ export const useUi = create<UiState>((set, get) => ({
   toasts: [],
   spinnerFrame: 0,
   maximized: false,
+  captionHover: false,
 
   // Showing a session brings its view forward; a session with no view gets one of its own.
   setActive: (id) => {
@@ -219,7 +223,8 @@ export const useUi = create<UiState>((set, get) => ({
   },
   dismissToast: (id) => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
   tickSpinner: () => set((s) => ({ spinnerFrame: (s.spinnerFrame + 1) % 10 })),
-  setMaximized: (maximized) => set({ maximized })
+  setMaximized: (maximized) => set({ maximized }),
+  setCaptionHover: (captionHover) => set({ captionHover })
 }))
 
 /** The view on screen. */

@@ -3,7 +3,7 @@ import { Folder, History, MessageSquare, Moon, PanelLeft, RotateCw, Search, Sett
 import type { PromptRecord } from '@shared/types'
 import { registry } from '@/terminal/TerminalRegistry'
 import { useData } from '@/stores/data'
-import { usePrefs, setChromeDim } from '@/stores/prefs'
+import { usePrefs } from '@/stores/prefs'
 import { useUi } from '@/stores/ui'
 import { filter } from '@/lib/fuzzy'
 import { addProject, createSession, historyFor, newShell, restartSession, resumeHistory } from '@/lib/actions'
@@ -204,8 +204,6 @@ export function CommandPalette() {
       setCursor(0)
       setTimeout(() => inputRef.current?.focus(), 0)
     }
-    setChromeDim(open)
-    return () => setChromeDim(false)
   }, [open, mode])
   useEffect(() => setCursor(0), [query])
   useEffect(() => {

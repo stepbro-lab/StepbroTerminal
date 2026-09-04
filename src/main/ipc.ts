@@ -8,7 +8,7 @@ import { readTranscriptDetails, transcriptPath } from './claude/transcript'
 import { buildLaunchSpec } from './presets/launchSpec'
 import { gitChanges, gitDiff, gitRevert } from './git'
 import { loadWorkspace, saveWorkspace } from './prefs'
-import { TITLEBAR_HEIGHT } from './window'
+import { captionPing } from './window'
 import type { Ctx } from './context'
 
 type Handler<K extends keyof InvokeMap> = (...args: Parameters<InvokeMap[K]>) => ReturnType<InvokeMap[K]> | Promise<ReturnType<InvokeMap[K]>>
@@ -114,14 +114,7 @@ export function registerIpc(ctx: Ctx): void {
     ctx.activeId = id
   })
   on('win:setTitle', (title) => ctx.win?.setTitle(title ? `${title} — StepbroTerminal` : 'StepbroTerminal'))
-  on('win:setOverlay', (color, symbolColor) => {
-    if (process.platform !== 'win32' || !ctx.win) return
-    try {
-      ctx.win.setTitleBarOverlay({ color, symbolColor, height: TITLEBAR_HEIGHT })
-    } catch {
-      /* overlay unsupported */
-    }
-  })
+  on('win:captionPing', () => captionPing(ctx.win))
   on('clipboard:write', (text) => clipboard.writeText(text))
   handle('clipboard:kind', () => {
     const formats = clipboard.availableFormats()

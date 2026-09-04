@@ -591,3 +591,32 @@ kbd {
 .logo-stack-item + .logo-stack-item {
   margin-left: -5px;
 }
+
+/* Windows: our caption buttons stay out of sight until the pointer is over the title bar. */
+.win-controls {
+  opacity: 0;
+  transition: opacity 140ms var(--ease);
+}
+.win-controls[data-show='true'],
+.win-controls:hover,
+.win-controls:focus-within {
+  opacity: 1;
+}
+
+/* A folder dragged in from the desktop: the target lights up and says what a drop does. */
+.drop-hint {
+  position: absolute;
+  inset: 6px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1.5px dashed var(--accent);
+  border-radius: var(--radius-card);
+  background: color-mix(in srgb, var(--bg-sidebar) 80%, transparent);
+  color: var(--text);
+  font-size: 12.5px;
+  font-weight: 550;
+  pointer-events: none;
+}

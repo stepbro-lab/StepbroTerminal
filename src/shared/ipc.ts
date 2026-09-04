@@ -83,8 +83,8 @@ export interface SendMap {
   'win:close': () => void
   'win:setActiveSession': (id: string | null) => void
   'win:setTitle': (title: string) => void
-  /** Windows only: keep the native caption buttons on the same color as our title bar. */
-  'win:setOverlay': (color: string, symbolColor: string) => void
+  /** Windows: the pointer is over the client part of the title bar; keep the caption buttons shown. */
+  'win:captionPing': () => void
   'clipboard:write': (text: string) => void
   'workspace:set': (state: WorkspaceState) => void
   'notes:add': (text: string) => void
@@ -115,6 +115,8 @@ export interface EventMap {
   'notes:update': (notes: Note[], added?: Note) => void
   'ui:handoff': (handoff: Handoff) => void
   'win:maximized': (maximized: boolean) => void
+  /** Windows: whether the pointer is over the title bar; the caption buttons show while it is. */
+  'win:captionHover': (over: boolean) => void
   'theme:system': (dark: boolean) => void
   /** A line of host/app diagnostics, mirrored into the DevTools console. */
   'diag': (line: string) => void

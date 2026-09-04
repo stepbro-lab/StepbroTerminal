@@ -69,7 +69,8 @@ export default function App() {
       s.on('ui:update', (state) => useUpdates.getState().set(state)),
       s.on('notes:update', (notes, added) => useNotes.getState().receive(notes, added)),
       s.on('ui:handoff', (h) => useHandoff.getState().arrive(h)),
-      s.on('win:maximized', (m) => useUi.getState().setMaximized(m))
+      s.on('win:maximized', (m) => useUi.getState().setMaximized(m)),
+      s.on('win:captionHover', (over) => useUi.getState().setCaptionHover(over))
     ]
     void s.invoke('win:isMaximized').then((m) => useUi.getState().setMaximized(m))
     void s.invoke('notes:list').then((notes) => useNotes.getState().receive(notes))
@@ -80,6 +81,12 @@ export default function App() {
       }
     }
     window.addEventListener('keydown', onKey, true)
+    // A file or folder dropped where nothing handles it must never navigate the window to it.
+    const swallowFileDrop = (ev: DragEvent): void => {
+      if (ev.dataTransfer && Array.from(ev.dataTransfer.types).includes('Files')) ev.preventDefault()
+    }
+    document.addEventListener('dragover', swallowFileDrop)
+    document.addEventListener('drop', swallowFileDrop)
     registry.setAppKeyHandler((ev) => !!(handleKeydown(ev) && (ev.preventDefault(), true)))
     registry.setContextMenuHandler((id, x, y) => void terminalContextMenu(id, x, y))
     registry.setAgentResolver((id) => {
@@ -94,6 +101,8 @@ export default function App() {
       offWorkspace()
       offs.forEach((off) => off())
       window.removeEventListener('keydown', onKey, true)
+      document.removeEventListener('dragover', swallowFileDrop)
+      document.removeEventListener('drop', swallowFileDrop)
       mq.removeEventListener('change', onMq)
     }
   }, [])
