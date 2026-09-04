@@ -17,8 +17,11 @@ files:
   - package.json
   - '!**/*.map'
 extraResources:
+  # The master logo only feeds scripts/gen-icons.mjs; the app ships the rendered sizes.
   - from: resources/icons
     to: icons
+    filter:
+      - '!StepbroLogo.png'
 # The host runs as a plain Node process, so it and node-pty must live outside the asar.
 # The host runs as a plain Node process outside the asar, so everything it requires must be
 # unpacked with it: the bytecode loader, its own bytecode, the chunk it shares with the main
@@ -44,7 +47,8 @@ mac:
       arch: [x64, arm64]
     - target: zip
       arch: [x64, arm64]
-  icon: build/icon.png
+  # Same artwork with room around it, the way Dock icons are drawn.
+  icon: build/icon-mac.png
   category: public.app-category.developer-tools
   hardenedRuntime: false
   artifactName: ${productName}-${version}-mac-${arch}.${ext}

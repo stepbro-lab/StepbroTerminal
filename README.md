@@ -20,7 +20,7 @@ pnpm test         # unit tests (vitest)
 pnpm typecheck
 pnpm build        # compiles main, host, preload and renderer into out/
 pnpm dist:win     # packaged installer (also dist:mac, dist:linux)
-pnpm icons        # regenerates build/icon.png and the tray icons from resources/icon.svg
+pnpm icons        # regenerates the app icon from resources/icons/StepbroLogo.png and the tray icons
 ```
 
 `node scripts/host-smoke.mjs` talks to a running host over its socket and opens a throwaway shell, useful when working on the host without the UI. In development the renderer exposes a DevTools port (9223); `node scripts/cdp.mjs "<js>"` evaluates code inside the window.
