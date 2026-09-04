@@ -1,27 +1,37 @@
-import { Terminal } from 'lucide-react'
+import { FolderPlus, Terminal } from 'lucide-react'
 import { useData } from '@/stores/data'
 import { useUi } from '@/stores/ui'
-import { addProject, newShell } from '@/lib/actions'
+import { addDroppedFolders, addProject, newShell } from '@/lib/actions'
+import { useFolderDrop } from '@/lib/folderDrop'
 import { modKey } from '@/lib/format'
 
 export function EmptyState() {
   const projects = useData((s) => s.projects)
   const activeProject = useUi((s) => s.activeProject)
   const project = projects.find((p) => p.path.toLowerCase() === activeProject?.toLowerCase()) ?? projects[0]
+  // A folder dragged in from the desktop lands here the same way "Add folder" would.
+  const drop = useFolderDrop(addDroppedFolders)
+  const hint = drop.over && (
+    <div className="drop-hint">
+      <FolderPlus size={16} />
+      <span>Drop to add folder</span>
+    </div>
+  )
 
   if (!project) {
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-4 p-8 text-center">
-        <div className="text-[14px] text-secondary">Pick a folder and StepbroTerminal opens a shell in it.</div>
+      <div {...drop.props} className="relative flex h-full flex-col items-center justify-center gap-4 p-8 text-center">
+        <div className="text-[14px] text-secondary">Pick a folder, or drag one in, and StepbroTerminal opens a shell in it.</div>
         <button className="btn btn-primary" onClick={() => void addProject()}>
           Choose folder
         </button>
+        {hint}
       </div>
     )
   }
 
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-5 p-8 text-center">
+    <div {...drop.props} className="relative flex h-full flex-col items-center justify-center gap-5 p-8 text-center">
       <div>
         <div className="text-[15px] font-semibold tracking-[-0.01em]">{project.name}</div>
         <div className="mt-1 max-w-[440px] truncate font-mono text-[11px] text-muted">{project.path}</div>
@@ -37,6 +47,7 @@ export function EmptyState() {
           <kbd>{modKey}</kbd> <kbd>K</kbd> palette
         </span>
       </div>
+      {hint}
     </div>
   )
 }

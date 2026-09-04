@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
-import { Plus, Settings } from 'lucide-react'
+import { FolderPlus, Plus, Settings } from 'lucide-react'
 import gsap from 'gsap'
 import { Flip } from 'gsap/Flip'
 import { useData } from '@/stores/data'
@@ -7,7 +7,8 @@ import { usePrefs } from '@/stores/prefs'
 import { useUi } from '@/stores/ui'
 import { buildSidebar, type SidebarProject, type SidebarSession } from '@/lib/sidebarModel'
 import { leaves } from '@/lib/layout'
-import { addProject, sidebarMenu } from '@/lib/actions'
+import { addDroppedFolders, addProject, sidebarMenu } from '@/lib/actions'
+import { useFolderDrop } from '@/lib/folderDrop'
 import { ProjectRow } from './ProjectRow'
 import { SessionRow } from './SessionRow'
 import { useReorder } from './useReorder'
@@ -49,6 +50,8 @@ export function Sidebar() {
   const collapsed = prefs?.sidebarCollapsed ?? false
   const dragging = useRef(false)
   const list = useRef<HTMLDivElement>(null)
+  // Folders dragged in from the desktop land in the sidebar the same way "Add folder" would.
+  const drop = useFolderDrop(addDroppedFolders)
 
   // Rows slide to their new places after a drop: remember where they were just before.
   const before = useRef<ReturnType<typeof Flip.getState> | null>(null)
@@ -115,6 +118,7 @@ export function Sidebar() {
 
   return (
     <aside
+      {...drop.props}
       className="relative flex h-full shrink-0 flex-col overflow-hidden"
       style={{
         width: collapsed ? 0 : 'var(--sidebar-w)',
@@ -148,15 +152,21 @@ export function Sidebar() {
           </div>
         ))}
       </div>
-      <div className="flex h-12 shrink-0 items-center justify-between px-2.5" style={{ width: 'var(--sidebar-w)' }}>
-        <button className="btn btn-secondary" style={{ height: 32, paddingLeft: 10, paddingRight: 12, fontSize: 12.5 }} title="Add folder" onClick={() => void addProject()}>
+      {/* Two icon buttons of the same weight. The plus sits over the icon column of the rows above. */}
+      <div className="flex h-11 shrink-0 items-center justify-between px-2" style={{ width: 'var(--sidebar-w)' }}>
+        <button className="icon-btn" style={{ width: 30, height: 30 }} title="Add folder" onClick={() => void addProject()}>
           <Plus size={16} />
-          <span>Add folder</span>
         </button>
-        <button className="icon-btn" style={{ width: 32, height: 32 }} title="Settings" onClick={() => setSettingsOpen(true)}>
-          <Settings size={18} />
+        <button className="icon-btn" style={{ width: 30, height: 30 }} title="Settings" onClick={() => setSettingsOpen(true)}>
+          <Settings size={16} />
         </button>
       </div>
+      {drop.over && (
+        <div className="drop-hint">
+          <FolderPlus size={16} />
+          <span>Drop to add folder</span>
+        </div>
+      )}
       {!collapsed && (
         <div className="absolute right-0 top-0 h-full w-1 cursor-col-resize hover:bg-[var(--border-strong)]" onMouseDown={onDragStart} />
       )}

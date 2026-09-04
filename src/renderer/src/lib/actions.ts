@@ -133,11 +133,24 @@ export function copyText(text: string, what = 'Copied'): void {
 export async function addProject(): Promise<string | null> {
   const p = await window.step.invoke('projects:pickFolder')
   if (!p) return null
+  await addProjectPath(p)
+  return p
+}
+
+/** Puts a folder in the sidebar, makes it current and opens a shell in it. */
+export async function addProjectPath(p: string): Promise<void> {
   const projects = await window.step.invoke('projects:add', p)
   useData.setState({ projects })
-  useUi.getState().setActiveProject(p)
-  await newShell(p)
-  return p
+  // Main normalizes the path (case, trailing slash); use its spelling so the session lines up.
+  const trim = (x: string): string => x.replace(/[\\/]+$/, '').toLowerCase()
+  const path = projects.find((x) => trim(x.path) === trim(p))?.path ?? p
+  useUi.getState().setActiveProject(path)
+  await newShell(path)
+}
+
+/** Folders dragged in from the desktop: each one is added and gets a shell, like "Add folder". */
+export async function addDroppedFolders(paths: string[]): Promise<void> {
+  for (const p of paths) await addProjectPath(p)
 }
 
 export function hideProject(path: string): void {

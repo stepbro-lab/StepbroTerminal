@@ -44,7 +44,12 @@ const send = (method, params = {}) =>
     ws.send(JSON.stringify({ id, method, params }))
   })
 
-const [arg, extra, ...rest] = process.argv.slice(2)
+let [arg, extra, ...rest] = process.argv.slice(2)
+// --file <path>: read the expression from a file, for shells that mangle quotes in arguments.
+if (arg === '--file') {
+  arg = fs.readFileSync(extra, 'utf8')
+  extra = undefined
+}
 if (arg === '--shot') {
   // --shot out.png [x y w h [scale]]: optional clip, enlarged by scale for a close look.
   const [x, y, width, height, scale] = rest.map(Number)
