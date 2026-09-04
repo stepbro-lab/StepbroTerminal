@@ -127,6 +127,8 @@ export class SessionManager extends EventEmitter {
       s.errorDetail = undefined
       s.agent = s.agent ?? {}
       s.agent.registryPid = undefined
+      // Recompute every load so it never persists stale: true only for sessions the host lost while alive.
+      s.leftRunning = wasAlive
       if (typeof s.order !== 'number') s.order = s.createdAt
       if (s.previewUrl && isOwnEndpoint(s.previewUrl)) s.previewUrl = undefined
       const l = this.newLive(s)
@@ -508,6 +510,7 @@ export class SessionManager extends EventEmitter {
     s.statusAt = now
     s.updatedAt = now
     s.error = undefined
+    s.leftRunning = false
     const env = ptyEnv(this.opts.baseEnv, { ...(s.launch.env ?? {}), STEP_SESSION_ID: s.id })
     const sessionId = s.agent.sessionId ?? s.id
     // Every session gets its hook and notes files. Agents started from the menu take them as

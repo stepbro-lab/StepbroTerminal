@@ -24,7 +24,8 @@ export const defaultPrefs: Prefs = {
   customPresets: [],
   presetUsage: {},
   flagHints: true,
-  gpuRendering: true
+  gpuRendering: true,
+  resumeOnLaunch: true
 }
 
 function file(): string {

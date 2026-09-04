@@ -123,8 +123,14 @@ export function TerminalPage() {
         </Row>
       </Section>
 
+      <Section title="Sessions" description="Sessions run in a background host that outlives the window. When it ends — an update, a restart — StepbroTerminal can bring them back on launch, resuming any agent where it stopped.">
+        <Row label="Resume sessions on launch">
+          <Toggle value={p.resumeOnLaunch} onChange={(resumeOnLaunch) => upd({ resumeOnLaunch })} />
+        </Row>
+      </Section>
+
       <Footer>
-        <SmallButton onClick={() => upd({ shell: undefined, cursorStyle: 'bar', cursorBlink: true, scrollback: 5000 })}>Revert to default</SmallButton>
+        <SmallButton onClick={() => upd({ shell: undefined, cursorStyle: 'bar', cursorBlink: true, scrollback: 5000, resumeOnLaunch: true })}>Revert to default</SmallButton>
       </Footer>
     </>
   )

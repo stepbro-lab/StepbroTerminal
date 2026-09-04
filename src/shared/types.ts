@@ -72,6 +72,8 @@ export interface Session {
   error?: string
   /** Full diagnostic behind `error`, for the console and the log; not shown in the banner. */
   errorDetail?: string
+  /** Set on restore when this session was still running as the host stopped; drives resume on launch. */
+  leftRunning?: boolean
   cols: number
   rows: number
   pid?: number
@@ -175,6 +177,8 @@ export interface Prefs {
   flagHints: boolean
   /** Draw terminals with WebGL. Off uses the DOM renderer, for displays that react badly to GPU windows. */
   gpuRendering: boolean
+  /** On launch, bring back the sessions that were still running; agents resume their conversation. */
+  resumeOnLaunch: boolean
 }
 
 export type SplitDir = 'row' | 'column'

@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useData, subscribeData } from '@/stores/data'
 import { usePrefs } from '@/stores/prefs'
 import { allPaneIds, useUi } from '@/stores/ui'
@@ -29,6 +29,7 @@ export default function App() {
   const hostState = useData((s) => s.hostState)
   const activeId = useUi((s) => s.activeId)
   const settingsOpen = useUi((s) => s.settingsOpen)
+  const booted = useUi((s) => s.booted)
   const model = useSidebarModel()
 
   // ---- boot: prefs, data, event wiring ----
@@ -106,6 +107,19 @@ export default function App() {
       mq.removeEventListener('change', onMq)
     }
   }, [])
+
+  // ---- bring back the sessions that were still running when the app last closed ----
+  // The host restarts on a version change and a machine restart ends it too, so agents can come
+  // back exited; restarting them resumes the conversation, which is what /resume did by hand.
+  const resumedRef = useRef(false)
+  useEffect(() => {
+    if (resumedRef.current || hostState.kind !== 'connected' || !prefs || !booted) return
+    resumedRef.current = true
+    if (!prefs.resumeOnLaunch) return
+    for (const s of Object.values(useData.getState().sessions)) {
+      if (s.leftRunning && !s.alive) window.step.send('host:restart', s.id)
+    }
+  }, [hostState.kind, prefs, booted])
 
   // ---- terminal prefs ----
   useEffect(() => {
