@@ -1,4 +1,4 @@
-import { BrowserWindow, nativeTheme, shell } from 'electron'
+import { app, BrowserWindow, nativeImage, nativeTheme, shell } from 'electron'
 import { join } from 'node:path'
 import type { Prefs } from '@shared/types'
 
@@ -17,6 +17,10 @@ export function createWindow(prefs: Prefs): BrowserWindow {
   const dark = isDark(prefs)
   const c = dark ? COLORS.dark : COLORS.light
   const platform = process.platform
+  // A packaged app draws its icon from the bundle; in development set it by hand so the window,
+  // the taskbar and the macOS dock show the real logo instead of Electron's default.
+  const devIcon = app.isPackaged ? undefined : nativeImage.createFromPath(join(app.getAppPath(), 'build', 'icon.png'))
+  if (devIcon && !devIcon.isEmpty() && platform === 'darwin' && app.dock) app.dock.setIcon(devIcon)
   const win = new BrowserWindow({
     width: 1200,
     height: 760,
@@ -25,6 +29,7 @@ export function createWindow(prefs: Prefs): BrowserWindow {
     show: false,
     title: 'StepbroTerminal',
     backgroundColor: c.bg,
+    ...(devIcon && !devIcon.isEmpty() ? { icon: devIcon } : {}),
     ...(platform === 'darwin'
       ? { titleBarStyle: 'hiddenInset' as const, trafficLightPosition: { x: 14, y: 12 } }
       : platform === 'win32'

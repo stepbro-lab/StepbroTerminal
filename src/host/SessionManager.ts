@@ -120,6 +120,11 @@ export class SessionManager extends EventEmitter {
       s.alive = false
       s.pid = undefined
       if (wasAlive || s.status === 'working' || s.status === 'attention' || s.status === 'starting') s.status = 'exited'
+      // A start error belonged to the previous run. Do not carry it into a fresh host, or an
+      // update would greet the user with a red banner and a Retry for a session they never touched.
+      if (s.status === 'error') s.status = 'exited'
+      s.error = undefined
+      s.errorDetail = undefined
       s.agent = s.agent ?? {}
       s.agent.registryPid = undefined
       if (typeof s.order !== 'number') s.order = s.createdAt
