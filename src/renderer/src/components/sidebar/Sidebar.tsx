@@ -154,11 +154,11 @@ export function Sidebar() {
       </div>
       {/* Two icon buttons of the same weight. The plus sits over the icon column of the rows above. */}
       <div className="flex h-11 shrink-0 items-center justify-between px-2" style={{ width: 'var(--sidebar-w)' }}>
-        <button className="icon-btn" style={{ width: 30, height: 30 }} title="Add folder" onClick={() => void addProject()}>
-          <Plus size={16} />
+        <button className="icon-btn" style={{ width: 32, height: 32 }} title="Add folder" onClick={() => void addProject()}>
+          <Plus size={20} strokeWidth={2.2} />
         </button>
-        <button className="icon-btn" style={{ width: 30, height: 30 }} title="Settings" onClick={() => setSettingsOpen(true)}>
-          <Settings size={16} />
+        <button className="icon-btn" style={{ width: 32, height: 32 }} title="Settings" onClick={() => setSettingsOpen(true)}>
+          <Settings size={17} />
         </button>
       </div>
       {drop.over && (
