@@ -1,11 +1,13 @@
-// Starts the session host from an unpacked electron-builder output (release/*-unpacked or the
-// .app on macOS) the way the packaged app does, and fails unless it reports "listening".
-// The host runs outside the asar as plain Node, so a missing unpacked file only shows up here.
+// Exercises the session host from an unpacked electron-builder output (release/*-unpacked or the
+// .app on macOS) the way the packaged app does. Two checks, both through the packaged binary in
+// Node mode: the host must report "listening", and node-pty must be able to open a real shell.
+// The host runs outside the asar as plain Node, so a missing unpacked file, or a native helper
+// without its executable bit, only shows up here.
 // Usage: node scripts/smoke-packaged-host.mjs [release-dir]
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { spawn } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 
 const releaseDir = path.resolve(process.argv[2] ?? 'release')
 
@@ -43,15 +45,50 @@ function findApp() {
 }
 
 const { exe, resources } = findApp()
-const host = path.join(resources, 'app.asar.unpacked', 'out', 'main', 'host.js')
+const unpacked = path.join(resources, 'app.asar.unpacked')
+const host = path.join(unpacked, 'out', 'main', 'host.js')
 if (!fs.existsSync(host)) {
   console.error(`host entry missing: ${host}`)
   process.exit(1)
 }
 const home = fs.mkdtempSync(path.join(os.tmpdir(), 'step-smoke-'))
+const nodeEnv = { ...process.env, ELECTRON_RUN_AS_NODE: '1' }
+
+/** Opens a shell through the packaged node-pty and waits for it to print; this is what a new session does. */
+function ptyCheck() {
+  const script = path.join(home, 'pty-check.cjs')
+  const nodePty = path.join(unpacked, 'node_modules', 'node-pty')
+  fs.writeFileSync(
+    script,
+    [
+      `const pty = require(${JSON.stringify(nodePty)})`,
+      `const win = process.platform === 'win32'`,
+      `const p = pty.spawn(win ? 'cmd.exe' : '/bin/sh', win ? ['/c', 'echo smoke-ok'] : ['-c', 'echo smoke-ok'], { cols: 80, rows: 24, cwd: process.cwd(), env: process.env })`,
+      `let out = ''`,
+      `p.onData((d) => { out += d; if (out.includes('smoke-ok')) { console.log('shell printed through node-pty; ok'); process.exit(0) } })`,
+      `p.onExit(({ exitCode }) => { console.error('shell exited with ' + exitCode + ' before printing; output: ' + JSON.stringify(out)); process.exit(1) })`,
+      `setTimeout(() => { console.error('shell printed nothing in 10s; output: ' + JSON.stringify(out)); process.exit(1) }, 10000)`
+    ].join('\n')
+  )
+  const r = spawnSync(exe, [script], { cwd: home, env: nodeEnv, encoding: 'utf8', timeout: 30000 })
+  const text = `${r.stdout ?? ''}${r.stderr ?? ''}`.trim()
+  if (text) console[r.status === 0 ? 'log' : 'error'](text)
+  if (r.status !== 0) console.error(`pty check failed (exit ${r.status}${r.error ? `, ${r.error.message}` : ''})`)
+  return r.status === 0
+}
+
+function finish(ok) {
+  try {
+    fs.rmSync(home, { recursive: true, force: true })
+  } catch {
+    /* leave it to the runner */
+  }
+  process.exit(ok ? 0 : 1)
+}
+
 console.log(`starting ${host}\nwith STEP_HOME=${home}`)
 const child = spawn(exe, [host], {
-  env: { ...process.env, ELECTRON_RUN_AS_NODE: '1', STEP_HOME: home, STEP_VERSION: 'smoke' },
+  env: { ...nodeEnv, STEP_HOME: home, STEP_VERSION: 'smoke' },
   stdio: ['ignore', 'pipe', 'pipe']
 })
 let output = ''
@@ -65,17 +102,12 @@ const timer = setInterval(() => {
   if (text.includes('listening')) {
     clearInterval(timer)
     console.log('host is listening; ok')
+    const ok = ptyCheck()
     // Tidy up only once the host is gone; a failure to remove the temp dir is not a failed test.
-    child.once('exit', () => {
-      try {
-        fs.rmSync(home, { recursive: true, force: true })
-      } catch {
-        /* leave it to the runner */
-      }
-      process.exit(0)
-    })
+    child.once('exit', () => finish(ok))
     child.kill()
-    setTimeout(() => process.exit(0), 3000)
+    setTimeout(() => finish(ok), 3000)
+    return
   }
   if (child.exitCode !== null || Date.now() - started > 15000) {
     clearInterval(timer)
