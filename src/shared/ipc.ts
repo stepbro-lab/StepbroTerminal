@@ -24,6 +24,8 @@ export interface CreateRequest {
   /** Agent session id to resume (claude history). */
   resumeId?: string
   title?: string
+  /** From a launch configuration: typed into the pane once it first settles. */
+  runOnStart?: string
 }
 
 /** Renderer -> main request/response channels. */

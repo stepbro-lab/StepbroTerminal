@@ -11,7 +11,7 @@ export interface Toast {
 }
 
 export type PaletteMode = 'all' | 'resume' | 'prompts'
-export type SettingsPage = 'appearance' | 'terminal' | 'agents' | 'notifications' | 'shortcuts' | 'advanced'
+export type SettingsPage = 'appearance' | 'terminal' | 'agents' | 'workspaces' | 'notifications' | 'shortcuts' | 'advanced'
 
 interface UiState {
   /** The focused session; always a leaf of the active view. */
@@ -47,6 +47,8 @@ interface UiState {
   closeView: (index: number) => void
   cycleView: (delta: number) => void
   split: (dir: SplitDir, id: string) => void
+  /** Shows a prebuilt arrangement as a new view; its sessions leave whatever views held them. */
+  openView: (layout: LayoutNode, focus: string) => void
   unsplit: () => void
   dropPane: (id: string) => void
   dropSession: (id: string, target: string, zone: DropZone) => void
@@ -141,6 +143,12 @@ export const useUi = create<UiState>((set, get) => ({
     const view = (activeView + delta + views.length) % views.length
     const focus = activeId && hasLeaf(views[view], activeId) ? activeId : (leaves(views[view])[0] ?? null)
     set({ activeView: view, activeId: focus, searchOpen: false })
+    announce(focus)
+  },
+  openView: (layout, focus) => {
+    let views = get().views
+    for (const id of leaves(layout)) views = withoutSession(views, id)
+    set({ activeId: focus, views: [...views, layout], activeView: views.length, searchOpen: false })
     announce(focus)
   },
   // Puts `id` beside the focused pane of the current view.

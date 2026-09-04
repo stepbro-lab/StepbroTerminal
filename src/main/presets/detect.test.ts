@@ -12,6 +12,7 @@ const prefs = (over: Partial<Prefs> = {}): Prefs => ({
   flagHints: true,
   gpuRendering: true,
   resumeOnLaunch: true,
+  launchConfigs: [],
   fontFamily: 'x',
   fontSize: 13,
   lineHeight: 1.2,

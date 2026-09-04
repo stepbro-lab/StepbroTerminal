@@ -1,11 +1,12 @@
-import { Bell, ChevronLeft, Cpu, Keyboard, Palette, Terminal, Wrench } from 'lucide-react'
+import { Bell, ChevronLeft, Cpu, Keyboard, LayoutGrid, Palette, Terminal, Wrench } from 'lucide-react'
 import { useUi, type SettingsPage } from '@/stores/ui'
-import { AppearancePage, TerminalPage, AgentsPage, NotificationsPage, ShortcutsPage, AdvancedPage } from './pages'
+import { AppearancePage, TerminalPage, AgentsPage, WorkspacesPage, NotificationsPage, ShortcutsPage, AdvancedPage } from './pages'
 
 const PAGES: Array<{ id: SettingsPage; label: string; icon: React.ReactNode; title: string; blurb: string }> = [
   { id: 'appearance', label: 'Appearance', icon: <Palette size={14} />, title: 'Appearance', blurb: 'How StepbroTerminal looks. Auto follows your system appearance.' },
   { id: 'terminal', label: 'Terminal', icon: <Terminal size={14} />, title: 'Terminal', blurb: 'The shell StepbroTerminal opens and how text is drawn inside it.' },
   { id: 'agents', label: 'Agents', icon: <Cpu size={14} />, title: 'Agents', blurb: 'Coding agents found on this machine and your own launchers.' },
+  { id: 'workspaces', label: 'Workspaces', icon: <LayoutGrid size={14} />, title: 'Workspaces', blurb: 'Arrangements of panes that open in one go, each in its own folder, running what you tell it.' },
   { id: 'notifications', label: 'Notifications', icon: <Bell size={14} />, title: 'Notifications', blurb: 'When StepbroTerminal should get your attention.' },
   { id: 'shortcuts', label: 'Shortcuts', icon: <Keyboard size={14} />, title: 'Shortcuts', blurb: 'Everything you can do without leaving the keyboard.' },
   { id: 'advanced', label: 'Advanced', icon: <Wrench size={14} />, title: 'Advanced', blurb: 'The session host, data on disk and paths.' }
@@ -46,6 +47,7 @@ export function SettingsView() {
             {page === 'appearance' && <AppearancePage />}
             {page === 'terminal' && <TerminalPage />}
             {page === 'agents' && <AgentsPage />}
+            {page === 'workspaces' && <WorkspacesPage />}
             {page === 'notifications' && <NotificationsPage />}
             {page === 'shortcuts' && <ShortcutsPage />}
             {page === 'advanced' && <AdvancedPage />}

@@ -25,7 +25,8 @@ export const defaultPrefs: Prefs = {
   presetUsage: {},
   flagHints: true,
   gpuRendering: true,
-  resumeOnLaunch: true
+  resumeOnLaunch: true,
+  launchConfigs: []
 }
 
 function file(): string {

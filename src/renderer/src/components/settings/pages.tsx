@@ -1,12 +1,15 @@
 import { useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
-import type { CustomPreset, Prefs } from '@shared/types'
+import type { CustomPreset, LaunchConfig, LaunchPane, Prefs } from '@shared/types'
 import { usePrefs } from '@/stores/prefs'
 import { useData } from '@/stores/data'
+import { useUi } from '@/stores/ui'
+import { launchWorkspace } from '@/lib/actions'
+import { blankPane, newLaunchConfig } from '@/lib/launchConfigs'
 import { ACCENTS } from '@/theme/accents'
 import { modKey } from '@/lib/format'
 import { AgentLogo } from '../sidebar/AgentLogo'
-import { Footer, Row, Section, Segmented, Slider, SmallButton, TextField, Toggle } from './controls'
+import { Footer, Row, Section, Segmented, Slider, SmallButton, TextArea, TextField, Toggle } from './controls'
 import { playNotificationSound } from '@/lib/sound'
 import { useUpdates } from '@/stores/updates'
 
@@ -351,6 +354,119 @@ export function AdvancedPage() {
           <SmallButton onClick={() => void window.step.invoke('app:openPath', dir)}>Open</SmallButton>
         </Row>
       </Section>
+    </>
+  )
+}
+
+/** Saved pane arrangements that open in one go, each pane in its own folder, running what it is told. */
+export function WorkspacesPage() {
+  const [p, upd] = usePrefsPage()
+  const presets = useData((s) => s.presets)
+  const projects = useData((s) => s.projects)
+  const configs = p.launchConfigs ?? []
+  const [editing, setEditing] = useState<string | null>(null)
+  const current = configs.find((c) => c.id === editing)
+  const runnable = presets.filter((x) => x.id === 'shell' || x.installed)
+
+  const save = (next: LaunchConfig[]): void => upd({ launchConfigs: next })
+  const update = (id: string, patch: Partial<LaunchConfig>): void => save(configs.map((c) => (c.id === id ? { ...c, ...patch } : c)))
+  const updatePane = (c: LaunchConfig, i: number, patch: Partial<LaunchPane>): void =>
+    update(c.id, { panes: c.panes.map((pane, k) => (k === i ? { ...pane, ...patch } : pane)) })
+  const add = (): void => {
+    const c = newLaunchConfig(projects[0]?.path ?? '')
+    save([...configs, c])
+    setEditing(c.id)
+  }
+  const remove = (id: string): void => {
+    save(configs.filter((c) => c.id !== id))
+    if (editing === id) setEditing(null)
+  }
+  const pickFolder = async (c: LaunchConfig, i: number): Promise<void> => {
+    const dir = await window.step.invoke('projects:pickFolder')
+    if (dir) updatePane(c, i, { cwd: dir })
+  }
+  const open = (c: LaunchConfig): void => {
+    useUi.getState().setSettingsOpen(false)
+    void launchWorkspace(c)
+  }
+  const summary = (c: LaunchConfig): string => `${c.panes.length} pane${c.panes.length === 1 ? '' : 's'} · ${c.split === 'row' ? 'side by side' : 'stacked'}`
+
+  return (
+    <>
+      <Section
+        title="Your workspaces"
+        description="Each one opens its panes at once, every pane in its own folder, and types a start command as soon as the prompt is ready. Open them from here or from the palette."
+      >
+        {configs.length === 0 && <div className="py-2 text-[12.5px] text-muted">No workspaces yet.</div>}
+        {configs.map((c) => (
+          <Row key={c.id} label={c.name.trim() || 'Untitled'} hint={summary(c)}>
+            <div className="flex items-center gap-1.5">
+              <SmallButton onClick={() => open(c)}>Open</SmallButton>
+              <SmallButton onClick={() => setEditing(editing === c.id ? null : c.id)}>{editing === c.id ? 'Close' : 'Edit'}</SmallButton>
+              <SmallButton tone="danger" onClick={() => remove(c.id)}>
+                Delete
+              </SmallButton>
+            </div>
+          </Row>
+        ))}
+      </Section>
+      <Footer>
+        <SmallButton onClick={add}>New workspace</SmallButton>
+      </Footer>
+
+      {current && (
+        <Section title={`Editing ${current.name.trim() || 'Untitled'}`} description="Changes save as you type.">
+          <Row label="Name">
+            <TextField value={current.name} placeholder="Frontend + backend" onChange={(name) => update(current.id, { name })} />
+          </Row>
+          <Row label="Layout">
+            <Segmented
+              value={current.split}
+              options={[
+                { value: 'row', label: 'Side by side' },
+                { value: 'column', label: 'Stacked' }
+              ]}
+              onChange={(split) => update(current.id, { split })}
+            />
+          </Row>
+          {current.panes.map((pane, i) => (
+            <div key={i} className="card mt-3 px-4 py-3">
+              <div className="mb-1 flex items-center justify-between">
+                <div className="text-[12px] font-semibold text-secondary">Pane {i + 1}</div>
+                {current.panes.length > 1 && (
+                  <button className="icon-btn h-6 w-6" title="Remove pane" onClick={() => update(current.id, { panes: current.panes.filter((_, k) => k !== i) })}>
+                    <Trash2 size={13} />
+                  </button>
+                )}
+              </div>
+              <Row label="Folder">
+                <div className="flex items-center gap-1.5">
+                  <TextField value={pane.cwd} mono width={240} placeholder="Choose a folder" onChange={(cwd) => updatePane(current, i, { cwd })} />
+                  <SmallButton onClick={() => void pickFolder(current, i)}>Choose…</SmallButton>
+                </div>
+              </Row>
+              <Row label="Runs">
+                <select className="field h-7 text-[12.5px]" style={{ width: 200 }} value={pane.presetId} onChange={(e) => updatePane(current, i, { presetId: e.target.value })}>
+                  {runnable.map((x) => (
+                    <option key={x.id} value={x.id}>
+                      {x.name}
+                    </option>
+                  ))}
+                </select>
+              </Row>
+              <div className="mt-3">
+                <div className="text-[13px] text-fg">Type when ready</div>
+                <div className="mb-1.5 text-[11.5px] text-muted">Entered line by line once the pane settles at its prompt. For an agent, this is its first message.</div>
+                <TextArea value={pane.runOnStart ?? ''} mono placeholder="npm run dev" onChange={(runOnStart) => updatePane(current, i, { runOnStart })} />
+              </div>
+            </div>
+          ))}
+          <Footer>
+            <SmallButton onClick={() => update(current.id, { panes: [...current.panes, blankPane(current.panes[current.panes.length - 1]?.cwd ?? '')] })}>Add pane</SmallButton>
+            <SmallButton onClick={() => open(current)}>Open now</SmallButton>
+          </Footer>
+        </Section>
+      )}
     </>
   )
 }

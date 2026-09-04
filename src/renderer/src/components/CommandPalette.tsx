@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Folder, History, MessageSquare, Moon, PanelLeft, RotateCw, Search, Settings, Sun, Terminal } from 'lucide-react'
+import { Folder, History, LayoutGrid, MessageSquare, Moon, PanelLeft, RotateCw, Search, Settings, Sun, Terminal } from 'lucide-react'
 import type { PromptRecord } from '@shared/types'
 import { registry } from '@/terminal/TerminalRegistry'
 import { useData } from '@/stores/data'
 import { usePrefs } from '@/stores/prefs'
 import { useUi } from '@/stores/ui'
 import { filter } from '@/lib/fuzzy'
-import { addProject, createSession, historyFor, newShell, restartSession, resumeHistory } from '@/lib/actions'
+import { addProject, createSession, historyFor, launchWorkspace, newShell, restartSession, resumeHistory } from '@/lib/actions'
 import { flatSessions } from '@/lib/sidebarModel'
 import { timeAgo } from '@/lib/format'
 import { useSidebarModel } from './sidebar/Sidebar'
@@ -107,6 +107,16 @@ export function CommandPalette() {
         }
       })
     }
+    for (const c of prefs?.launchConfigs ?? []) {
+      out.push({
+        id: `ws:${c.id}`,
+        group: 'Workspaces',
+        label: c.name.trim() || 'Untitled workspace',
+        hint: `${c.panes.length} pane${c.panes.length === 1 ? '' : 's'} · ${c.split === 'row' ? 'side by side' : 'stacked'}`,
+        icon: <LayoutGrid size={13} className="text-muted" />,
+        run: () => launchWorkspace(c)
+      })
+    }
     const target = activeProject ?? projects[0]?.path
     const targetName = target ? projects.find((p) => p.path === target)?.name : undefined
     out.push({
@@ -167,7 +177,17 @@ export function CommandPalette() {
         icon: <PanelLeft size={13} className="text-muted" />,
         run: () => setPrefs({ sidebarCollapsed: !prefs?.sidebarCollapsed })
       },
-      { id: 'a:settings', group: 'Actions', label: 'Settings', icon: <Settings size={13} className="text-muted" />, run: () => setSettingsOpen(true) }
+      { id: 'a:settings', group: 'Actions', label: 'Settings', icon: <Settings size={13} className="text-muted" />, run: () => setSettingsOpen(true) },
+      {
+        id: 'a:workspaces',
+        group: 'Actions',
+        label: 'Manage workspaces…',
+        icon: <LayoutGrid size={13} className="text-muted" />,
+        run: () => {
+          useUi.getState().setSettingsPage('workspaces')
+          setSettingsOpen(true)
+        }
+      }
     )
     if (activeId) {
       out.push({

@@ -1,4 +1,4 @@
-import type { HistorySession, MenuItemSpec, Session } from '@shared/types'
+import type { HistorySession, LaunchConfig, MenuItemSpec, Session } from '@shared/types'
 import { useData } from '@/stores/data'
 import { paneIds, useUi, type SplitDir } from '@/stores/ui'
 import { usePrefs } from '@/stores/prefs'
@@ -6,6 +6,7 @@ import { registry } from '@/terminal/TerminalRegistry'
 import { popup, sep } from './menus'
 import type { MenuPosition } from '@/components/ContextMenu'
 import type { SidebarProject, SidebarSession } from './sidebarModel'
+import { layoutFor, openablePanes, paneTitle } from './launchConfigs'
 
 function currentDims(): { cols: number; rows: number } {
   const active = useUi.getState().activeId
@@ -151,6 +152,39 @@ export async function addProjectPath(p: string): Promise<void> {
 /** Folders dragged in from the desktop: each one is added and gets a shell, like "Add folder". */
 export async function addDroppedFolders(paths: string[]): Promise<void> {
   for (const p of paths) await addProjectPath(p)
+}
+
+/**
+ * Opens a saved workspace: one session per pane, arranged as configured, each typing its start
+ * text once its prompt is ready. Panes without a folder are skipped.
+ */
+export async function launchWorkspace(config: LaunchConfig): Promise<void> {
+  const ui = useUi.getState()
+  const name = config.name.trim() || 'Workspace'
+  const panes = openablePanes(config)
+  if (panes.length === 0) {
+    ui.toast(`${name}: no pane has a folder yet`, 'error')
+    return
+  }
+  const ids: string[] = []
+  for (const pane of panes) {
+    try {
+      const s = await window.step.invoke('host:create', {
+        projectPath: pane.cwd,
+        presetId: pane.presetId || 'shell',
+        title: paneTitle(config, pane),
+        runOnStart: pane.runOnStart?.trim() || undefined,
+        ...currentDims()
+      })
+      useData.getState().patchSession(s)
+      ids.push(s.id)
+    } catch (e: any) {
+      ui.toast(`${name}: ${e?.message ?? 'a pane could not start'}`, 'error')
+    }
+  }
+  if (ids.length === 0) return
+  ui.setActiveProject(panes[0].cwd)
+  ui.openView(layoutFor(ids, config.split), ids[0])
 }
 
 export function hideProject(path: string): void {

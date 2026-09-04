@@ -144,3 +144,17 @@ export function SmallButton({ children, onClick, tone = 'secondary' }: { childre
 export function Footer({ children }: { children: React.ReactNode }) {
   return <div className="mt-2 flex justify-end gap-2 border-t border-line pt-4">{children}</div>
 }
+
+export function TextArea({ value, placeholder, mono, rows = 3, onChange }: { value: string; placeholder?: string; mono?: boolean; rows?: number; onChange: (v: string) => void }) {
+  return (
+    <textarea
+      className={`field w-full resize-y py-1.5 text-[12.5px] ${mono ? 'font-mono text-[12px]' : ''}`}
+      style={{ height: 'auto', minHeight: 0 }}
+      rows={rows}
+      value={value}
+      placeholder={placeholder}
+      onChange={(e) => onChange(e.target.value)}
+      spellCheck={false}
+    />
+  )
+}

@@ -93,6 +93,8 @@ export interface CreateSessionOpts {
   agentSessionId?: string
   /** Launch with `launch.resumeArgs` (needs agentSessionId). */
   resume?: boolean
+  /** From a launch configuration: typed into the pane once it first settles, line by line with Enter. */
+  runOnStart?: string
 }
 
 export interface Preset {
@@ -179,10 +181,30 @@ export interface Prefs {
   gpuRendering: boolean
   /** On launch, bring back the sessions that were still running; agents resume their conversation. */
   resumeOnLaunch: boolean
+  /** Saved pane arrangements that open in one go. */
+  launchConfigs: LaunchConfig[]
 }
 
 export type SplitDir = 'row' | 'column'
 export type LayoutNode = { kind: 'leaf'; id: string } | { kind: 'split'; dir: SplitDir; ratio: number; a: LayoutNode; b: LayoutNode }
+
+/** One pane of a launch configuration: a folder, what runs in it, and what to type once it is ready. */
+export interface LaunchPane {
+  cwd: string
+  /** 'shell' or an agent/launcher preset id. */
+  presetId: string
+  /** Typed into the pane line by line, each followed by Enter, once it first settles. */
+  runOnStart?: string
+}
+
+/** A saved arrangement of panes that opens in one go, every pane in its own folder. */
+export interface LaunchConfig {
+  id: string
+  name: string
+  /** Side by side (`row`) or stacked (`column`). */
+  split: SplitDir
+  panes: LaunchPane[]
+}
 
 /** Pane arrangements the user built, saved between launches. */
 export interface WorkspaceState {
