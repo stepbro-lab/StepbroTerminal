@@ -620,3 +620,14 @@ kbd {
   font-weight: 550;
   pointer-events: none;
 }
+
+/* The close caption button takes the Windows close red on hover in both themes: our danger token
+   is a pale salmon in dark mode, meant for error text, and looked washed out behind a white X. */
+.win-close:hover {
+  background: #c42b1c;
+  color: #fff;
+}
+.win-close:active {
+  background: #a9261a;
+  color: #fff;
+}

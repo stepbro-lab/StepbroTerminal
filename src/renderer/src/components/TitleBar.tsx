@@ -80,7 +80,7 @@ export function TitleBar() {
           <button className="icon-btn" onClick={() => window.step.send('win:maximize')} title={maximized ? 'Restore' : 'Maximize'}>
             {maximized ? <Copy size={12} /> : <Square size={12} />}
           </button>
-          <button className="icon-btn hover:!bg-danger hover:!text-white" onClick={() => window.step.send('win:close')} title="Close">
+          <button className="icon-btn win-close" onClick={() => window.step.send('win:close')} title="Close">
             <X size={14} />
           </button>
         </div>
