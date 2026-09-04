@@ -560,9 +560,9 @@ function windowsBuild(): number | undefined {
 }
 
 function fontStack(family: string | undefined): string {
-  const f = (family || 'JetBrains Mono').trim()
+  const f = (family || 'Geist Mono').trim()
   const quoted = /\s/.test(f) && !f.startsWith('"') && !f.startsWith("'") ? `"${f}"` : f
-  return `${quoted}, "JetBrains Mono", "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace`
+  return `${quoted}, "Geist Mono", "JetBrains Mono", "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace`
 }
 
 export const registry = new TerminalRegistry()

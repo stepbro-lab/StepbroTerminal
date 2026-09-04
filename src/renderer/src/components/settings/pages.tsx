@@ -10,7 +10,7 @@ import { Footer, Row, Section, Segmented, Slider, SmallButton, TextField, Toggle
 import { playNotificationSound } from '@/lib/sound'
 import { useUpdates } from '@/stores/updates'
 
-const FONTS = ['JetBrains Mono', 'SF Mono', 'Cascadia Mono', 'Menlo', 'Consolas', 'Fira Code', 'Monaspace Neon', 'Iosevka']
+const FONTS = ['Geist Mono', 'JetBrains Mono', 'SF Mono', 'Cascadia Mono', 'Menlo', 'Consolas', 'Fira Code', 'Monaspace Neon', 'Iosevka']
 
 function usePrefsPage(): [Prefs, (p: Partial<Prefs>) => void] {
   const prefs = usePrefs((s) => s.prefs)!
@@ -52,7 +52,7 @@ export function AppearancePage() {
         </div>
       </Section>
 
-      <Section title="Terminal text" description="The bundled JetBrains Mono renders crisply everywhere. Any font installed on this machine works too.">
+      <Section title="Terminal text" description="The bundled Geist Mono and JetBrains Mono render crisply everywhere. Any font installed on this machine works too.">
         <Row label="Font">
           <TextField value={p.fontFamily} list={FONTS} width={200} onChange={(fontFamily) => upd({ fontFamily })} />
         </Row>
@@ -71,7 +71,7 @@ export function AppearancePage() {
       </Section>
 
       <Footer>
-        <SmallButton onClick={() => upd({ theme: 'system', accent: 'blue', fontFamily: 'JetBrains Mono', fontSize: 13, lineHeight: 1.2, sidebarWidth: 240 })}>
+        <SmallButton onClick={() => upd({ theme: 'system', accent: 'blue', fontFamily: 'Geist Mono', fontSize: 13, lineHeight: 1.2, sidebarWidth: 240 })}>
           Revert to default
         </SmallButton>
       </Footer>
