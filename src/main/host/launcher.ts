@@ -57,8 +57,13 @@ function stderrTail(file: string): string {
 export async function ensureHost(opts: EnsureHostOpts): Promise<HostInfo> {
   const existing = readInfo()
   if (existing && (await probe(existing.socketPath))) {
-    if (existing.version !== opts.version) opts.log(`host version ${existing.version} differs from app ${opts.version}`)
-    return existing
+    if (existing.version === opts.version) return existing
+    // A host from an older build is still running and would serve the new app its old code
+    // (this is exactly how a fixed bug can seem unfixed after an update). Retire it and start fresh.
+    opts.log(`host ${existing.version} is stale, app is ${opts.version}; restarting the host`)
+    await requestHostShutdown()
+    const gone = Date.now()
+    while (Date.now() - gone < 4000 && (await probe(existing.socketPath, 300))) await sleep(150)
   }
   fs.mkdirSync(stepDir(), { recursive: true })
   opts.log('spawning host', opts.entry)

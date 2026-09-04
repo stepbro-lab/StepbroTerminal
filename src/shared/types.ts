@@ -70,6 +70,8 @@ export interface Session {
   alive: boolean
   exitCode?: number
   error?: string
+  /** Full diagnostic behind `error`, for the console and the log; not shown in the banner. */
+  errorDetail?: string
   cols: number
   rows: number
   pid?: number

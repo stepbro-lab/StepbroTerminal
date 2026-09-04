@@ -52,6 +52,24 @@ export function prepareSpawnHelper(binDir: string): void {
   }
 }
 
+/** A short description of a file for the log: whether it exists, its mode and size. */
+function describe(file: string | undefined): string {
+  if (!file) return '(unset)'
+  try {
+    const st = fs.statSync(file)
+    return `${file} (mode=${(st.mode & 0o777).toString(8)} size=${st.size})`
+  } catch {
+    return `${file} (missing)`
+  }
+}
+
+/** Everything relevant to a shell that would not start on macOS, for the failure log. */
+export function describeSpawnEnv(): string {
+  const lines = [`platform=${process.platform} arch=${process.arch}`, `NODE_PTY_SPAWN_HELPER=${describe(process.env['NODE_PTY_SPAWN_HELPER'])}`]
+  if (process.platform === 'darwin') lines.push(`shipped helper=${describe(findHelper() ?? undefined)}`)
+  return lines.join('\n')
+}
+
 /** The spawn-helper for this architecture inside the shipped node-pty, or null if not found. */
 function findHelper(): string | null {
   let root: string

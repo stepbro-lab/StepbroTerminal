@@ -51,7 +51,18 @@ function hostEntry(): string {
 }
 
 async function boot(): Promise<void> {
-  const log = (...a: unknown[]): void => console.log('[step]', ...a)
+  // Every host/app log line also goes to the renderer's DevTools console, so a real failure can be
+  // read there instead of guessed at. `forward` is wired once the window exists.
+  let forward: ((line: string) => void) | null = null
+  const log = (...a: unknown[]): void => {
+    const line = a.map((x) => (typeof x === 'string' ? x : JSON.stringify(x))).join(' ')
+    console.log('[step]', line)
+    try {
+      forward?.(line)
+    } catch {
+      /* window gone */
+    }
+  }
   await app.whenReady()
   app.setAppUserModelId(APP_ID)
   ensureWindowsShortcut()
@@ -142,6 +153,8 @@ async function boot(): Promise<void> {
   registerIpc(ctx)
   buildAppMenu(ctx)
   ctx.win = createWindow(ctx.prefs)
+  forward = (line: string): void => ctx.emit('diag', line)
+  log(`app ${VERSION} on ${process.platform} ${process.arch}, host entry ${hostEntry()}`)
   ctx.updates.start()
   ctx.win.on('closed', () => {
     ctx.win = null
@@ -196,7 +209,10 @@ function wireHostClient(ctx: Ctx): void {
   })
   client.on('session', (s: Session) => {
     const isNew = !ctx.sessions.has(s.id)
+    const wasError = ctx.sessions.get(s.id)?.error
     ctx.sessions.set(s.id, s)
+    if (s.status === 'error' && s.errorDetail && s.error !== wasError) ctx.log(`session ${s.id} did not start:
+${s.errorDetail}`)
     ctx.emit('host:session', s)
     ctx.notifier.onSession(s)
     ctx.tray.update()

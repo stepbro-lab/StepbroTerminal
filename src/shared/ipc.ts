@@ -60,6 +60,8 @@ export interface InvokeMap {
   'updates:check': () => UpdateState
   'updates:install': () => void
   'notes:list': () => Note[]
+  /** The host and app logs, for reading real failures from DevTools. */
+  'diag:dump': () => string
 }
 
 /** Renderer -> main fire-and-forget channels. */
@@ -114,6 +116,8 @@ export interface EventMap {
   'ui:handoff': (handoff: Handoff) => void
   'win:maximized': (maximized: boolean) => void
   'theme:system': (dark: boolean) => void
+  /** A line of host/app diagnostics, mirrored into the DevTools console. */
+  'diag': (line: string) => void
 }
 
 export type EventName = keyof EventMap

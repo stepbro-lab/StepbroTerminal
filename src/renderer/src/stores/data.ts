@@ -59,7 +59,9 @@ export function subscribeData(): () => void {
     s.on('history:update', (history) => useData.setState({ history })),
     s.on('live:update', (live) => useData.setState({ live })),
     s.on('presets:update', (presets) => useData.setState({ presets })),
-    s.on('projects:update', (projects) => useData.setState({ projects }))
+    s.on('projects:update', (projects) => useData.setState({ projects })),
+    // Real host/app diagnostics, printed so they can be read straight from DevTools.
+    s.on('diag', (line: string) => console.info('%c[step-host]', 'color:#6e9cff;font-weight:600', line))
   ]
   return () => offs.forEach((off) => off())
 }

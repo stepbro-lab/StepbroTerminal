@@ -1,7 +1,9 @@
 import { app, clipboard, dialog, ipcMain, Menu, shell } from 'electron'
+import fs from 'node:fs'
 import type { CreateRequest, InvokeMap, SendMap } from '@shared/ipc'
 import type { MenuItemSpec, Session } from '@shared/types'
-import { normalizeProjectPath } from '@shared/paths'
+import { hostLogPath, normalizeProjectPath, stepDir } from '@shared/paths'
+import { join } from 'node:path'
 import { readTranscriptDetails, transcriptPath } from './claude/transcript'
 import { buildLaunchSpec } from './presets/launchSpec'
 import { gitChanges, gitDiff, gitRevert } from './git'
@@ -37,6 +39,21 @@ export function registerIpc(ctx: Ctx): void {
   on('host:reorder', (ids) => ctx.client.send({ t: 'reorder', ids }))
   on('host:viewed', (id) => ctx.client.send({ t: 'viewed', id }))
   on('host:ack', (id, bytes) => ctx.client.send({ t: 'ack', id, bytes }))
+
+  // ---- diagnostics ----
+  // Everything needed to see why a session would not start, readable from the DevTools console
+  // with `await window.step.invoke('diag:dump')`.
+  handle('diag:dump', () => {
+    const read = (label: string, file: string): string => {
+      try {
+        return `----- ${label} (${file}) -----\n${fs.readFileSync(file, 'utf8').trimEnd()}`
+      } catch {
+        return `----- ${label} (${file}) -----\n(none)`
+      }
+    }
+    const header = `app ${ctx.version} · ${process.platform} ${process.arch} · host ${ctx.hostState.kind === 'connected' ? ctx.hostState.info.version : ctx.hostState.kind}`
+    return [header, read('host.log', hostLogPath()), read('host.err', join(stepDir(), 'host.err'))].join('\n\n')
+  })
 
   // ---- notes ----
   handle('notes:list', () => ctx.notes)

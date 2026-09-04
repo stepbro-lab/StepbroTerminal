@@ -10,6 +10,7 @@ import { TitleCapture, detectAgentFromCommand } from './titleCapture'
 import { OscTitleParser, isBoringTitle, stripTitleGlyph } from './oscTitle'
 import { reduceStatus, type ReducerEvent } from './statusReducer'
 import { applyAgentWrap, findOnPath, ptyEnv, resolveCommand, shellArgsWithAgents, substituteArgs, writeHooksSettings, writeMcpConfig, type AgentWrap } from './launch'
+import { describeSpawnEnv } from './ptyHelper'
 import { findAncestor, processTable } from './procTree'
 import { log } from './log'
 import { waitingForApproval } from './screenPrompts'
@@ -544,8 +545,11 @@ export class SessionManager extends EventEmitter {
         conptyInheritCursor: true
       })
     } catch (e: any) {
+      const detail = [`Failed to start ${resolved.file}: ${e?.message ?? e}`, `cwd=${s.projectPath}`, describeSpawnEnv()].join('\n')
+      log('session spawn failed\n' + detail)
       s.status = 'error'
       s.error = `Failed to start: ${e?.message ?? e}`
+      s.errorDetail = detail
       s.alive = false
       this.persist()
       return
