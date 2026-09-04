@@ -574,9 +574,16 @@ export class SessionManager extends EventEmitter {
     p.onData((data) => {
       if (l.pty !== p) return
       if (probing) {
-        const reply = conptyReply(data)
-        if (reply) p.write(reply)
-        if (!isControlOnly(data)) probing = false
+        // Answer ConPTY's probes only while nothing printable has arrived yet: the shell is still
+        // blocked waiting, and ConPTY consumes the reply. The moment real output shows (the prompt),
+        // the shell is interactive; injecting a reply then would land it at the prompt and PSReadLine
+        // would read "[?1;2c" as typed input and ring the bell. So close the window without answering.
+        if (isControlOnly(data)) {
+          const reply = conptyReply(data)
+          if (reply) p.write(reply)
+        } else {
+          probing = false
+        }
       }
       this.onOutput(l, data)
     })
