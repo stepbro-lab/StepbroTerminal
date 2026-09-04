@@ -8,6 +8,7 @@ import { SessionManager } from './SessionManager'
 import { HostServer } from './HostServer'
 import { HookServer } from './HookServer'
 import { writeShims } from './launch'
+import { prepareSpawnHelper } from './ptyHelper'
 import { NoteStore } from './NoteStore'
 import { handleMcp } from './mcp'
 import { initLog, log } from './log'
@@ -32,6 +33,7 @@ async function main(): Promise<void> {
     } catch (e) {
       log('shims write failed', e)
     }
+    prepareSpawnHelper()
   }
   const sm = new SessionManager({
     stateFile: path.join(dir, 'state.json'),

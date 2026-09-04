@@ -74,6 +74,9 @@
       "esbuild",
       "node-pty",
       "@resvg/resvg-js"
-    ]
+    ],
+    "patchedDependencies": {
+      "node-pty@1.1.0": "patches/node-pty@1.1.0.patch"
+    }
   }
 }
