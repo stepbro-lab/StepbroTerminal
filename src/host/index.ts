@@ -33,7 +33,7 @@ async function main(): Promise<void> {
     } catch (e) {
       log('shims write failed', e)
     }
-    prepareSpawnHelper()
+    prepareSpawnHelper(binDir)
   }
   const sm = new SessionManager({
     stateFile: path.join(dir, 'state.json'),

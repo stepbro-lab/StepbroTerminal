@@ -54,21 +54,49 @@ if (!fs.existsSync(host)) {
 const home = fs.mkdtempSync(path.join(os.tmpdir(), 'step-smoke-'))
 const nodeEnv = { ...process.env, ELECTRON_RUN_AS_NODE: '1' }
 
-/** Opens a shell through the packaged node-pty and waits for it to print; this is what a new session does. */
+/**
+ * Opens a shell through the packaged node-pty, the way a new session does. On macOS it first
+ * makes the shipped spawn-helper look like a fresh download (no executable bit, quarantined) and
+ * then stages a runnable copy exactly as the host does, so the runner proves shells still open on
+ * a quarantined, read-only app and not only on the freshly built one.
+ */
 function ptyCheck() {
   const script = path.join(home, 'pty-check.cjs')
   const nodePty = path.join(unpacked, 'node_modules', 'node-pty')
+  const stageDir = path.join(home, 'bin')
   fs.writeFileSync(
     script,
-    [
-      `const pty = require(${JSON.stringify(nodePty)})`,
-      `const win = process.platform === 'win32'`,
-      `const p = pty.spawn(win ? 'cmd.exe' : '/bin/sh', win ? ['/c', 'echo smoke-ok'] : ['-c', 'echo smoke-ok'], { cols: 80, rows: 24, cwd: process.cwd(), env: process.env })`,
-      `let out = ''`,
-      `p.onData((d) => { out += d; if (out.includes('smoke-ok')) { console.log('shell printed through node-pty; ok'); process.exit(0) } })`,
-      `p.onExit(({ exitCode }) => { console.error('shell exited with ' + exitCode + ' before printing; output: ' + JSON.stringify(out)); process.exit(1) })`,
-      `setTimeout(() => { console.error('shell printed nothing in 10s; output: ' + JSON.stringify(out)); process.exit(1) }, 10000)`
-    ].join('\n')
+    `
+const fs = require('node:fs')
+const path = require('node:path')
+const { execFileSync } = require('node:child_process')
+
+const nodePty = ${JSON.stringify(nodePty)}
+const stageDir = ${JSON.stringify(stageDir)}
+
+if (process.platform === 'darwin') {
+  const helper = path.join(nodePty, 'prebuilds', 'darwin-' + process.arch, 'spawn-helper')
+  // Make the shipped helper look downloaded: readable but not executable, and quarantined.
+  fs.chmodSync(helper, 0o644)
+  try { execFileSync('xattr', ['-w', 'com.apple.quarantine', '0081;00000000;Safari;', helper], { stdio: 'ignore' }) } catch {}
+  // Stage a runnable copy, the way src/host/ptyHelper.ts does.
+  fs.mkdirSync(stageDir, { recursive: true })
+  const dest = path.join(stageDir, 'spawn-helper')
+  fs.copyFileSync(helper, dest)
+  fs.chmodSync(dest, 0o755)
+  try { execFileSync('xattr', ['-c', dest], { stdio: 'ignore' }) } catch {}
+  try { execFileSync('/usr/bin/codesign', ['--force', '--sign', '-', dest], { stdio: 'ignore' }) } catch {}
+  process.env.NODE_PTY_SPAWN_HELPER = dest
+}
+
+const pty = require(nodePty)
+const win = process.platform === 'win32'
+const p = pty.spawn(win ? 'cmd.exe' : '/bin/sh', win ? ['/c', 'echo smoke-ok'] : ['-c', 'echo smoke-ok'], { cols: 80, rows: 24, cwd: process.cwd(), env: process.env })
+let out = ''
+p.onData((d) => { out += d; if (out.includes('smoke-ok')) { console.log('shell printed through node-pty; ok'); process.exit(0) } })
+p.onExit(({ exitCode }) => { console.error('shell exited with ' + exitCode + ' before printing; output: ' + JSON.stringify(out)); process.exit(1) })
+setTimeout(() => { console.error('shell printed nothing in 10s; output: ' + JSON.stringify(out)); process.exit(1) }, 10000)
+`
   )
   const r = spawnSync(exe, [script], { cwd: home, env: nodeEnv, encoding: 'utf8', timeout: 30000 })
   const text = `${r.stdout ?? ''}${r.stderr ?? ''}`.trim()
