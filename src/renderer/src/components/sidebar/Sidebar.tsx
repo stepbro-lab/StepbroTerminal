@@ -5,7 +5,8 @@ import { Flip } from 'gsap/Flip'
 import { useData } from '@/stores/data'
 import { usePrefs } from '@/stores/prefs'
 import { useUi } from '@/stores/ui'
-import { buildSidebar } from '@/lib/sidebarModel'
+import { buildSidebar, type SidebarProject, type SidebarSession } from '@/lib/sidebarModel'
+import { leaves } from '@/lib/layout'
 import { addProject, sidebarMenu } from '@/lib/actions'
 import { ProjectRow } from './ProjectRow'
 import { SessionRow } from './SessionRow'
@@ -17,7 +18,20 @@ export function useSidebarModel() {
   const projects = useData((s) => s.projects)
   const sessions = useData((s) => s.sessions)
   const prefs = usePrefs((s) => s.prefs)
-  return useMemo(() => buildSidebar(projects, Object.values(sessions), prefs), [projects, sessions, prefs])
+  const views = useUi((s) => s.views)
+  const groups = useMemo(() => views.map((v, i) => ({ view: i, ids: leaves(v) })).filter((g) => g.ids.length > 1), [views])
+  return useMemo(() => buildSidebar(projects, Object.values(sessions), prefs, groups), [projects, sessions, prefs, groups])
+}
+
+/** Consecutive rows that share a split view, so they can be drawn inside one box. */
+function chunk(rows: SidebarSession[]): Array<{ view: number | null; rows: SidebarSession[] }> {
+  const out: Array<{ view: number | null; rows: SidebarSession[] }> = []
+  for (const r of rows) {
+    const last = out[out.length - 1]
+    if (last && last.view !== null && last.view === r.view) last.rows.push(r)
+    else out.push({ view: r.view, rows: [r] })
+  }
+  return out
 }
 
 const MIN_W = 200
@@ -28,6 +42,8 @@ export function Sidebar() {
   const prefs = usePrefs((s) => s.prefs)
   const setPrefs = usePrefs((s) => s.set)
   const activeProject = useUi((s) => s.activeProject)
+  const activeView = useUi((s) => s.activeView)
+  const draggingId = useUi((s) => s.dragging)
   const setSettingsOpen = useUi((s) => s.setSettingsOpen)
   const width = prefs?.sidebarWidth ?? 240
   const collapsed = prefs?.sidebarCollapsed ?? false
@@ -75,6 +91,28 @@ export function Sidebar() {
     document.documentElement.style.setProperty('--sidebar-w', `${width}px`)
   }, [width])
 
+  const ins = reorder.insert
+  const mark = (row: SidebarSession): 'before' | 'after' | undefined => (ins?.id === row.id ? (ins.after ? 'after' : 'before') : undefined)
+  const rowsOf = (p: SidebarProject): React.ReactNode => {
+    const sourceView = p.sessions.find((s) => s.id === draggingId)?.view ?? null
+    return chunk(p.sessions).map((c) => {
+      const boxed = c.view !== null && c.rows.length > 1
+      const rows = c.rows.map((row) => (
+        <SessionRow key={row.key} row={row} insert={boxed && sourceView !== c.view ? undefined : mark(row)} onDragOver={reorder.onDragOver} onDrop={reorder.onDrop} />
+      ))
+      if (!boxed) return rows
+      // A session from outside lands above or below the whole box, so the box carries the mark.
+      const first = c.rows[0]
+      const last = c.rows[c.rows.length - 1]
+      const outside = ins && sourceView !== c.view && ((ins.id === first.id && !ins.after) || (ins.id === last.id && ins.after))
+      return (
+        <div key={`view-${c.view}`} className="view-box" data-on={c.view === activeView} data-insert={outside ? (ins.after ? 'after' : 'before') : undefined}>
+          {rows}
+        </div>
+      )
+    })
+  }
+
   return (
     <aside
       className="relative flex h-full shrink-0 flex-col overflow-hidden"
@@ -106,16 +144,7 @@ export function Sidebar() {
         {model.map((p) => (
           <div key={p.path} className="mb-1">
             <ProjectRow project={p} isActiveProject={activeProject?.toLowerCase() === p.path.toLowerCase()} />
-            {!p.collapsed &&
-              p.sessions.map((row) => (
-                <SessionRow
-                  key={row.key}
-                  row={row}
-                  insert={reorder.insert?.id === row.id ? (reorder.insert.after ? 'after' : 'before') : undefined}
-                  onDragOver={reorder.onDragOver}
-                  onDrop={reorder.onDrop}
-                />
-              ))}
+            {!p.collapsed && rowsOf(p)}
           </div>
         ))}
       </div>

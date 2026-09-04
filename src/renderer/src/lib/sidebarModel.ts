@@ -10,7 +10,15 @@ export interface SidebarSession {
   presetId: string
   pinned: boolean
   lastAt: number
+  /** Index of the split view this session shares with others, or null when it has a pane of its own. */
+  view: number | null
   session: Session
+}
+
+/** A view with more than one pane: its index and the sessions in it. */
+export interface ViewGroup {
+  view: number
+  ids: string[]
 }
 
 export interface SidebarProject {
@@ -31,27 +39,31 @@ export function rowPresetId(s: Session): string {
   return s.agent.detectedPreset ?? s.presetId
 }
 
-/** Sidebar = user projects, each with the sessions opened in Step (pinned first, then in the user's order, newest last). */
-export function buildSidebar(projects: Project[], sessions: Session[], prefs: Prefs | null): SidebarProject[] {
+/**
+ * Sidebar = user projects, each with the sessions opened in Step: pinned first, then in the
+ * user's order, newest last. Sessions that share a split view sit together (see orderRows).
+ */
+export function buildSidebar(projects: Project[], sessions: Session[], prefs: Prefs | null, groups: ViewGroup[] = []): SidebarProject[] {
   const collapsedSet = new Set((prefs?.collapsedProjects ?? []).map((p) => p.toLowerCase()))
+  const viewOf = new Map<string, number>()
+  for (const g of groups) for (const id of g.ids) viewOf.set(id, g.view)
   const out: SidebarProject[] = []
   for (const p of projects) {
-    const rows: SidebarSession[] = sessions
-      .filter((s) => same(s.projectPath, p.path))
-      .map((s) => ({
-        key: s.id,
-        id: s.id,
-        title: s.title || defaultTitle(s),
-        status: s.status,
-        presetId: rowPresetId(s),
-        pinned: s.pinned,
-        lastAt: s.updatedAt,
-        session: s
-      }))
-      .sort((a, b) => {
-        if (a.pinned !== b.pinned) return a.pinned ? -1 : 1
-        return a.session.order - b.session.order || a.session.createdAt - b.session.createdAt
-      })
+    const rows = orderRows(
+      sessions
+        .filter((s) => same(s.projectPath, p.path))
+        .map((s) => ({
+          key: s.id,
+          id: s.id,
+          title: s.title || defaultTitle(s),
+          status: s.status,
+          presetId: rowPresetId(s),
+          pinned: s.pinned,
+          lastAt: s.updatedAt,
+          view: viewOf.get(s.id) ?? null,
+          session: s
+        }))
+    )
     out.push({
       path: p.path,
       name: p.name,
@@ -62,6 +74,27 @@ export function buildSidebar(projects: Project[], sessions: Session[], prefs: Pr
   }
   // Keep the order the user added them in; projects with live sessions do not jump around.
   return out
+}
+
+function byPlace(a: SidebarSession, b: SidebarSession): number {
+  if (a.pinned !== b.pinned) return a.pinned ? -1 : 1
+  return a.session.order - b.session.order || a.session.createdAt - b.session.createdAt
+}
+
+/**
+ * Pinned first, then the user's order. Rows that share a split view stay together, at the
+ * place of whichever of them comes first, so the sidebar can draw them in one box.
+ */
+export function orderRows(rows: SidebarSession[]): SidebarSession[] {
+  const sorted = rows.slice().sort(byPlace)
+  const anchor = new Map<number, SidebarSession>()
+  for (const r of sorted) if (r.view !== null && !anchor.has(r.view)) anchor.set(r.view, r)
+  const place = (r: SidebarSession): SidebarSession => (r.view !== null ? anchor.get(r.view)! : r)
+  return sorted.sort((a, b) => {
+    const pa = place(a)
+    const pb = place(b)
+    return pa === pb ? byPlace(a, b) : byPlace(pa, pb)
+  })
 }
 
 export function defaultTitle(s: Session): string {

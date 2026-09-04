@@ -110,38 +110,51 @@ button {
   background: var(--bg-active);
   color: var(--text);
 }
-/* Where a dragged session would land: a line with a dot, above or below the row. */
-.row[data-insert]::before,
-.row[data-insert]::after {
+/* Sessions that share a split view sit inside one box; the box of the view on screen is a touch stronger. */
+.view-box {
+  position: relative;
+  margin: 2px -3px;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius-row) + 3px);
+  background: color-mix(in srgb, var(--bg-hover) 50%, transparent);
+}
+.view-box[data-on='true'] {
+  border-color: var(--border-strong);
+}
+
+/* Where a dragged session would land: a line with a dot, above or below the row (or the box). */
+:is(.row, .view-box)[data-insert]::before,
+:is(.row, .view-box)[data-insert]::after {
   content: '';
   position: absolute;
   pointer-events: none;
   background: var(--accent);
   z-index: 1;
 }
-.row[data-insert]::after {
+:is(.row, .view-box)[data-insert]::after {
   left: 22px;
   right: 4px;
   height: 2px;
   border-radius: 1px;
 }
-.row[data-insert]::before {
+:is(.row, .view-box)[data-insert]::before {
   left: 17px;
   width: 7px;
   height: 7px;
   border-radius: 50%;
   box-shadow: 0 0 0 1.5px var(--bg-sidebar);
 }
-.row[data-insert='before']::after {
+:is(.row, .view-box)[data-insert='before']::after {
   top: -2px;
 }
-.row[data-insert='before']::before {
+:is(.row, .view-box)[data-insert='before']::before {
   top: -4.5px;
 }
-.row[data-insert='after']::after {
+:is(.row, .view-box)[data-insert='after']::after {
   bottom: -2px;
 }
-.row[data-insert='after']::before {
+:is(.row, .view-box)[data-insert='after']::before {
   bottom: -4.5px;
 }
 .row-title {
