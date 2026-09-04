@@ -62,6 +62,8 @@ export interface InvokeMap {
   'updates:check': () => UpdateState
   'updates:install': () => void
   'notes:list': () => Note[]
+  /** Folders dropped on the app icon or given on the command line before the window was ready; cleared once read. */
+  'app:pendingFolders': () => string[]
   /** The host and app logs, for reading real failures from DevTools. */
   'diag:dump': () => string
 }
@@ -119,6 +121,8 @@ export interface EventMap {
   'win:maximized': (maximized: boolean) => void
   /** Windows: whether the pointer is over the title bar; the caption buttons show while it is. */
   'win:captionHover': (over: boolean) => void
+  /** A folder handed to the app from outside: dropped on its icon, or given on the command line. */
+  'ui:openFolder': (path: string) => void
   'theme:system': (dark: boolean) => void
   /** A line of host/app diagnostics, mirrored into the DevTools console. */
   'diag': (line: string) => void

@@ -7,6 +7,7 @@ import { handleKeydown, runCommand, setSidebarModelRef, type Command } from '@/l
 import { terminalContextMenu } from '@/lib/terminalMenu'
 import { defaultTitle } from '@/lib/sidebarModel'
 import { pruneLayout, type LayoutNode } from '@/lib/layout'
+import { addDroppedFolders } from '@/lib/actions'
 import { TitleBar } from '@/components/TitleBar'
 import { Sidebar, useSidebarModel } from '@/components/sidebar/Sidebar'
 import { TerminalPane } from '@/components/pane/TerminalPane'
@@ -71,7 +72,8 @@ export default function App() {
       s.on('notes:update', (notes, added) => useNotes.getState().receive(notes, added)),
       s.on('ui:handoff', (h) => useHandoff.getState().arrive(h)),
       s.on('win:maximized', (m) => useUi.getState().setMaximized(m)),
-      s.on('win:captionHover', (over) => useUi.getState().setCaptionHover(over))
+      s.on('win:captionHover', (over) => useUi.getState().setCaptionHover(over)),
+      s.on('ui:openFolder', (p) => void addDroppedFolders([p]))
     ]
     void s.invoke('win:isMaximized').then((m) => useUi.getState().setMaximized(m))
     void s.invoke('notes:list').then((notes) => useNotes.getState().receive(notes))
@@ -120,6 +122,16 @@ export default function App() {
       if (s.leftRunning && !s.alive) window.step.send('host:restart', s.id)
     }
   }, [hostState.kind, prefs, booted])
+
+  // ---- folders dropped on the app icon, or named on the command line, before the window was ready ----
+  const pulledRef = useRef(false)
+  useEffect(() => {
+    if (pulledRef.current || hostState.kind !== 'connected' || !booted) return
+    pulledRef.current = true
+    void window.step.invoke('app:pendingFolders').then((paths) => {
+      if (paths.length) void addDroppedFolders(paths)
+    })
+  }, [hostState.kind, booted])
 
   // ---- terminal prefs ----
   useEffect(() => {

@@ -20,6 +20,7 @@ import { registerIpc } from './ipc'
 import { buildAppMenu } from './menu'
 import { APP_ID, ensureWindowsShortcut, migrateUserData } from './branding'
 import { Updates } from './updates'
+import { folderArgs, onlyFolders } from './openFolders'
 import type { Ctx } from './context'
 
 const VERSION = app.getVersion()
@@ -48,6 +49,25 @@ function stepUrlIn(argv: string[]): string | undefined {
 function hostEntry(): string {
   if (app.isPackaged) return join(process.resourcesPath, 'app.asar.unpacked', 'out', 'main', 'host.js')
   return join(__dirname, 'host.js')
+}
+
+// A folder dropped on the Dock icon arrives as open-file, sometimes before the app is ready.
+let ctxRef: Ctx | null = null
+const earlyFolders: string[] = []
+app.on('open-file', (e, p) => {
+  e.preventDefault()
+  if (ctxRef) openFolders(ctxRef, onlyFolders([p], process.cwd()))
+  else earlyFolders.push(p)
+})
+
+/** Hands folders to the renderer, or holds them until it says it is ready. */
+function openFolders(ctx: Ctx, paths: string[]): void {
+  if (paths.length === 0) return
+  if (ctx.rendererReady && ctx.win && !ctx.win.isDestroyed()) {
+    for (const p of paths) ctx.emit('ui:openFolder', p)
+  } else {
+    ctx.pendingFolders.push(...paths)
+  }
 }
 
 async function boot(): Promise<void> {
@@ -91,6 +111,8 @@ async function boot(): Promise<void> {
     prompts: new PromptLog(),
     updates: null as unknown as Updates,
     notes: [],
+    pendingFolders: [],
+    rendererReady: false,
     log,
     emit: <K extends EventName>(channel: K, ...args: Parameters<EventMap[K]>): void => {
       if (ctx.win && !ctx.win.isDestroyed()) ctx.win.webContents.send(channel, ...args)
@@ -161,12 +183,18 @@ async function boot(): Promise<void> {
   })
   ctx.tray.create()
 
+  ctxRef = ctx
+  // Folders given at launch: dropped on the app icon, or named on the command line.
+  ctx.pendingFolders.push(...folderArgs(process.argv, process.cwd(), [app.getAppPath(), process.execPath]), ...onlyFolders(earlyFolders, process.cwd()))
+  earlyFolders.length = 0
   void connectHost(ctx)
 
-  app.on('second-instance', (_e, argv) => {
+  app.on('second-instance', (_e, argv, cwd) => {
     const url = stepUrlIn(argv)
     if (url) log('protocol link', url)
     if (url && ctx.notifier.handleUrl(url) && !url.startsWith('step://focus/')) return
+    // A folder dropped on the icon while the app is already open: hand it over and come forward.
+    openFolders(ctx, folderArgs(argv, cwd, [app.getAppPath(), process.execPath]))
     if (!ctx.win) ctx.win = createWindow(ctx.prefs)
     if (ctx.win.isMinimized()) ctx.win.restore()
     ctx.win.show()

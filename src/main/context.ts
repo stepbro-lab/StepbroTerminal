@@ -28,6 +28,10 @@ export interface Ctx {
   updates: Updates
   /** Latest list from the host, so the renderer can ask for it on boot. */
   notes: Note[]
+  /** Folders dropped on the app icon or named on the command line, waiting for the renderer. */
+  pendingFolders: string[]
+  /** True once the renderer has asked for pending folders; after that they are sent live. */
+  rendererReady: boolean
   log: (...a: unknown[]) => void
   emit: <K extends EventName>(channel: K, ...args: Parameters<EventMap[K]>) => void
   setPrefs: (partial: Partial<Prefs>) => Prefs

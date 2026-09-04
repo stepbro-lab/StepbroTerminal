@@ -51,6 +51,14 @@ mac:
   icon: build/icon-mac.png
   category: public.app-category.developer-tools
   hardenedRuntime: false
+  # Lets Finder and the Dock accept a folder dropped on the app: it opens as a project.
+  extendInfo:
+    CFBundleDocumentTypes:
+      - CFBundleTypeName: Folder
+        CFBundleTypeRole: Viewer
+        LSHandlerRank: Alternate
+        LSItemContentTypes:
+          - public.folder
   artifactName: ${productName}-${version}-mac-${arch}.${ext}
 linux:
   target:

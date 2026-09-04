@@ -89,6 +89,11 @@ export function registerIpc(ctx: Ctx): void {
   handle('projects:openFolder', (p) => {
     void shell.openPath(p)
   })
+  // Folders dropped on the app icon or passed on the command line, waiting for the renderer.
+  handle('app:pendingFolders', () => {
+    ctx.rendererReady = true
+    return ctx.pendingFolders.splice(0)
+  })
 
   // ---- claude data ----
   handle('history:list', () => ctx.history.sessions())
