@@ -155,13 +155,13 @@ export function Sidebar() {
           </div>
         ))}
       </div>
-      {/* A raised round button to add a folder, and the settings gear, level with the bottom edge of the pane beside them. */}
+      {/* Two round raised buttons of the same size and weight, level with the bottom edge of the pane beside them. */}
       <div className="mb-2 flex h-10 shrink-0 items-center justify-between px-2" style={{ width: 'var(--sidebar-w)' }}>
         <button className="fab" title={t('Add folder')} onClick={() => void addProject()}>
           <Plus size={20} strokeWidth={2.2} />
         </button>
-        <button className="icon-btn" style={{ width: 32, height: 32 }} title={t('Settings')} onClick={() => setSettingsOpen(true)}>
-          <Settings size={17} />
+        <button className="fab" title={t('Settings')} onClick={() => setSettingsOpen(true)}>
+          <Settings size={18} strokeWidth={2} />
         </button>
       </div>
       {drop.over && (
