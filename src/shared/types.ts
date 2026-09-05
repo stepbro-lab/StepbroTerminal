@@ -236,6 +236,15 @@ export interface Handoff {
   text: string
 }
 
+/** A message one agent left for another through the MCP server; it waits in the receiver's inbox. */
+export interface AgentMessage {
+  id: string
+  ts: number
+  from: string
+  to: string
+  text: string
+}
+
 /** Where the app stands with respect to a newer release. */
 export type UpdateState =
   | { kind: 'idle' }

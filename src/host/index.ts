@@ -11,6 +11,7 @@ import { writeShims } from './launch'
 import { prepareSpawnHelper } from './ptyHelper'
 import { NoteStore } from './NoteStore'
 import { handleMcp } from './mcp'
+import { AgentBus } from './AgentBus'
 import { initLog, log } from './log'
 
 const IDLE_EXIT_MS = 60_000
@@ -50,13 +51,20 @@ async function main(): Promise<void> {
   const notes = new NoteStore(path.join(dir, 'notes.json'))
   notes.load()
 
+  // Agents talk to each other through this; a session's change of state wakes whoever waits on it.
+  const bus = new AgentBus()
+  sm.on('session', (s) => bus.wake(s.id))
+  sm.on('removed', (id) => bus.forget(id))
+
   const hooks = new HookServer(sm, token, (sessionId, req, res) =>
     handleMcp(
       {
         notes,
+        bus,
         session: (id) => sm.get(id),
         sessions: () => sm.list(),
-        send: (from, to, text, submit) => sm.handoff(from, to, text, submit),
+        send: (from, to, text, submit, suffix) => sm.handoff(from, to, text, submit, suffix),
+        screen: (id, lines) => sm.screenLines(id, lines),
         version
       },
       sessionId,

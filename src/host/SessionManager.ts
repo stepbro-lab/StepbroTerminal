@@ -391,13 +391,34 @@ export class SessionManager extends EventEmitter {
 
   // ---- agent awareness ----
 
-  /** Types `text` into session `to` for `from`, presses Enter when asked, and tells clients so they can show it travelling. */
-  handoff(from: string, to: string, text: string, submit: boolean): void {
+  /**
+   * Types `text` into session `to` for `from`, presses Enter when asked, and tells clients so they
+   * can show it travelling. `suffix` is typed too but stays out of the title an untitled shell
+   * takes from its first line: it is the request to report back, not the task.
+   */
+  handoff(from: string, to: string, text: string, submit: boolean, suffix = ''): void {
     const l = this.live.get(to)
     if (!l?.pty) return
     this.input(to, Buffer.from(text.replace(/\r?\n/g, '\n'), 'utf8'))
+    if (suffix) l.pty.write(suffix)
     if (submit) setTimeout(() => this.input(to, Buffer.from('\r')), 350)
     this.emit('handoff', { from, to, text })
+  }
+
+  /** The last `max` lines on a session's screen, scrollback included, without the blank tail. */
+  async screenLines(id: string, max: number): Promise<string[]> {
+    const l = this.live.get(id)
+    if (!l) return []
+    await l.drained
+    if (!this.live.has(id)) return []
+    const buf = l.screen.buffer.active
+    const row = (y: number): string => buf.getLine(y)?.translateToString(true) ?? ''
+    // A fresh screen has its text at the top and blank rows below; count from the last written row.
+    let last = buf.baseY + l.screen.rows - 1
+    while (last >= 0 && !row(last).trim()) last--
+    const lines: string[] = []
+    for (let y = Math.max(0, last - max + 1); y <= last; y++) lines.push(row(y))
+    return lines
   }
 
   /** `stepSessionId` comes from the per-session hook URL; older settings files only carry the agent's own id. */
