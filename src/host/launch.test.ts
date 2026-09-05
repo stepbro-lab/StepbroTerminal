@@ -2,7 +2,8 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { applyAgentWrap, ptyEnv, resolveCommand, shellArgsWithAgents, substituteArgs, writeHooksSettings, writeMcpConfig, writeShims } from './launch'
+import { spawnSync } from 'node:child_process'
+import { applyAgentWrap, findOnPath, posixShellWithAgents, ptyEnv, resolveCommand, shellArgsWithAgents, substituteArgs, writeHooksSettings, writeMcpConfig, writeShims } from './launch'
 
 let tmp: string
 beforeEach(() => {
@@ -84,6 +85,66 @@ describe('agents typed inside a shell', () => {
     expect(claude.startsWith('#!/bin/sh')).toBe(true)
     expect(claude).toContain('exec "$STEP_REAL_CLAUDE" --settings "$STEP_HOOKS_SETTINGS" --mcp-config "$STEP_MCP_CONFIG" "$@"')
     expect(fs.readFileSync(path.join(tmp, 'codex'), 'utf8')).toContain('mcp_servers.stepbro.url=')
+  })
+})
+
+describe('posix shells define the agent functions', () => {
+  const w = { hooksSettings: '/h/s.json', mcpConfig: '/h/s.mcp.json', mcpUrl: 'http://h/mcp', claude: '/usr/local/bin/claude' }
+
+  it('gives zsh its own ZDOTDIR and remembers the user\'s', () => {
+    const env: Record<string, string> = { PATH: '/usr/bin', ZDOTDIR: '/home/u/dots' }
+    const args = posixShellWithAgents('/bin/zsh', ['-l'], w, env, '/home/u/.step/bin')
+    expect(args).toEqual(['-l'])
+    expect(env['ZDOTDIR']).toBe(path.join('/home/u/.step/bin', 'zsh'))
+    expect(env['STEP_USER_ZDOTDIR']).toBe('/home/u/dots')
+    const plain: Record<string, string> = {}
+    posixShellWithAgents('/bin/zsh', ['-l'], w, plain, '/b')
+    expect(plain['STEP_USER_ZDOTDIR']).toBeUndefined()
+  })
+
+  it('gives bash the rc file instead of a login flag, and fish an init command', () => {
+    const env: Record<string, string> = {}
+    expect(posixShellWithAgents('/bin/bash', ['-l'], w, env, '/b')).toEqual(['--rcfile', path.join('/b', 'bash', 'rc'), '-i'])
+    expect(posixShellWithAgents('/usr/bin/fish', ['-l'], w, env, '/b')).toEqual(['-l', '-C', `source "${path.join('/b', 'fish', 'init.fish')}"`])
+    expect(env['ZDOTDIR']).toBeUndefined()
+  })
+
+  it('leaves shells running a command, unknown shells, agents themselves and sessions without agents alone', () => {
+    const env: Record<string, string> = {}
+    expect(posixShellWithAgents('/bin/zsh', ['-c', 'ls'], w, env, '/b')).toEqual(['-c', 'ls'])
+    expect(posixShellWithAgents('/bin/dash', ['-l'], w, env, '/b')).toEqual(['-l'])
+    expect(posixShellWithAgents('/usr/local/bin/claude', ['--settings', 'x'], w, env, '/b')).toEqual(['--settings', 'x'])
+    expect(posixShellWithAgents('/bin/zsh', ['-l'], { ...w, claude: undefined }, env, '/b')).toEqual(['-l'])
+    expect(env['ZDOTDIR']).toBeUndefined()
+  })
+
+  it('writes rc files that run the user\'s own files first and then define the functions', () => {
+    writeShims(tmp)
+    const zshrc = fs.readFileSync(path.join(tmp, 'zsh', '.zshrc'), 'utf8')
+    expect(zshrc).toContain('. "$ZDOTDIR/.zshrc"')
+    expect(zshrc).toContain('claude() { "$STEP_REAL_CLAUDE" --settings "$STEP_HOOKS_SETTINGS" --mcp-config "$STEP_MCP_CONFIG" "$@"; }')
+    expect(fs.readFileSync(path.join(tmp, 'zsh', '.zshenv'), 'utf8')).toContain('.zshenv')
+    const bash = fs.readFileSync(path.join(tmp, 'bash', 'rc'), 'utf8')
+    expect(bash).toContain('"$HOME/.bash_profile"')
+    expect(bash).toContain('codex() {')
+    expect(fs.readFileSync(path.join(tmp, 'fish', 'init.fish'), 'utf8')).toContain('function claude;')
+  })
+
+  it('makes a real bash run the function in place of the binary', () => {
+    // On Windows the bash on PATH is usually the WSL launcher, which runs a Linux bash that
+    // sees none of this; Git's own bash behaves like the real thing.
+    const bash = process.platform === 'win32' ? ['C:\\Program Files\\Git\\bin\\bash.exe', 'C:\\Program Files\\Git\\usr\\bin\\bash.exe'].find((p) => fs.existsSync(p)) : findOnPath('bash', process.env)
+    if (!bash) return
+    writeShims(tmp)
+    const fake = path.join(tmp, 'fakeclaude')
+    fs.writeFileSync(fake, '#!/bin/sh\necho "ARGS:$@"\n')
+    fs.chmodSync(fake, 0o755)
+    // Git Bash on Windows wants forward slashes; a real macOS or Linux path already has them.
+    const posix = (p: string): string => p.replace(/\\/g, '/')
+    const env = { ...process.env, HOME: posix(tmp), STEP_REAL_CLAUDE: posix(fake), STEP_HOOKS_SETTINGS: '/h/s.json', STEP_MCP_CONFIG: '/h/s.mcp.json', STEP_MCP_URL: 'http://h/mcp' }
+    const args = posixShellWithAgents(bash, ['-l'], w, env as Record<string, string>, tmp).map(posix)
+    const r = spawnSync(bash, args, { env, input: 'claude --version\nexit\n', encoding: 'utf8' })
+    expect(r.stdout).toContain('ARGS:--settings /h/s.json --mcp-config /h/s.mcp.json --version')
   })
 })
 

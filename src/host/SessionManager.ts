@@ -9,7 +9,7 @@ import type { CreateSessionOpts, LiveClaude, Session } from '@shared/types'
 import { TitleCapture, detectAgentFromCommand } from './titleCapture'
 import { OscTitleParser, isBoringTitle, stripTitleGlyph } from './oscTitle'
 import { reduceStatus, type ReducerEvent } from './statusReducer'
-import { applyAgentWrap, findOnPath, ptyEnv, resolveCommand, shellArgsWithAgents, substituteArgs, writeHooksSettings, writeMcpConfig, type AgentWrap } from './launch'
+import { applyAgentWrap, findOnPath, posixShellWithAgents, ptyEnv, resolveCommand, shellArgsWithAgents, substituteArgs, writeHooksSettings, writeMcpConfig, type AgentWrap } from './launch'
 import { describeSpawnEnv } from './ptyHelper'
 import { findAncestor, processTable } from './procTree'
 import { log } from './log'
@@ -584,7 +584,9 @@ export class SessionManager extends EventEmitter {
     let p: nodePty.IPty
     try {
       applyAgentWrap(env, wrap, this.opts.binDir)
-      p = nodePty.spawn(resolved.file, shellArgsWithAgents(resolved.file, [...resolved.argsPrefix, ...args], wrap), {
+      const full = [...resolved.argsPrefix, ...args]
+      const shellArgs = process.platform === 'win32' ? shellArgsWithAgents(resolved.file, full, wrap) : posixShellWithAgents(resolved.file, full, wrap, env, this.opts.binDir)
+      p = nodePty.spawn(resolved.file, shellArgs, {
         name: 'xterm-256color',
         cols: s.cols,
         rows: s.rows,

@@ -103,22 +103,98 @@ export function shellArgsWithAgents(file: string, args: string[], w: AgentWrap, 
   return args
 }
 
-/** Scripts named like the agents for posix shells; each runs the real binary with the session's hooks and notes. */
+/**
+ * Shell functions named like the agents, for posix shells. A function wins over anything on
+ * PATH, which a shim in a directory cannot promise: macOS's login zsh runs path_helper and puts
+ * /usr/local/bin ahead of everything else, and many ~/.zshrc files prepend their own
+ * directories, so a `claude` from npm or Homebrew came first and ran without the session's
+ * hooks and notes. The functions read the environment at call time, so one file serves every
+ * session.
+ */
+const POSIX_FUNCTIONS = `if [ -n "$STEP_REAL_CLAUDE" ]; then claude() { "$STEP_REAL_CLAUDE" --settings "$STEP_HOOKS_SETTINGS" --mcp-config "$STEP_MCP_CONFIG" "$@"; }; fi
+if [ -n "$STEP_REAL_CODEX" ]; then codex() { "$STEP_REAL_CODEX" -c "mcp_servers.stepbro.url=\\"$STEP_MCP_URL\\"" "$@"; }; fi
+`
+
+/** zsh reads its files from ZDOTDIR; each of ours runs the user's own file of the same name first. */
+function zshFile(name: string, tail = ''): string {
+  return `# StepbroTerminal: your own ${name} runs first; this only adds the agent commands.
+_step_zdotdir="$ZDOTDIR"
+ZDOTDIR="\${STEP_USER_ZDOTDIR:-$HOME}"
+if [ -f "$ZDOTDIR/${name}" ]; then . "$ZDOTDIR/${name}"; fi
+ZDOTDIR="$_step_zdotdir"
+unset _step_zdotdir
+${tail}`
+}
+
+/** Files the posix shells load: shims on PATH as a fallback, and rc files that define the functions. */
 export function writeShims(binDir: string): void {
   fs.mkdirSync(binDir, { recursive: true })
-  const write = (name: string, body: string): void => {
+  const write = (name: string, body: string, mode = 0o644): void => {
     const file = path.join(binDir, name)
+    fs.mkdirSync(path.dirname(file), { recursive: true })
     fs.writeFileSync(file, body)
-    fs.chmodSync(file, 0o755)
+    fs.chmodSync(file, mode)
   }
   write(
     'claude',
-    '#!/bin/sh\nif [ -z "$STEP_REAL_CLAUDE" ]; then echo "claude: not found" >&2; exit 127; fi\nexec "$STEP_REAL_CLAUDE" --settings "$STEP_HOOKS_SETTINGS" --mcp-config "$STEP_MCP_CONFIG" "$@"\n'
+    '#!/bin/sh\nif [ -z "$STEP_REAL_CLAUDE" ]; then echo "claude: not found" >&2; exit 127; fi\nexec "$STEP_REAL_CLAUDE" --settings "$STEP_HOOKS_SETTINGS" --mcp-config "$STEP_MCP_CONFIG" "$@"\n',
+    0o755
   )
   write(
     'codex',
-    '#!/bin/sh\nif [ -z "$STEP_REAL_CODEX" ]; then echo "codex: not found" >&2; exit 127; fi\nexec "$STEP_REAL_CODEX" -c "mcp_servers.stepbro.url=\\"$STEP_MCP_URL\\"" "$@"\n'
+    '#!/bin/sh\nif [ -z "$STEP_REAL_CODEX" ]; then echo "codex: not found" >&2; exit 127; fi\nexec "$STEP_REAL_CODEX" -c "mcp_servers.stepbro.url=\\"$STEP_MCP_URL\\"" "$@"\n',
+    0o755
   )
+  // zsh: the whole startup sequence, ours wrapping the user's.
+  write('zsh/.zshenv', zshFile('.zshenv'))
+  write('zsh/.zprofile', zshFile('.zprofile'))
+  write('zsh/.zshrc', zshFile('.zshrc', POSIX_FUNCTIONS))
+  write('zsh/.zlogin', zshFile('.zlogin'))
+  // bash: what a login shell would read, then the functions.
+  write(
+    'bash/rc',
+    `# StepbroTerminal: what your login bash reads runs first; this only adds the agent commands.
+if [ -f /etc/profile ]; then . /etc/profile; fi
+for _step_f in "$HOME/.bash_profile" "$HOME/.bash_login" "$HOME/.profile"; do
+  if [ -f "$_step_f" ]; then . "$_step_f"; break; fi
+done
+unset _step_f
+${POSIX_FUNCTIONS}`
+  )
+  // fish: its own syntax, run after the normal startup.
+  write(
+    'fish/init.fish',
+    `# StepbroTerminal: the agent commands for this session.
+if set -q STEP_REAL_CLAUDE
+    function claude; "$STEP_REAL_CLAUDE" --settings "$STEP_HOOKS_SETTINGS" --mcp-config "$STEP_MCP_CONFIG" $argv; end
+end
+if set -q STEP_REAL_CODEX
+    function codex; "$STEP_REAL_CODEX" -c "mcp_servers.stepbro.url=\\"$STEP_MCP_URL\\"" $argv; end
+end
+`
+  )
+}
+
+/**
+ * Makes a posix shell define the agent functions on startup: zsh through ZDOTDIR, bash through
+ * --rcfile, fish through -C. Returns the arguments to use; the environment is changed in place.
+ * Shells that already run a command, and shells we do not know, are left with the shims on PATH.
+ */
+export function posixShellWithAgents(file: string, args: string[], w: AgentWrap, env: Record<string, string>, binDir: string): string[] {
+  if (!w.claude && !w.codex) return args
+  const base = (file.split(/[\\/]/).pop() ?? '').replace(/\.exe$/i, '')
+  if (args.some((a) => a === '-c' || a === '--command' || a === '-C')) return args
+  if (base === 'zsh') {
+    if (env['ZDOTDIR']) env['STEP_USER_ZDOTDIR'] = env['ZDOTDIR']
+    env['ZDOTDIR'] = path.join(binDir, 'zsh')
+    return args
+  }
+  if (base === 'bash') {
+    // Our rc file plays the login files itself; bash reads it only for an interactive non-login shell.
+    return ['--rcfile', path.join(binDir, 'bash', 'rc'), '-i', ...args.filter((a) => a !== '-l' && a !== '--login')]
+  }
+  if (base === 'fish') return [...args, '-C', `source "${path.join(binDir, 'fish', 'init.fish')}"`]
+  return args
 }
 
 export { resolveCommand, findOnPath, type ResolvedCommand } from '@shared/resolveCommand'
