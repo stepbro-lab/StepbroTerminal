@@ -175,7 +175,10 @@ async function boot(): Promise<void> {
     getPrefs: () => ctx.prefs,
     getWindow: () => ctx.win,
     getActive: () => ctx.activeId,
-    input: (id, bytes) => client.send({ t: 'input', id }, bytes),
+    agentName: (s) => {
+      const id = s.agent.detectedPreset ?? s.presetId
+      return id === 'shell' ? null : (ctx.presets.find((p) => p.id === id)?.name ?? null)
+    },
     focusSession: (id) => ctx.emit('ui:focusSession', id),
     playSound: () => ctx.emit('ui:sound')
   })

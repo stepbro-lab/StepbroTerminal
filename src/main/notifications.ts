@@ -1,20 +1,18 @@
 import { BrowserWindow, Notification } from 'electron'
 import type { Prefs, Session, SessionStatus } from '@shared/types'
 import { appLogoPath } from './branding'
+import { noticeFor } from './noticeText'
 
 export interface NotifierDeps {
   getPrefs: () => Prefs
   getWindow: () => BrowserWindow | null
   getActive: () => string | null
-  /** Sends raw bytes to a session's PTY. */
-  input: (id: string, bytes: Uint8Array) => void
+  /** The agent running in a session ("Claude Code", "Codex"), or null for a plain shell. */
+  agentName: (s: Session) => string | null
   focusSession: (id: string) => void
   /** Plays the app's own notification sound (the renderer holds the audio file). */
   playSound: () => void
 }
-
-const ENTER = new Uint8Array([0x0d])
-const ESCAPE = new Uint8Array([0x1b])
 
 function pathToFileUrl(p: string): string {
   return 'file:///' + p.replace(/\\/g, '/')
@@ -25,9 +23,10 @@ function escapeXml(s: string): string {
 }
 
 /**
- * Native notifications for sessions the user is not looking at. When a session waits for
- * permission the notification carries Allow and Deny: on macOS as notification actions, on
- * Windows as toast buttons that launch step://allow/<id> and step://deny/<id>.
+ * Native notifications for sessions the user is not looking at. An agent that stops to ask
+ * something gets a notice that says so by name, "Claude Code needs an answer", which stays on
+ * screen until it is dismissed; clicking it brings that session forward. Finished and failed
+ * sessions get an ordinary notice.
  */
 export class Notifier {
   private last = new Map<string, SessionStatus>()
@@ -38,19 +37,11 @@ export class Notifier {
     this.last.delete(id)
   }
 
-  /** Answers a prompt in a session: Enter accepts the highlighted "Yes", Escape declines. */
-  respond(id: string, allow: boolean): void {
-    this.deps.input(id, allow ? ENTER : ESCAPE)
-  }
-
-  /** Handles step://allow/<id>, step://deny/<id> and step://focus/<id>. */
+  /** Handles step://focus/<id> from a clicked notification. */
   handleUrl(url: string): boolean {
-    const m = /^step:\/\/(allow|deny|focus)\/([0-9a-f-]+)/i.exec(url)
+    const m = /^step:\/\/focus\/([0-9a-f-]+)/i.exec(url)
     if (!m) return false
-    const [, verb, id] = m
-    if (verb === 'allow') this.respond(id, true)
-    else if (verb === 'deny') this.respond(id, false)
-    else this.show(id)
+    this.show(m[1])
     return true
   }
 
@@ -67,21 +58,14 @@ export class Notifier {
     if (looking) return
     if (!Notification.isSupported()) return
 
-    const title = s.title || 'Session'
-    const waiting = s.status === 'attention'
-    const body = waiting ? 'Needs your input' : s.status === 'error' ? (s.error ?? 'Something went wrong') : (s.agent.lastMessage ?? 'Finished')
+    const notice = noticeFor(s, this.deps.agentName(s))
+    if (!notice) return
+    const { title, body, sticky } = notice
     const n =
       process.platform === 'win32'
-        ? new Notification({ toastXml: this.toast(s.id, title, body, waiting), silent: true })
-        : new Notification({
-            title,
-            body,
-            icon: appLogoPath(),
-            silent: true,
-            actions: process.platform === 'darwin' && waiting ? [{ type: 'button', text: 'Allow' }, { type: 'button', text: 'Deny' }] : undefined
-          })
+        ? new Notification({ toastXml: this.toast(s.id, title, body, sticky), silent: true })
+        : new Notification({ title, body, icon: appLogoPath(), silent: true })
     n.on('click', () => this.show(s.id))
-    n.on('action', (_e, index) => this.respond(s.id, index === 0))
     n.show()
     // The system sound stays off so only ours plays.
     if (prefs.sound) this.deps.playSound()
@@ -97,15 +81,9 @@ export class Notifier {
     this.deps.focusSession(id)
   }
 
-  private toast(id: string, title: string, body: string, waiting: boolean): string {
-    const actions = waiting
-      ? `<actions>
-    <action content="Allow" arguments="step://allow/${id}" activationType="protocol"/>
-    <action content="Deny" arguments="step://deny/${id}" activationType="protocol"/>
-  </actions>`
-      : ''
-    // A permission prompt stays on screen until answered; other notices time out normally.
-    return `<toast activationType="protocol" launch="step://focus/${id}"${waiting ? ' scenario="reminder"' : ''}>
+  private toast(id: string, title: string, body: string, sticky: boolean): string {
+    // A question stays on screen until it is dismissed; other notices time out normally.
+    return `<toast activationType="protocol" launch="step://focus/${id}"${sticky ? ' scenario="reminder"' : ''}>
   <visual>
     <binding template="ToastGeneric">
       <image placement="appLogoOverride" hint-crop="circle" src="${escapeXml(pathToFileUrl(appLogoPath()))}"/>
@@ -113,7 +91,6 @@ export class Notifier {
       <text>${escapeXml(body)}</text>
     </binding>
   </visual>
-  ${actions}
 </toast>`
   }
 }

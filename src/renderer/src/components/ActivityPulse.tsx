@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import { Check, X } from 'lucide-react'
 import { useData } from '@/stores/data'
 import { useUi } from '@/stores/ui'
-import { attentionCounts, attentionQueue, respondToPrompt } from '@/lib/attention'
+import { attentionCounts, attentionQueue } from '@/lib/attention'
 import { defaultTitle, rowPresetId } from '@/lib/sidebarModel'
 import { modKey } from '@/lib/format'
 import { DotSpinner } from './sidebar/DotSpinner'
@@ -11,7 +10,7 @@ import { StatusGlyph } from './sidebar/StatusGlyph'
 
 /**
  * Title-bar pulse and inbox. Spins while agents work, shows an amber count when some need you.
- * Click opens the inbox: every waiting session with jump, allow and deny at hand.
+ * Click opens the inbox: every waiting session, a click away.
  */
 export function ActivityPulse() {
   const sessions = useData((s) => s.sessions)
@@ -88,37 +87,13 @@ export function ActivityPulse() {
             const color = presets.find((p) => p.id === presetId)?.color ?? '#8a8a90'
             const waiting = s.status === 'attention'
             return (
-              <div key={s.id} className="group flex h-8 items-center gap-2 rounded-[6px] px-2 hover:bg-hover" onClick={() => jump(s.id, s.projectPath)}>
+              <div key={s.id} className="flex h-8 items-center gap-2 rounded-[6px] px-2 hover:bg-hover" onClick={() => jump(s.id, s.projectPath)}>
                 <StatusGlyph status={s.status} color={color} size={14} />
                 <span className="min-w-0 flex-1 truncate text-[13px]">{s.title || defaultTitle(s)}</span>
                 <span className="text-[11px] text-muted">{waiting ? 'waiting' : s.status === 'error' ? 'error' : 'done'}</span>
                 <span style={{ color: 'var(--text-faint)' }}>
                   <AgentLogo presetId={presetId} size={12} />
                 </span>
-                {waiting && (
-                  <span className="ml-1 hidden items-center gap-0.5 group-hover:flex">
-                    <button
-                      className="icon-btn h-6 w-6"
-                      title="Allow (Enter)"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        respondToPrompt(s.id, true)
-                      }}
-                    >
-                      <Check size={13} style={{ color: 'var(--success)' }} />
-                    </button>
-                    <button
-                      className="icon-btn h-6 w-6"
-                      title="Deny (Esc)"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        respondToPrompt(s.id, false)
-                      }}
-                    >
-                      <X size={13} style={{ color: 'var(--danger)' }} />
-                    </button>
-                  </span>
-                )}
               </div>
             )
           })}

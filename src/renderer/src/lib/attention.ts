@@ -32,8 +32,3 @@ export function jumpToAttention(): boolean {
   ui.setActive(next.id)
   return true
 }
-
-/** Answers a permission prompt in a session: Enter accepts the highlighted "Yes", Escape declines. */
-export function respondToPrompt(id: string, allow: boolean): void {
-  window.step.send('host:input', id, new Uint8Array(allow ? [0x0d] : [0x1b]))
-}
