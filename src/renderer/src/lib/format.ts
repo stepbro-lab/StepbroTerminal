@@ -1,3 +1,4 @@
+import { t } from './i18n'
 export function shortPath(p: string, home?: string): string {
   let out = p
   if (home && out.toLowerCase().startsWith(home.toLowerCase())) out = '~' + out.slice(home.length)
@@ -21,7 +22,7 @@ export function timeAgo(ts: number): string {
   if (!ts) return ''
   const diff = Date.now() - ts
   const m = Math.floor(diff / 60_000)
-  if (m < 1) return 'now'
+  if (m < 1) return t('now')
   if (m < 60) return `${m}m`
   const h = Math.floor(m / 60)
   if (h < 24) return `${h}h`

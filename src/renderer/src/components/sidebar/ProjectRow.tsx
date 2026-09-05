@@ -3,6 +3,7 @@ import type { SidebarProject } from '@/lib/sidebarModel'
 import { useUi } from '@/stores/ui'
 import { newShell, projectMenu, toggleProjectCollapsed } from '@/lib/actions'
 import { FolderIcon } from './DotSpinner'
+import { t } from '@/lib/i18n'
 
 interface Props {
   project: SidebarProject
@@ -44,7 +45,7 @@ export function ProjectRow({ project, isActiveProject }: Props) {
         </span>
         <button
           className="icon-btn h-5 w-5 opacity-0 group-hover:opacity-100"
-          title="New shell"
+          title={t('New shell')}
           onClick={(e) => {
             e.stopPropagation()
             setActiveProject(project.path)

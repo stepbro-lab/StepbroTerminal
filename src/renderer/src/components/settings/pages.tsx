@@ -7,10 +7,12 @@ import { useUi } from '@/stores/ui'
 import { launchWorkspace } from '@/lib/actions'
 import { blankPane, newLaunchConfig, workspaceUrl } from '@/lib/launchConfigs'
 import { ACCENTS } from '@/theme/accents'
+import { LANGUAGES } from '@shared/i18n'
 import { AgentLogo } from '../sidebar/AgentLogo'
 import { Footer, Row, Section, Segmented, Slider, SmallButton, TextArea, TextField, Toggle } from './controls'
 import { playNotificationSound } from '@/lib/sound'
 import { useUpdates } from '@/stores/updates'
+import { t } from '@/lib/i18n'
 
 const FONTS = ['Geist Mono', 'JetBrains Mono', 'SF Mono', 'Cascadia Mono', 'Menlo', 'Consolas', 'Fira Code', 'Monaspace Neon', 'Iosevka']
 
@@ -25,28 +27,33 @@ export function AppearancePage() {
   const dark = usePrefs((s) => s.dark)
   return (
     <>
-      <Section title="Mode" description="Applies to the window, sidebar and terminal colors. Agents draw their own interface with their own theme setting.">
-        <Row label="Mode">
+      <Section title={t('Language')} description={t('The language of the app itself. Shells and agents keep their own.')}>
+        <Row label={t('Language')}>
+          <Segmented value={p.language} options={LANGUAGES.map((l) => ({ value: l.id, label: l.label }))} onChange={(language) => upd({ language })} />
+        </Row>
+      </Section>
+      <Section title={t('Mode')} description={t('Applies to the window, sidebar and terminal colors. Agents draw their own interface with their own theme setting.')}>
+        <Row label={t('Mode')}>
           <Segmented
             value={p.theme}
             options={[
-              { value: 'system', label: 'Auto' },
-              { value: 'light', label: 'Light' },
-              { value: 'dark', label: 'Dark' }
+              { value: 'system', label: t('Auto') },
+              { value: 'light', label: t('Light') },
+              { value: 'dark', label: t('Dark') }
             ]}
             onChange={(theme) => upd({ theme })}
           />
         </Row>
       </Section>
 
-      <Section title="App color" description="Tints selections, buttons and the activity marks, and washes the window chrome very slightly.">
+      <Section title={t('App color')} description={t('Tints selections, buttons and the activity marks, and washes the window chrome very slightly.')}>
         <div className="flex items-center gap-3 py-1">
           {ACCENTS.map((a) => (
             <button
               key={a.id}
               className="swatch"
               data-on={p.accent === a.id}
-              title={a.name}
+              title={t(a.name)}
               style={{ background: dark ? a.dark : a.light }}
               onClick={() => upd({ accent: a.id })}
             />
@@ -54,28 +61,26 @@ export function AppearancePage() {
         </div>
       </Section>
 
-      <Section title="Terminal text" description="The bundled Geist Mono and JetBrains Mono render crisply everywhere. Any font installed on this machine works too.">
-        <Row label="Font">
+      <Section title={t('Terminal text')} description={t('The bundled Geist Mono and JetBrains Mono render crisply everywhere. Any font installed on this machine works too.')}>
+        <Row label={t('Font')}>
           <TextField value={p.fontFamily} list={FONTS} width={200} onChange={(fontFamily) => upd({ fontFamily })} />
         </Row>
-        <Row label="Size">
+        <Row label={t('Size')}>
           <Slider value={p.fontSize} min={11} max={20} onChange={(fontSize) => upd({ fontSize })} format={(v) => `${v} px`} />
         </Row>
-        <Row label="Line height">
+        <Row label={t('Line height')}>
           <Slider value={p.lineHeight} min={1} max={1.6} step={0.05} onChange={(lineHeight) => upd({ lineHeight })} format={(v) => v.toFixed(2)} />
         </Row>
       </Section>
 
-      <Section title="Sidebar">
-        <Row label="Width">
+      <Section title={t('Sidebar')}>
+        <Row label={t('Width')}>
           <Slider value={p.sidebarWidth} min={200} max={360} step={10} onChange={(sidebarWidth) => upd({ sidebarWidth })} format={(v) => `${v} px`} />
         </Row>
       </Section>
 
       <Footer>
-        <SmallButton onClick={() => upd({ theme: 'system', accent: 'blue', fontFamily: 'Geist Mono', fontSize: 13, lineHeight: 1.2, sidebarWidth: 240 })}>
-          Revert to default
-        </SmallButton>
+        <SmallButton onClick={() => upd({ theme: 'system', accent: 'blue', fontFamily: 'Geist Mono', fontSize: 13, lineHeight: 1.2, sidebarWidth: 240 })}>{t('Revert to default')}</SmallButton>
       </Footer>
     </>
   )
@@ -87,52 +92,52 @@ export function TerminalPage() {
   const shell = presets.find((x) => x.id === 'shell')
   return (
     <>
-      <Section title="Shell" description="Every new session runs this program inside the selected folder. Leave it empty to use the system default.">
-        <Row label="Program" hint={shell?.resolvedPath ? `Now: ${shell.resolvedPath}` : undefined}>
+      <Section title={t('Shell')} description={t('Every new session runs this program inside the selected folder. Leave it empty to use the system default.')}>
+        <Row label={t('Program')} hint={shell?.resolvedPath ? `Now: ${shell.resolvedPath}` : undefined}>
           <TextField value={p.shell ?? ''} placeholder="auto" mono width={300} onChange={(v) => upd({ shell: v || undefined })} />
         </Row>
       </Section>
 
-      <Section title="Cursor">
-        <Row label="Shape">
+      <Section title={t('Cursor')}>
+        <Row label={t('Shape')}>
           <Segmented
             value={p.cursorStyle}
             options={[
-              { value: 'bar', label: 'Bar' },
-              { value: 'block', label: 'Block' },
-              { value: 'underline', label: 'Underline' }
+              { value: 'bar', label: t('Bar') },
+              { value: 'block', label: t('Block') },
+              { value: 'underline', label: t('Underline') }
             ]}
             onChange={(cursorStyle) => upd({ cursorStyle })}
           />
         </Row>
-        <Row label="Blink">
+        <Row label={t('Blink')}>
           <Toggle value={p.cursorBlink} onChange={(cursorBlink) => upd({ cursorBlink })} />
         </Row>
       </Section>
 
       <Section
-        title="Rendering"
-        description="Terminals draw with the GPU. Turn it off if your display shifts colour, brightness or HDR while the app is open; the software renderer looks the same and only costs a little speed."
+        title={t('Rendering')}
+        description={t('Terminals draw with the GPU. Turn it off if your display shifts colour, brightness or HDR while the app is open; the software renderer looks the same and only costs a little speed.')}
       >
-        <Row label="GPU acceleration">
+        <Row label={t('GPU acceleration')}>
           <Toggle value={p.gpuRendering} onChange={(gpuRendering) => upd({ gpuRendering })} />
         </Row>
       </Section>
 
-      <Section title="History" description="Lines kept above the visible screen, per session. The host keeps the same amount while the window is closed.">
-        <Row label="Scrollback">
+      <Section title={t('History')} description={t('Lines kept above the visible screen, per session. The host keeps the same amount while the window is closed.')}>
+        <Row label={t('Scrollback')}>
           <Slider value={p.scrollback} min={1000} max={50000} step={1000} onChange={(scrollback) => upd({ scrollback })} format={(v) => `${(v / 1000).toFixed(0)}k`} />
         </Row>
       </Section>
 
-      <Section title="Sessions" description="Sessions run in a background host that outlives the window. When it ends — an update, a restart — StepbroTerminal can bring them back on launch, resuming any agent where it stopped.">
-        <Row label="Resume sessions on launch">
+      <Section title={t('Sessions')} description={t('Sessions run in a background host that outlives the window. When it ends — an update, a restart — StepbroTerminal can bring them back on launch, resuming any agent where it stopped.')}>
+        <Row label={t('Resume sessions on launch')}>
           <Toggle value={p.resumeOnLaunch} onChange={(resumeOnLaunch) => upd({ resumeOnLaunch })} />
         </Row>
       </Section>
 
       <Footer>
-        <SmallButton onClick={() => upd({ shell: undefined, cursorStyle: 'bar', cursorBlink: true, scrollback: 5000, resumeOnLaunch: true })}>Revert to default</SmallButton>
+        <SmallButton onClick={() => upd({ shell: undefined, cursorStyle: 'bar', cursorBlink: true, scrollback: 5000, resumeOnLaunch: true })}>{t('Revert to default')}</SmallButton>
       </Footer>
     </>
   )
@@ -144,7 +149,7 @@ export function AgentsPage() {
   const agents = presets.filter((x) => x.id !== 'shell' && !x.custom)
   return (
     <>
-      <Section title="Detected" description="Type any of these in a shell and StepbroTerminal recognizes it. Right-click a folder to start one directly with live status.">
+      <Section title={t('Detected')} description={t('Type any of these in a shell and StepbroTerminal recognizes it. Right-click a folder to start one directly with live status.')}>
         <div className="flex flex-col">
           {agents.map((a) => (
             <div key={a.id} className="setting-row">
@@ -154,23 +159,23 @@ export function AgentsPage() {
               <span className="flex-1 text-[13px]" style={{ color: a.installed ? 'var(--text)' : 'var(--text-muted)' }}>
                 {a.name}
               </span>
-              <span className="max-w-[320px] truncate font-mono text-[11px] text-muted">{a.installed ? a.resolvedPath : 'Not installed'}</span>
+              <span className="max-w-[320px] truncate font-mono text-[11px] text-muted">{a.installed ? a.resolvedPath : t('Not installed')}</span>
             </div>
           ))}
         </div>
       </Section>
 
       <Section
-        title="As you type"
-        description="Type claude, codex or gemini at a prompt and the flag that skips its permission prompts shows up in grey. Tab or → accepts it, Esc hides it."
+        title={t('As you type')}
+        description={t('Type claude, codex or gemini at a prompt and the flag that skips its permission prompts shows up in grey. Tab or → accepts it, Esc hides it.')}
       >
-        <Row label="Suggest skip-permissions flags">
+        <Row label={t('Suggest skip-permissions flags')}>
           <Toggle value={p.flagHints} onChange={(flagHints) => upd({ flagHints })} />
         </Row>
       </Section>
 
-      <Section title="Claude Code" description="StepbroTerminal passes hooks to Claude per session so it can show working, waiting and done. Only set a path if the binary is not on PATH.">
-        <Row label="Binary">
+      <Section title="Claude Code" description={t('StepbroTerminal passes hooks to Claude per session so it can show working, waiting and done. Only set a path if the binary is not on PATH.')}>
+        <Row label={t('Binary')}>
           <TextField
             value={p.claudePath ?? ''}
             placeholder={presets.find((x) => x.id === 'claude')?.resolvedPath ?? 'claude'}
@@ -181,7 +186,7 @@ export function AgentsPage() {
         </Row>
       </Section>
 
-      <Section title="Your launchers" description="Any command becomes an entry in the folder menu and the palette.">
+      <Section title={t('Your launchers')} description={t('Any command becomes an entry in the folder menu and the palette.')}>
         <CustomLaunchers list={p.customPresets} onChange={(customPresets) => upd({ customPresets })} />
       </Section>
     </>
@@ -203,13 +208,13 @@ function CustomLaunchers({ list, onChange }: { list: CustomPreset[]; onChange: (
         <div key={c.id} className="setting-row">
           <span className="w-[140px] truncate text-[13px]">{c.name}</span>
           <span className="flex-1 truncate font-mono text-[11.5px] text-muted">{[c.command, ...c.args].join(' ')}</span>
-          <button className="icon-btn h-6 w-6" onClick={() => onChange(list.filter((x) => x.id !== c.id))} title="Remove">
+          <button className="icon-btn h-6 w-6" onClick={() => onChange(list.filter((x) => x.id !== c.id))} title={t('Remove')}>
             <Trash2 size={13} />
           </button>
         </div>
       ))}
       <div className="setting-row">
-        <input className="field h-7 w-[140px] text-[12.5px]" placeholder="Name" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
+        <input className="field h-7 w-[140px] text-[12.5px]" placeholder={t('Name')} value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
         <input
           className="field h-7 flex-1 font-mono text-[12px]"
           placeholder="command --flags"
@@ -217,7 +222,7 @@ function CustomLaunchers({ list, onChange }: { list: CustomPreset[]; onChange: (
           onChange={(e) => setDraft({ ...draft, command: e.target.value })}
           onKeyDown={(e) => e.key === 'Enter' && add()}
         />
-        <button className="icon-btn" onClick={add} title="Add">
+        <button className="icon-btn" onClick={add} title={t('Add')}>
           <Plus size={14} />
         </button>
       </div>
@@ -229,18 +234,18 @@ export function NotificationsPage() {
   const [p, upd] = usePrefsPage()
   return (
     <>
-      <Section title="Attention" description="Only for sessions you are not looking at. Clicking the notification jumps to the session.">
-        <Row label="Notify when a session needs input or finishes">
+      <Section title={t('Attention')} description={t('Only for sessions you are not looking at. Clicking the notification jumps to the session.')}>
+        <Row label={t('Notify when a session needs input or finishes')}>
           <Toggle value={p.notifications} onChange={(notifications) => upd({ notifications })} />
         </Row>
-        <Row label="Play a sound">
+        <Row label={t('Play a sound')}>
           <Toggle value={p.sound} disabled={!p.notifications} onChange={(sound) => upd({ sound })} />
         </Row>
         {p.notifications && p.sound && (
-          <Row label="Volume">
+          <Row label={t('Volume')}>
             <div className="flex items-center gap-3">
               <Slider value={p.soundVolume} min={0} max={100} step={5} onChange={(soundVolume) => upd({ soundVolume })} format={(v) => `${v}%`} />
-              <SmallButton onClick={() => playNotificationSound(p.soundVolume)}>Try it</SmallButton>
+              <SmallButton onClick={() => playNotificationSound(p.soundVolume)}>{t('Try it')}</SmallButton>
             </div>
           </Row>
         )}
@@ -269,22 +274,22 @@ function UpdatesSection() {
               : version
   const action =
     state.kind === 'ready'
-      ? { label: 'Restart to update', run: install }
+      ? { label: t('Restart to update'), run: install }
       : state.kind === 'available'
-        ? { label: state.direct ? 'Download' : 'Open download page', run: install }
+        ? { label: t(state.direct ? 'Download' : 'Open download page'), run: install }
         : state.kind === 'downloading'
           ? null
-          : { label: 'Check now', run: check }
+          : { label: t('Check now'), run: check }
   return (
     <Section
-      title="Updates"
+      title={t('Updates')}
       description={
         direct
           ? 'New versions download in the background and install when you restart.'
           : 'New versions are announced here and in the title bar. The download page has the installer for your system.'
       }
     >
-      <Row label="Version" hint={hint}>
+      <Row label={t('Version')} hint={hint}>
         {action && <SmallButton onClick={() => void action.run()}>{action.label}</SmallButton>}
       </Row>
     </Section>
@@ -298,16 +303,16 @@ export function AdvancedPage() {
     <>
       <UpdatesSection />
       <Section
-        title="Session host"
-        description="A small background process owns every shell so they survive the window. Restarting it ends the shells that are open right now."
+        title={t('Session host')}
+        description={t('A small background process owns every shell so they survive the window. Restarting it ends the shells that are open right now.')}
       >
-        <Row label="Status" hint={hostState.kind === 'connected' ? `Connected · host ${hostState.info.version} · pid ${hostState.info.pid}` : hostState.kind}>
-          <SmallButton onClick={() => void window.step.invoke('host:restartHost')}>Restart host</SmallButton>
+        <Row label={t('Status')} hint={hostState.kind === 'connected' ? `Connected · host ${hostState.info.version} · pid ${hostState.info.pid}` : hostState.kind}>
+          <SmallButton onClick={() => void window.step.invoke('host:restartHost')}>{t('Restart host')}</SmallButton>
         </Row>
       </Section>
-      <Section title="Data" description="Session state, scrollback logs and per-session hook files.">
-        <Row label="Folder" hint={dir}>
-          <SmallButton onClick={() => void window.step.invoke('app:openPath', dir)}>Open</SmallButton>
+      <Section title={t('Data')} description={t('Session state, scrollback logs and per-session hook files.')}>
+        <Row label={t('Folder')} hint={dir}>
+          <SmallButton onClick={() => void window.step.invoke('app:openPath', dir)}>{t('Open')}</SmallButton>
         </Row>
       </Section>
     </>
@@ -348,26 +353,24 @@ export function WorkspacesPage() {
   const summary = (c: LaunchConfig): string => `${c.panes.length} pane${c.panes.length === 1 ? '' : 's'} · ${c.split === 'row' ? 'side by side' : 'stacked'} · ${workspaceUrl(c)}`
   const copyLink = (c: LaunchConfig): void => {
     window.step.send('clipboard:write', workspaceUrl(c))
-    useUi.getState().toast('Link copied', 'success')
+    useUi.getState().toast(t('Link copied'), 'success')
   }
   const example = configs[0] ? workspaceUrl(configs[0]) : 'step://workspace/my-project'
 
   return (
     <>
       <Section
-        title="Your workspaces"
-        description="Each one opens its panes at once, every pane in its own folder, and types a start command as soon as the prompt is ready. Open them from here or from the palette."
+        title={t('Your workspaces')}
+        description={t('Each one opens its panes at once, every pane in its own folder, and types a start command as soon as the prompt is ready. Open them from here or from the palette.')}
       >
-        {configs.length === 0 && <div className="py-2 text-[12.5px] text-muted">No workspaces yet.</div>}
+        {configs.length === 0 && <div className="py-2 text-[12.5px] text-muted">{t('No workspaces yet.')}</div>}
         {configs.map((c) => (
           <Row key={c.id} label={c.name.trim() || 'Untitled'} hint={summary(c)}>
             <div className="flex items-center gap-1.5">
-              <SmallButton onClick={() => open(c)}>Open</SmallButton>
-              <SmallButton onClick={() => copyLink(c)}>Copy link</SmallButton>
-              <SmallButton onClick={() => setEditing(editing === c.id ? null : c.id)}>{editing === c.id ? 'Close' : 'Edit'}</SmallButton>
-              <SmallButton tone="danger" onClick={() => remove(c.id)}>
-                Delete
-              </SmallButton>
+              <SmallButton onClick={() => open(c)}>{t('Open')}</SmallButton>
+              <SmallButton onClick={() => copyLink(c)}>{t('Copy link')}</SmallButton>
+              <SmallButton onClick={() => setEditing(editing === c.id ? null : c.id)}>{t(editing === c.id ? 'Close' : 'Edit')}</SmallButton>
+              <SmallButton tone="danger" onClick={() => remove(c.id)}>{t('Delete')}</SmallButton>
             </div>
           </Row>
         ))}
@@ -378,20 +381,20 @@ export function WorkspacesPage() {
         </div>
       </Section>
       <Footer>
-        <SmallButton onClick={add}>New workspace</SmallButton>
+        <SmallButton onClick={add}>{t('New workspace')}</SmallButton>
       </Footer>
 
       {current && (
-        <Section title={`Editing ${current.name.trim() || 'Untitled'}`} description="Changes save as you type.">
-          <Row label="Name">
+        <Section title={`Editing ${current.name.trim() || 'Untitled'}`} description={t('Changes save as you type.')}>
+          <Row label={t('Name')}>
             <TextField value={current.name} placeholder="Frontend + backend" onChange={(name) => update(current.id, { name })} />
           </Row>
-          <Row label="Layout">
+          <Row label={t('Layout')}>
             <Segmented
               value={current.split}
               options={[
-                { value: 'row', label: 'Side by side' },
-                { value: 'column', label: 'Stacked' }
+                { value: 'row', label: t('Side by side') },
+                { value: 'column', label: t('Stacked') }
               ]}
               onChange={(split) => update(current.id, { split })}
             />
@@ -401,18 +404,18 @@ export function WorkspacesPage() {
               <div className="mb-1 flex items-center justify-between">
                 <div className="text-[12px] font-semibold text-secondary">Pane {i + 1}</div>
                 {current.panes.length > 1 && (
-                  <button className="icon-btn h-6 w-6" title="Remove pane" onClick={() => update(current.id, { panes: current.panes.filter((_, k) => k !== i) })}>
+                  <button className="icon-btn h-6 w-6" title={t('Remove pane')} onClick={() => update(current.id, { panes: current.panes.filter((_, k) => k !== i) })}>
                     <Trash2 size={13} />
                   </button>
                 )}
               </div>
-              <Row label="Folder">
+              <Row label={t('Folder')}>
                 <div className="flex items-center gap-1.5">
-                  <TextField value={pane.cwd} mono width={240} placeholder="Choose a folder" onChange={(cwd) => updatePane(current, i, { cwd })} />
-                  <SmallButton onClick={() => void pickFolder(current, i)}>Choose…</SmallButton>
+                  <TextField value={pane.cwd} mono width={240} placeholder={t('Choose a folder')} onChange={(cwd) => updatePane(current, i, { cwd })} />
+                  <SmallButton onClick={() => void pickFolder(current, i)}>{t('Choose…')}</SmallButton>
                 </div>
               </Row>
-              <Row label="Runs">
+              <Row label={t('Runs')}>
                 <select className="field h-7 text-[12.5px]" style={{ width: 200 }} value={pane.presetId} onChange={(e) => updatePane(current, i, { presetId: e.target.value })}>
                   {runnable.map((x) => (
                     <option key={x.id} value={x.id}>
@@ -422,15 +425,15 @@ export function WorkspacesPage() {
                 </select>
               </Row>
               <div className="mt-3">
-                <div className="text-[13px] text-fg">Type when ready</div>
-                <div className="mb-1.5 text-[11.5px] text-muted">Entered line by line once the pane settles at its prompt. For an agent, this is its first message.</div>
+                <div className="text-[13px] text-fg">{t('Type when ready')}</div>
+                <div className="mb-1.5 text-[11.5px] text-muted">{t('Entered line by line once the pane settles at its prompt. For an agent, this is its first message.')}</div>
                 <TextArea value={pane.runOnStart ?? ''} mono placeholder="npm run dev" onChange={(runOnStart) => updatePane(current, i, { runOnStart })} />
               </div>
             </div>
           ))}
           <Footer>
-            <SmallButton onClick={() => update(current.id, { panes: [...current.panes, blankPane(current.panes[current.panes.length - 1]?.cwd ?? '')] })}>Add pane</SmallButton>
-            <SmallButton onClick={() => open(current)}>Open now</SmallButton>
+            <SmallButton onClick={() => update(current.id, { panes: [...current.panes, blankPane(current.panes[current.panes.length - 1]?.cwd ?? '')] })}>{t('Add pane')}</SmallButton>
+            <SmallButton onClick={() => open(current)}>{t('Open now')}</SmallButton>
           </Footer>
         </Section>
       )}

@@ -1,4 +1,5 @@
 import type { Keybindings } from './keybindings'
+import type { Language } from './i18n'
 export type SessionStatus = 'starting' | 'working' | 'attention' | 'done' | 'idle' | 'exited' | 'error'
 
 export type TitleSource = 'none' | 'input' | 'osc' | 'agent' | 'history' | 'user'
@@ -186,6 +187,8 @@ export interface Prefs {
   launchConfigs: LaunchConfig[]
   /** Shortcut chords the user changed, by shortcut id; null means no key. See shared/keybindings. */
   keybindings: Keybindings
+  /** The language of the app's own text. Agents and shells are not affected. */
+  language: Language
 }
 
 export type SplitDir = 'row' | 'column'

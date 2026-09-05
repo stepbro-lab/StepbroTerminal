@@ -5,6 +5,7 @@ import { useData } from '@/stores/data'
 import { useUi } from '@/stores/ui'
 import { popup } from '@/lib/menus'
 import { defaultTitle } from '@/lib/sidebarModel'
+import { t } from '@/lib/i18n'
 
 /** What changed in the session's repository, with the agent's own edits first, a diff and a revert. */
 export function ChangesPane({ sessionId }: { sessionId: string }) {
@@ -49,14 +50,14 @@ export function ChangesPane({ sessionId }: { sessionId: string }) {
   const others = changes?.files.filter((f) => !f.bySession) ?? []
 
   const revert = async (f: ChangedFile): Promise<void> => {
-    const pick = await popup([{ id: 'yes', label: f.untracked ? `Delete ${f.rel}` : `Discard changes to ${f.rel}` }, { id: 'no', label: 'Keep it' }])
+    const pick = await popup([{ id: 'yes', label: f.untracked ? t('Delete {file}', { file: f.rel }) : t('Discard changes to {file}', { file: f.rel }) }, { id: 'no', label: t('Keep it') }])
     if (pick !== 'yes' || !changes?.root) return
     try {
       await window.step.invoke('git:revert', changes.root, f.rel, f.untracked)
-      toast(f.untracked ? 'File deleted' : 'Changes discarded', 'success')
+      toast(t(f.untracked ? 'File deleted' : 'Changes discarded'), 'success')
       await refresh()
     } catch (e: any) {
-      toast(e?.message ?? 'Could not revert', 'error')
+      toast(e?.message ?? t('Could not revert'), 'error')
     }
   }
 
@@ -64,26 +65,26 @@ export function ChangesPane({ sessionId }: { sessionId: string }) {
     <div className="card relative flex min-h-0 min-w-0 flex-1 flex-col">
       <div className="flex h-9 shrink-0 items-center gap-2 border-b border-line pl-3 pr-1.5">
         <FileDiff size={14} className="text-muted" />
-        <span className="min-w-0 flex-1 truncate text-[13px] font-medium">Changes · {session.title || defaultTitle(session)}</span>
-        <button className="icon-btn" title="Refresh" onClick={() => void refresh()}>
+        <span className="min-w-0 flex-1 truncate text-[13px] font-medium">{t('Changes')} · {session.title || defaultTitle(session)}</span>
+        <button className="icon-btn" title={t('Refresh')} onClick={() => void refresh()}>
           <RotateCw size={13} className={busy ? 'animate-spin' : undefined} />
         </button>
-        <button className="icon-btn" title="Close" onClick={() => setSide(null)}>
+        <button className="icon-btn" title={t('Close')} onClick={() => setSide(null)}>
           <X size={15} />
         </button>
       </div>
       {changes && !changes.root ? (
-        <div className="flex flex-1 items-center justify-center p-6 text-center text-[13px] text-muted">This folder is not a git repository.</div>
+        <div className="flex flex-1 items-center justify-center p-6 text-center text-[13px] text-muted">{t('This folder is not a git repository.')}</div>
       ) : changes && changes.files.length === 0 ? (
-        <div className="flex flex-1 items-center justify-center p-6 text-center text-[13px] text-muted">Working tree is clean.</div>
+        <div className="flex flex-1 items-center justify-center p-6 text-center text-[13px] text-muted">{t('Working tree is clean.')}</div>
       ) : (
         <div className="flex min-h-0 flex-1">
           <div className="scroll-thin w-[220px] shrink-0 border-r border-line py-1">
-            {mine.length > 0 && <Group title="By this session" files={mine} selected={selected} onSelect={setSelected} onRevert={revert} />}
-            {others.length > 0 && <Group title={mine.length ? 'Other changes' : 'Changes'} files={others} selected={selected} onSelect={setSelected} onRevert={revert} />}
+            {mine.length > 0 && <Group title={t('By this session')} files={mine} selected={selected} onSelect={setSelected} onRevert={revert} />}
+            {others.length > 0 && <Group title={t(mine.length ? 'Other changes' : 'Changes')} files={others} selected={selected} onSelect={setSelected} onRevert={revert} />}
           </div>
           <div className="scroll-thin min-w-0 flex-1 overflow-auto p-2">
-            {selected ? <Diff text={diff} /> : <div className="p-4 text-[12px] text-muted">Pick a file</div>}
+            {selected ? <Diff text={diff} /> : <div className="p-4 text-[12px] text-muted">{t('Pick a file')}</div>}
           </div>
         </div>
       )}
@@ -125,7 +126,7 @@ function Group({
           </span>
           <button
             className="icon-btn hidden h-5 w-5 group-hover:inline-flex"
-            title={f.untracked ? 'Delete file' : 'Discard changes'}
+            title={t(f.untracked ? 'Delete file' : 'Discard changes')}
             onClick={(e) => {
               e.stopPropagation()
               onRevert(f)
@@ -140,7 +141,7 @@ function Group({
 }
 
 function Diff({ text }: { text: string }) {
-  if (!text) return <div className="p-4 text-[12px] text-muted">No differences.</div>
+  if (!text) return <div className="p-4 text-[12px] text-muted">{t('No differences.')}</div>
   return (
     <pre className="m-0 whitespace-pre font-mono text-[11.5px] leading-[1.5]" style={{ userSelect: 'text' }}>
       {text.split('\n').map((line, i) => {

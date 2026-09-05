@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { AlertTriangle, RotateCw } from 'lucide-react'
 import { useData } from '@/stores/data'
+import { t } from '@/lib/i18n'
 
 export function HostBanner() {
   const hostState = useData((s) => s.hostState)
@@ -9,8 +10,7 @@ export function HostBanner() {
   if (hostState.kind === 'connecting') {
     return (
       <div className="flex h-full items-center justify-center gap-2 text-muted">
-        <RotateCw size={14} className="animate-spin" /> Connecting to the session host…
-      </div>
+        <RotateCw size={14} className="animate-spin" />{t('Connecting to the session host…')}</div>
     )
   }
   return (
@@ -19,7 +19,7 @@ export function HostBanner() {
         <AlertTriangle size={20} />
       </div>
       <div>
-        <div className="text-[15px] font-medium">The session host is not running</div>
+        <div className="text-[15px] font-medium">{t('The session host is not running')}</div>
         <pre className="mt-2 max-w-[520px] whitespace-pre-wrap rounded-md p-3 text-left font-mono text-[11px] text-muted" style={{ background: 'var(--bg-input)' }}>
           {hostState.message}
         </pre>

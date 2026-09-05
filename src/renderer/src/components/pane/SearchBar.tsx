@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { ChevronDown, ChevronUp, X } from 'lucide-react'
 import type { ISearchOptions } from '@xterm/addon-search'
 import { registry } from '@/terminal/TerminalRegistry'
+import { t } from '@/lib/i18n'
 
 /**
  * Matches are painted by the terminal itself, not by the selection: while you type here the
@@ -54,14 +55,14 @@ export function SearchBar({ id, onClose }: { id: string; onClose: () => void }) 
     onClose()
     registry.focus(id)
   }
-  const label = !q || !hits ? '' : hits.count === 0 ? 'No results' : hits.count < 0 ? `${hits.index + 1}/…` : `${hits.index + 1}/${hits.count}`
+  const label = !q || !hits ? '' : hits.count === 0 ? t('No results') : hits.count < 0 ? `${hits.index + 1}/…` : `${hits.index + 1}/${hits.count}`
   return (
     <div className="fade-in flex items-center gap-0.5">
       <div className="relative">
         <input
           ref={ref}
           className="field h-6 w-[220px] pr-14"
-          placeholder="Find"
+          placeholder={t('Find')}
           value={q}
           onChange={(e) => {
             setQ(e.target.value)
@@ -77,13 +78,13 @@ export function SearchBar({ id, onClose }: { id: string; onClose: () => void }) 
           <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-[11px] tabular-nums text-muted">{label}</span>
         )}
       </div>
-      <button className="icon-btn h-6 w-6" onClick={() => find(q, 'prev')} title="Previous (Shift+Enter)">
+      <button className="icon-btn h-6 w-6" onClick={() => find(q, 'prev')} title={t('Previous (Shift+Enter)')}>
         <ChevronUp size={14} />
       </button>
-      <button className="icon-btn h-6 w-6" onClick={() => find(q, 'next')} title="Next (Enter)">
+      <button className="icon-btn h-6 w-6" onClick={() => find(q, 'next')} title={t('Next (Enter)')}>
         <ChevronDown size={14} />
       </button>
-      <button className="icon-btn h-6 w-6" onClick={close} title="Close (Esc)">
+      <button className="icon-btn h-6 w-6" onClick={close} title={t('Close (Esc)')}>
         <X size={14} />
       </button>
     </div>

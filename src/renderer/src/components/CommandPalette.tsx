@@ -12,6 +12,7 @@ import { timeAgo } from '@/lib/format'
 import { useSidebarModel } from './sidebar/Sidebar'
 import { StatusGlyph } from './sidebar/StatusGlyph'
 import { AgentLogo } from './sidebar/AgentLogo'
+import { t } from '@/lib/i18n'
 
 interface Item {
   id: string
@@ -55,7 +56,7 @@ export function CommandPalette() {
     if (mode === 'prompts') {
       return prompts.map((r, i) => ({
         id: `pr:${i}`,
-        group: 'Prompts you sent',
+        group: t('Prompts you sent'),
         label: r.text,
         hint: `${projects.find((p) => p.path.toLowerCase() === r.projectPath.toLowerCase())?.name ?? ''} · ${timeAgo(r.ts)}`,
         icon: (
@@ -74,9 +75,9 @@ export function CommandPalette() {
     if (mode === 'resume' && paletteProject) {
       return historyFor(paletteProject).map((h) => ({
         id: h.sessionId,
-        group: 'Past conversations',
+        group: t('Past conversations'),
         label: h.title,
-        hint: `${timeAgo(h.lastAt)} · ${h.prompts} prompt${h.prompts === 1 ? '' : 's'}`,
+        hint: `${timeAgo(h.lastAt)} · ${t(h.prompts === 1 ? '{n} prompt' : '{n} prompts', { n: h.prompts })}`,
         icon: (
           <span style={{ color: color('claude') }}>
             <AgentLogo presetId="claude" size={13} />
@@ -90,7 +91,7 @@ export function CommandPalette() {
       const project = model.find((p) => p.sessions.includes(row))
       out.push({
         id: row.key,
-        group: 'Sessions',
+        group: t('Sessions'),
         label: row.title,
         hint: project?.name,
         icon: (
@@ -110,9 +111,9 @@ export function CommandPalette() {
     for (const c of prefs?.launchConfigs ?? []) {
       out.push({
         id: `ws:${c.id}`,
-        group: 'Workspaces',
+        group: t('Workspaces'),
         label: c.name.trim() || 'Untitled workspace',
-        hint: `${c.panes.length} pane${c.panes.length === 1 ? '' : 's'} · ${c.split === 'row' ? 'side by side' : 'stacked'}`,
+        hint: `${t(c.panes.length === 1 ? '{n} pane' : '{n} panes', { n: c.panes.length })} · ${t(c.split === 'row' ? 'side by side' : 'stacked')}`,
         icon: <LayoutGrid size={13} className="text-muted" />,
         run: () => launchWorkspace(c)
       })
@@ -121,8 +122,8 @@ export function CommandPalette() {
     const targetName = target ? projects.find((p) => p.path === target)?.name : undefined
     out.push({
       id: 'a:shell',
-      group: 'Actions',
-      label: 'New shell',
+      group: t('Actions'),
+      label: t('New shell'),
       hint: targetName ?? 'Add a folder first',
       icon: <Terminal size={13} className="text-muted" />,
       run: () => (target ? newShell(target) : addProject())
@@ -130,8 +131,8 @@ export function CommandPalette() {
     for (const pr of presets.filter((p) => p.installed && p.id !== 'shell')) {
       out.push({
         id: `new:${pr.id}`,
-        group: 'Actions',
-        label: `New ${pr.name} session`,
+        group: t('Actions'),
+        label: t('New {name} session', { name: pr.name }),
         hint: targetName,
         icon: (
           <span style={{ color: pr.color }}>
@@ -144,8 +145,8 @@ export function CommandPalette() {
     if (target && historyFor(target).length) {
       out.push({
         id: 'a:resume',
-        group: 'Actions',
-        label: 'Resume a Claude Code conversation…',
+        group: t('Actions'),
+        label: t('Resume a Claude Code conversation…'),
         hint: targetName,
         icon: <History size={13} className="text-muted" />,
         run: () => setTimeout(() => useUi.getState().openPalette('', 'resume', target), 0)
@@ -154,7 +155,7 @@ export function CommandPalette() {
     for (const p of projects) {
       out.push({
         id: `p:${p.path}`,
-        group: 'Folders',
+        group: t('Folders'),
         label: p.name,
         hint: p.path,
         icon: <Folder size={13} className="text-muted" />,
@@ -162,26 +163,26 @@ export function CommandPalette() {
       })
     }
     out.push(
-      { id: 'a:add', group: 'Actions', label: 'Add folder…', icon: <Folder size={13} className="text-muted" />, run: () => addProject() },
+      { id: 'a:add', group: t('Actions'), label: t('Add folder…'), icon: <Folder size={13} className="text-muted" />, run: () => addProject() },
       {
         id: 'a:theme',
-        group: 'Actions',
-        label: `Switch to ${dark ? 'light' : 'dark'} theme`,
+        group: t('Actions'),
+        label: t(dark ? 'Switch to light theme' : 'Switch to dark theme'),
         icon: dark ? <Sun size={13} className="text-muted" /> : <Moon size={13} className="text-muted" />,
         run: () => setPrefs({ theme: dark ? 'light' : 'dark' })
       },
       {
         id: 'a:sidebar',
-        group: 'Actions',
-        label: `${prefs?.sidebarCollapsed ? 'Show' : 'Hide'} sidebar`,
+        group: t('Actions'),
+        label: t(prefs?.sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'),
         icon: <PanelLeft size={13} className="text-muted" />,
         run: () => setPrefs({ sidebarCollapsed: !prefs?.sidebarCollapsed })
       },
-      { id: 'a:settings', group: 'Actions', label: 'Settings', icon: <Settings size={13} className="text-muted" />, run: () => setSettingsOpen(true) },
+      { id: 'a:settings', group: t('Actions'), label: t('Settings'), icon: <Settings size={13} className="text-muted" />, run: () => setSettingsOpen(true) },
       {
         id: 'a:workspaces',
-        group: 'Actions',
-        label: 'Manage workspaces…',
+        group: t('Actions'),
+        label: t('Manage workspaces…'),
         icon: <LayoutGrid size={13} className="text-muted" />,
         run: () => {
           useUi.getState().setSettingsPage('workspaces')
@@ -192,25 +193,25 @@ export function CommandPalette() {
     if (activeId) {
       out.push({
         id: 'a:restart',
-        group: 'Actions',
-        label: 'Restart current session',
+        group: t('Actions'),
+        label: t('Restart current session'),
         icon: <RotateCw size={13} className="text-muted" />,
         run: () => restartSession(activeId)
       })
     }
     out.push({
       id: 'a:prompts',
-      group: 'Actions',
-      label: 'Prompt history…',
-      hint: 'Re-send something you asked an agent before',
+      group: t('Actions'),
+      label: t('Prompt history…'),
+      hint: t('Re-send something you asked an agent before'),
       icon: <MessageSquare size={13} className="text-muted" />,
       run: () => setTimeout(() => useUi.getState().openPalette('', 'prompts'), 0)
     })
     out.push({
       id: 'a:host',
-      group: 'Actions',
-      label: 'Restart session host',
-      hint: 'Sessions keep running',
+      group: t('Actions'),
+      label: t('Restart session host'),
+      hint: t('Sessions keep running'),
       icon: <Terminal size={13} className="text-muted" />,
       run: () => window.step.invoke('host:restartHost')
     })
@@ -251,7 +252,7 @@ export function CommandPalette() {
             ref={inputRef}
             className="h-11 flex-1 bg-transparent text-[14px] outline-none placeholder:text-muted"
             style={{ userSelect: 'text' }}
-            placeholder={mode === 'resume' ? 'Search past conversations…' : mode === 'prompts' ? 'Search prompts you sent…' : 'Jump to a session, folder or action…'}
+            placeholder={t(mode === 'resume' ? 'Search past conversations…' : mode === 'prompts' ? 'Search prompts you sent…' : 'Jump to a session, folder or action…')}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => {
@@ -272,7 +273,7 @@ export function CommandPalette() {
           />
         </div>
         <div ref={listRef} className="scroll-thin max-h-[52vh] py-1">
-          {filtered.length === 0 && <div className="px-4 py-6 text-center text-muted">Nothing matches</div>}
+          {filtered.length === 0 && <div className="px-4 py-6 text-center text-muted">{t('Nothing matches')}</div>}
           {filtered.map((it, i) => {
             const header = !query && it.group !== lastGroup ? it.group : null
             lastGroup = it.group

@@ -3,6 +3,7 @@ import fs from 'node:fs'
 import { join } from 'node:path'
 import { projectName } from '@shared/paths'
 import type { Session } from '@shared/types'
+import { t } from './i18n'
 
 export type TrayMood = 'idle' | 'working' | 'attention'
 
@@ -81,7 +82,7 @@ export class StepTray {
     w.focus()
   }
 
-  private refresh(): void {
+  refresh(): void {
     if (!this.tray) return
     const sessions = this.deps.getSessions()
     const working = sessions.filter((s) => s.status === 'working' || s.status === 'starting').length
@@ -92,8 +93,8 @@ export class StepTray {
       this.tray.setImage(loadIcon(mood))
     }
     const parts = ['StepbroTerminal']
-    if (working) parts.push(`${working} working`)
-    if (attention) parts.push(`${attention} need you`)
+    if (working) parts.push(t('{n} working', { n: working }))
+    if (attention) parts.push(t(attention === 1 ? '{n} needs you' : '{n} need you', { n: attention }))
     this.tray.setToolTip(parts.join(' · '))
 
     const byProject = new Map<string, Session[]>()
@@ -107,7 +108,7 @@ export class StepTray {
       template.push({ label: projectName(project), enabled: false })
       for (const s of list) {
         template.push({
-          label: `   ${GLYPH[s.status] ?? '○'}  ${s.title || 'Untitled'}`,
+          label: `   ${GLYPH[s.status] ?? '○'}  ${s.title || t('Untitled')}`,
           click: () => {
             this.showWindow()
             this.deps.focusSession(s.id)
@@ -116,8 +117,8 @@ export class StepTray {
       }
     }
     if (template.length) template.push({ type: 'separator' })
-    template.push({ label: 'Show StepbroTerminal', click: () => this.showWindow() })
-    template.push({ label: 'Quit StepbroTerminal', click: () => app.quit() })
+    template.push({ label: t('Show StepbroTerminal'), click: () => this.showWindow() })
+    template.push({ label: t('Quit StepbroTerminal'), click: () => app.quit() })
     this.tray.setContextMenu(Menu.buildFromTemplate(template))
   }
 }

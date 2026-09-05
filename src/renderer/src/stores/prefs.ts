@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import type { Prefs } from '@shared/types'
 import { applyAccent } from '@/theme/accents'
+import { setCurrentLanguage } from '@/lib/i18n'
 
 interface PrefsState {
   prefs: Prefs | null
@@ -31,6 +32,7 @@ export const usePrefs = create<PrefsState>((set, get) => ({
     const prefs = await window.step.invoke('prefs:get')
     const dark = computeDark(prefs, get().systemDark)
     applyThemeAttr(dark, prefs)
+    setCurrentLanguage(prefs.language)
     set({ prefs, dark })
   },
   set: async (partial) => {
@@ -39,6 +41,7 @@ export const usePrefs = create<PrefsState>((set, get) => ({
       const next = { ...cur, ...partial }
       const dark = computeDark(next, get().systemDark)
       applyThemeAttr(dark, next)
+      setCurrentLanguage(next.language)
       set({ prefs: next, dark })
     }
     await window.step.invoke('prefs:set', partial)
@@ -46,6 +49,7 @@ export const usePrefs = create<PrefsState>((set, get) => ({
   applyRemote: (prefs) => {
     const dark = computeDark(prefs, get().systemDark)
     applyThemeAttr(dark, prefs)
+    setCurrentLanguage(prefs.language)
     set({ prefs, dark })
   },
   setSystemDark: (systemDark) => {

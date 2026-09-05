@@ -1,6 +1,7 @@
 import { app, Menu, shell } from 'electron'
 import type { Ctx } from './context'
 import { resolveBindings, toAccelerator, type ShortcutId } from '@shared/keybindings'
+import { t } from './i18n'
 
 /**
  * Application menu. On macOS it is required for Cmd+C/V/Q to work; on other platforms
@@ -24,7 +25,7 @@ export function buildAppMenu(ctx: Ctx): void {
             submenu: [
               { role: 'about' as const },
               { type: 'separator' as const },
-              item('Settings…', 'settings'),
+              item(t('Settings…'), 'settings'),
               { type: 'separator' as const },
               { role: 'hide' as const },
               { role: 'hideOthers' as const },
@@ -36,18 +37,18 @@ export function buildAppMenu(ctx: Ctx): void {
         ]
       : []),
     {
-      label: 'File',
+      label: t('File'),
       submenu: [
-        item('New Session…', 'new-session'),
-        item('New Shell', 'new-shell'),
-        item('Add Project…', 'add-project'),
+        item(t('New Session…'), 'new-session'),
+        item(t('New Shell'), 'new-shell'),
+        item(t('Add Project…'), 'add-project'),
         { type: 'separator' },
-        item('Close Session', 'close-session'),
-        ...(mac ? [] : [{ type: 'separator' as const }, item('Settings…', 'settings'), { type: 'separator' as const }, { role: 'quit' as const }])
+        item(t('Close Session'), 'close-session'),
+        ...(mac ? [] : [{ type: 'separator' as const }, item(t('Settings…'), 'settings'), { type: 'separator' as const }, { role: 'quit' as const }])
       ]
     },
     {
-      label: 'Edit',
+      label: t('Edit'),
       submenu: [
         { role: 'undo' },
         { role: 'redo' },
@@ -57,19 +58,19 @@ export function buildAppMenu(ctx: Ctx): void {
         { role: 'paste' },
         { role: 'selectAll' },
         { type: 'separator' },
-        item('Find in Terminal', 'find')
+        item(t('Find in Terminal'), 'find')
       ]
     },
     {
-      label: 'View',
+      label: t('View'),
       submenu: [
-        item('Command Palette', 'palette'),
-        item('Prompt History', 'prompt-history'),
-        item('Notes', 'notes'),
-        item('Toggle Sidebar', 'toggle-sidebar'),
+        item(t('Command Palette'), 'palette'),
+        item(t('Prompt History'), 'prompt-history'),
+        item(t('Notes'), 'notes'),
+        item(t('Toggle Sidebar'), 'toggle-sidebar'),
         { type: 'separator' },
-        item('Next View', 'next-view'),
-        item('Previous View', 'prev-view'),
+        item(t('Next View'), 'next-view'),
+        item(t('Previous View'), 'prev-view'),
         { type: 'separator' },
         { role: 'resetZoom' },
         { role: 'zoomIn' },
@@ -80,22 +81,22 @@ export function buildAppMenu(ctx: Ctx): void {
       ]
     },
     {
-      label: 'Session',
+      label: t('Session'),
       submenu: [
-        item('Split Right', 'split-right'),
-        item('Split Down', 'split-down'),
-        item('Move Pane to Its Own View', 'detach-pane'),
+        item(t('Split Right'), 'split-right'),
+        item(t('Split Down'), 'split-down'),
+        item(t('Move Pane to Its Own View'), 'detach-pane'),
         { type: 'separator' },
-        item('Next Session That Needs You', 'next-attention'),
-        item('Restart Session', 'restart-session'),
-        item('Rename Session', 'rename-session'),
-        item('Redraw the Screen', 'redraw')
+        item(t('Next Session That Needs You'), 'next-attention'),
+        item(t('Restart Session'), 'restart-session'),
+        item(t('Rename Session'), 'rename-session'),
+        item(t('Redraw the Screen'), 'redraw')
       ]
     },
     { role: 'windowMenu' },
     {
       role: 'help',
-      submenu: [{ label: 'Open Data Folder', click: () => void shell.openPath(require('node:os').homedir() + '/.step') }]
+      submenu: [{ label: t('Open Data Folder'), click: () => void shell.openPath(require('node:os').homedir() + '/.step') }]
     }
   ]
   const menu = Menu.buildFromTemplate(template)

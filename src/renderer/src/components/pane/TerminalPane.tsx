@@ -10,6 +10,7 @@ import { EmptyState } from './EmptyState'
 import { HostBanner } from './HostBanner'
 import { PreviewPane } from './PreviewPane'
 import { ChangesPane } from './ChangesPane'
+import { t } from '@/lib/i18n'
 
 export const DRAG_TYPE = 'application/x-step-session'
 
@@ -185,22 +186,16 @@ function PaneCard({ id, connected, multi }: { id: string; connected: boolean; mu
         />
         {session.status === 'error' && session.error && (
           <Bar>
-            <span className="font-medium text-danger">Error</span>
+            <span className="font-medium text-danger">{t('Error')}</span>
             <span className="text-fg">{session.error}</span>
-            <button className="text-accent hover:underline" onClick={() => restartSession(session.id)}>
-              Retry
-            </button>
+            <button className="text-accent hover:underline" onClick={() => restartSession(session.id)}>{t('Retry')}</button>
           </Bar>
         )}
         {!session.alive && session.status === 'exited' && (
           <Bar>
-            <span className="text-muted">Process exited{session.exitCode !== undefined ? ` with code ${session.exitCode}` : ''}.</span>
-            <button className="text-accent hover:underline" onClick={() => restartSession(session.id)}>
-              Restart
-            </button>
-            <button className="text-muted hover:text-fg hover:underline" onClick={() => void closeSession(session.id)}>
-              Close
-            </button>
+            <span className="text-muted">{session.exitCode !== undefined ? t('Process exited with code {code}.', { code: session.exitCode }) : t('Process exited.')}</span>
+            <button className="text-accent hover:underline" onClick={() => restartSession(session.id)}>{t('Restart')}</button>
+            <button className="text-muted hover:text-fg hover:underline" onClick={() => void closeSession(session.id)}>{t('Close')}</button>
           </Bar>
         )}
       </div>

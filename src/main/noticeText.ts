@@ -1,4 +1,5 @@
 import type { Session } from '@shared/types'
+import { t } from './i18n'
 
 export interface Notice {
   title: string
@@ -14,19 +15,19 @@ export interface Notice {
  * announced by the session's own title.
  */
 export function noticeFor(s: Session, agent: string | null): Notice | null {
-  const session = s.title || 'Session'
+  const session = s.title || t('Session')
   const asked = s.agent.lastMessage
   switch (s.status) {
     case 'attention':
       return {
-        title: `${agent ?? session} needs an answer`,
-        body: agent ? (asked ? `${session} · ${asked}` : session) : (asked ?? 'Waiting for your reply'),
+        title: t('{agent} needs an answer', { agent: agent ?? session }),
+        body: agent ? (asked ? `${session} · ${asked}` : session) : (asked ?? t('Waiting for your reply')),
         sticky: true
       }
     case 'done':
-      return { title: session, body: asked ?? 'Finished', sticky: false }
+      return { title: session, body: asked ?? t('Finished'), sticky: false }
     case 'error':
-      return { title: session, body: s.error ?? 'Something went wrong', sticky: false }
+      return { title: session, body: s.error ?? t('Something went wrong'), sticky: false }
     default:
       return null
   }

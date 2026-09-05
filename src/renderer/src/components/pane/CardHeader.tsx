@@ -11,6 +11,7 @@ import { DRAG_TYPE } from './TerminalPane'
 import { SearchBar } from './SearchBar'
 import { titled } from '@/lib/shortcuts'
 import { usePrefs } from '@/stores/prefs'
+import { t } from '@/lib/i18n'
 
 export function CardHeader({ session, split = false, dim = false }: { session: Session; split?: boolean; dim?: boolean }) {
   usePrefs((s) => s.prefs?.keybindings) // tooltips follow the user's shortcut choices
@@ -32,23 +33,23 @@ export function CardHeader({ session, split = false, dim = false }: { session: S
   const more = async (anchor: HTMLElement): Promise<void> => {
     const pick = await popup(
       [
-        { id: 'rename', label: 'Rename' },
-        { id: 'pin', label: session.pinned ? 'Unpin' : 'Pin' },
+        { id: 'rename', label: t('Rename') },
+        { id: 'pin', label: t(session.pinned ? 'Unpin' : 'Pin') },
         sep,
-        { id: 'split-right', label: 'Split right' },
-        { id: 'split-down', label: 'Split down' },
-        { id: 'detach', label: 'Move to its own view', enabled: split },
-        { id: 'unsplit', label: 'Keep only this pane', enabled: split },
+        { id: 'split-right', label: t('Split right') },
+        { id: 'split-down', label: t('Split down') },
+        { id: 'detach', label: t('Move to its own view'), enabled: split },
+        { id: 'unsplit', label: t('Keep only this pane'), enabled: split },
         sep,
-        { id: 'redraw', label: 'Redraw screen' },
-        { id: 'restart', label: canResume ? 'Restart and resume conversation' : 'Restart' },
-        { id: 'kill', label: 'Kill process', enabled: session.alive },
+        { id: 'redraw', label: t('Redraw screen') },
+        { id: 'restart', label: t(canResume ? 'Restart and resume conversation' : 'Restart') },
+        { id: 'kill', label: t('Kill process'), enabled: session.alive },
         sep,
-        { id: 'folder', label: 'Open folder' },
-        { id: 'copyPath', label: 'Copy path' },
-        { id: 'copyId', label: 'Copy Claude session id', enabled: !!session.agent.sessionId },
+        { id: 'folder', label: t('Open folder') },
+        { id: 'copyPath', label: t('Copy path') },
+        { id: 'copyId', label: t('Copy Claude session id'), enabled: !!session.agent.sessionId },
         sep,
-        { id: 'close', label: 'Close session' }
+        { id: 'close', label: t('Close session') }
       ],
       { anchor }
     )
@@ -84,10 +85,10 @@ export function CardHeader({ session, split = false, dim = false }: { session: S
         openFolder(session.projectPath)
         break
       case 'copyPath':
-        copyText(session.projectPath, 'Path copied')
+        copyText(session.projectPath, t('Path copied'))
         break
       case 'copyId':
-        if (session.agent.sessionId) copyText(session.agent.sessionId, 'Session id copied')
+        if (session.agent.sessionId) copyText(session.agent.sessionId, t('Session id copied'))
         break
       case 'close':
         await closeSession(session.id)
@@ -106,7 +107,7 @@ export function CardHeader({ session, split = false, dim = false }: { session: S
         useUi.getState().setDragging(session.id)
       }}
       onDragEnd={() => useUi.getState().setDragging(null)}
-      title="Drag to move this pane"
+      title={t('Drag to move this pane')}
     >
       <StatusGlyph status={session.status} color={color} size={14} />
       {editing ? (
@@ -131,7 +132,7 @@ export function CardHeader({ session, split = false, dim = false }: { session: S
       <div className="ml-auto flex items-center gap-0.5">
         <button
           className="icon-btn relative"
-          title="Changes in this folder"
+          title={t('Changes in this folder')}
           data-on={changesOpen}
           onClick={() => setSide(changesOpen ? null : { kind: 'changes', sessionId: session.id })}
         >
@@ -145,25 +146,25 @@ export function CardHeader({ session, split = false, dim = false }: { session: S
         {searchOpen && isActive ? (
           <SearchBar id={session.id} onClose={() => setSearchOpen(false)} />
         ) : (
-          <button className="icon-btn" title={titled('Find', 'find')} onClick={() => setSearchOpen(true)}>
+          <button className="icon-btn" title={titled(t('Find'), 'find')} onClick={() => setSearchOpen(true)}>
             <Search size={14} />
           </button>
         )}
-        <button className="icon-btn" title={titled('Split right with a new shell', 'split-right')} onClick={() => void splitWithNewShell('row', session.id)}>
+        <button className="icon-btn" title={titled(t('Split right with a new shell'), 'split-right')} onClick={() => void splitWithNewShell('row', session.id)}>
           <Columns2 size={14} />
         </button>
-        <button className="icon-btn" title={titled('Split down with a new shell', 'split-down')} onClick={() => void splitWithNewShell('column', session.id)}>
+        <button className="icon-btn" title={titled(t('Split down with a new shell'), 'split-down')} onClick={() => void splitWithNewShell('column', session.id)}>
           <Rows2 size={14} />
         </button>
         {split && (
-          <button className="icon-btn" title={titled('Move to its own view', 'detach-pane')} onClick={() => useUi.getState().detach(session.id)}>
+          <button className="icon-btn" title={titled(t('Move to its own view'), 'detach-pane')} onClick={() => useUi.getState().detach(session.id)}>
             <Ungroup size={14} />
           </button>
         )}
-        <button className="icon-btn" title="More" onClick={(e) => void more(e.currentTarget)}>
+        <button className="icon-btn" title={t('More')} onClick={(e) => void more(e.currentTarget)}>
           <MoreHorizontal size={15} />
         </button>
-        <button className="icon-btn" title="Close session" onClick={() => void closeSession(session.id)}>
+        <button className="icon-btn" title={t('Close session')} onClick={() => void closeSession(session.id)}>
           <X size={15} />
         </button>
       </div>

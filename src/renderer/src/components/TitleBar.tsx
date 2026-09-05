@@ -8,6 +8,7 @@ import { UpdatePill } from './UpdatePill'
 import { NotesButton } from './notes/NotesButton'
 import { StatusGlyph } from './sidebar/StatusGlyph'
 import { defaultTitle, rowPresetId } from '@/lib/sidebarModel'
+import { t } from '@/lib/i18n'
 
 const platform = window.step.platform
 /** Windows and Linux draw their own caption buttons; on Windows they show only while hovered. */
@@ -44,7 +45,7 @@ export function TitleBar() {
         <button
           className="icon-btn"
           data-on={!collapsed}
-          title="Toggle sidebar"
+          title={t('Toggle sidebar')}
           onClick={() => void setPrefs({ sidebarCollapsed: !collapsed })}
         >
           <PanelLeft size={15} />
@@ -67,13 +68,13 @@ export function TitleBar() {
           className={`no-drag ml-auto flex items-center gap-0.5 ${platform === 'win32' ? 'win-controls' : ''}`}
           data-show={platform === 'win32' ? captionHover : undefined}
         >
-          <button className="icon-btn" onClick={() => window.step.send('win:minimize')} title="Minimize">
+          <button className="icon-btn" onClick={() => window.step.send('win:minimize')} title={t('Minimize')}>
             <Minus size={14} />
           </button>
-          <button className="icon-btn" onClick={() => window.step.send('win:maximize')} title={maximized ? 'Restore' : 'Maximize'}>
+          <button className="icon-btn" onClick={() => window.step.send('win:maximize')} title={t(maximized ? 'Restore' : 'Maximize')}>
             {maximized ? <Copy size={12} /> : <Square size={12} />}
           </button>
-          <button className="icon-btn win-close" onClick={() => window.step.send('win:close')} title="Close">
+          <button className="icon-btn win-close" onClick={() => window.step.send('win:close')} title={t('Close')}>
             <X size={14} />
           </button>
         </div>

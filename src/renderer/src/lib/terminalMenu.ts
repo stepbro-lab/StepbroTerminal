@@ -6,6 +6,7 @@ import { registry } from '@/terminal/TerminalRegistry'
 import { popup, sep } from './menus'
 import { defaultTitle, rowPresetId } from './sidebarModel'
 import { redrawSession } from './actions'
+import { t } from '@/lib/i18n'
 
 const encoder = new TextEncoder()
 
@@ -41,15 +42,15 @@ export async function terminalContextMenu(id: string, x: number, y: number): Pro
   })
   const pick = await popup(
     [
-      { id: 'copy', label: 'Copy', enabled: !!selection },
-      { id: 'paste', label: 'Paste' },
+      { id: 'copy', label: t('Copy'), enabled: !!selection },
+      { id: 'paste', label: t('Paste') },
       sep,
-      { label: 'Send selection to', submenu: targets, enabled: !!selection && targets.length > 0 },
+      { label: t('Send selection to'), submenu: targets, enabled: !!selection && targets.length > 0 },
       sep,
-      { id: 'find', label: 'Find…' },
-      { id: 'redraw', label: 'Redraw screen' },
-      { id: 'selectAll', label: 'Select all' },
-      { id: 'clearSel', label: 'Clear selection', enabled: !!selection }
+      { id: 'find', label: t('Find…') },
+      { id: 'redraw', label: t('Redraw screen') },
+      { id: 'selectAll', label: t('Select all') },
+      { id: 'clearSel', label: t('Clear selection'), enabled: !!selection }
     ],
     { x, y }
   )

@@ -14,6 +14,7 @@ const prefs = (over: Partial<Prefs> = {}): Prefs => ({
   resumeOnLaunch: true,
   launchConfigs: [],
   keybindings: {},
+  language: 'en',
   fontFamily: 'x',
   fontSize: 13,
   lineHeight: 1.2,

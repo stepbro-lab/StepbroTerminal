@@ -10,6 +10,7 @@ import { gitChanges, gitDiff, gitRevert } from './git'
 import { loadWorkspace, saveWorkspace } from './prefs'
 import { captionPing } from './window'
 import type { Ctx } from './context'
+import { t } from './i18n'
 
 type Handler<K extends keyof InvokeMap> = (...args: Parameters<InvokeMap[K]>) => ReturnType<InvokeMap[K]> | Promise<ReturnType<InvokeMap[K]>>
 type Listener<K extends keyof SendMap> = (...args: Parameters<SendMap[K]>) => void
@@ -66,7 +67,7 @@ export function registerIpc(ctx: Ctx): void {
   handle('projects:pickFolder', async () => {
     const res = await dialog.showOpenDialog(ctx.win ?? undefined!, {
       properties: ['openDirectory', 'createDirectory'],
-      title: 'Add project folder'
+      title: t('Add project folder')
     })
     if (res.canceled || !res.filePaths[0]) return null
     return normalizeProjectPath(res.filePaths[0])

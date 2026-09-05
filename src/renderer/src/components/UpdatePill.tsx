@@ -1,4 +1,5 @@
 import { useUpdates } from '@/stores/updates'
+import { t } from '@/lib/i18n'
 
 /** Title-bar pill that appears once a newer release is known about. */
 export function UpdatePill() {
@@ -6,15 +7,15 @@ export function UpdatePill() {
   const install = useUpdates((s) => s.install)
   if (state.kind !== 'available' && state.kind !== 'downloading' && state.kind !== 'ready') return null
 
-  const label = state.kind === 'ready' ? 'Restart to update' : state.kind === 'downloading' ? `Downloading ${state.percent}%` : 'Update available'
+  const label = state.kind === 'ready' ? t('Restart to update') : state.kind === 'downloading' ? t('Downloading {percent}%', { percent: state.percent }) : t('Update available')
   const title =
     state.kind === 'ready'
-      ? `${state.version} is ready. Restart to install it.`
+      ? t('{version} is ready. Restart to install it.', { version: state.version })
       : state.kind === 'downloading'
-        ? `Downloading ${state.version}`
+        ? t('Downloading {version}', { version: state.version })
         : state.direct
-          ? `${state.version} · click to download`
-          : `${state.version} · opens the download page`
+          ? t('{version} · click to download', { version: state.version })
+          : t('{version} · opens the download page', { version: state.version })
 
   return (
     <button

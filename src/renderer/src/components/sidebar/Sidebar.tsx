@@ -12,6 +12,7 @@ import { useFolderDrop } from '@/lib/folderDrop'
 import { ProjectRow } from './ProjectRow'
 import { SessionRow } from './SessionRow'
 import { useReorder } from './useReorder'
+import { t } from '@/lib/i18n'
 
 gsap.registerPlugin(Flip)
 
@@ -112,7 +113,7 @@ export function Sidebar() {
       return (
         <div key={`view-${c.view}`} className="view-box" data-on={c.view === activeView} data-insert={outside ? (ins.after ? 'after' : 'before') : undefined}>
           {rows}
-          <button className="view-box-ungroup icon-btn" title="Ungroup: each session on its own" onClick={() => c.view !== null && closeView(c.view)}>
+          <button className="view-box-ungroup icon-btn" title={t('Ungroup: each session on its own')} onClick={() => c.view !== null && closeView(c.view)}>
             <Ungroup size={12} />
           </button>
         </div>
@@ -143,10 +144,8 @@ export function Sidebar() {
       >
         {model.length === 0 && (
           <div className="flex flex-col items-center gap-3 px-2 pt-10 text-center text-muted">
-            <p>No folders yet.</p>
-            <button className="btn btn-secondary" onClick={() => void addProject()}>
-              Choose folder
-            </button>
+            <p>{t('No folders yet.')}</p>
+            <button className="btn btn-secondary" onClick={() => void addProject()}>{t('Choose folder')}</button>
           </div>
         )}
         {model.map((p) => (
@@ -158,17 +157,17 @@ export function Sidebar() {
       </div>
       {/* Two icon buttons of the same weight. The plus sits over the icon column of the rows above. */}
       <div className="flex h-11 shrink-0 items-center justify-between px-2" style={{ width: 'var(--sidebar-w)' }}>
-        <button className="icon-btn" style={{ width: 32, height: 32 }} title="Add folder" onClick={() => void addProject()}>
+        <button className="icon-btn" style={{ width: 32, height: 32 }} title={t('Add folder')} onClick={() => void addProject()}>
           <Plus size={20} strokeWidth={2.2} />
         </button>
-        <button className="icon-btn" style={{ width: 32, height: 32 }} title="Settings" onClick={() => setSettingsOpen(true)}>
+        <button className="icon-btn" style={{ width: 32, height: 32 }} title={t('Settings')} onClick={() => setSettingsOpen(true)}>
           <Settings size={17} />
         </button>
       </div>
       {drop.over && (
         <div className="drop-hint">
           <FolderPlus size={16} />
-          <span>Drop to add folder</span>
+          <span>{t('Drop to add folder')}</span>
         </div>
       )}
       {!collapsed && (

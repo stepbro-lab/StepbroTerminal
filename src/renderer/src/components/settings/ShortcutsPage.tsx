@@ -6,6 +6,7 @@ import { isMac } from '@/lib/format'
 import { setShortcutCapture } from '@/lib/shortcuts'
 import { Keys } from '../Keys'
 import { Row, Section, SmallButton } from './controls'
+import { t } from '@/lib/i18n'
 
 interface Note {
   id: ShortcutId
@@ -54,14 +55,14 @@ export function ShortcutsPage() {
       if (id === 'jump') {
         const c = parseChord(chord)
         if (!/^[1-9]$/.test(c.key)) {
-          say(id, 'Press the modifier with any digit, 1 to 9')
+          say(id, t('Press the modifier with any digit, 1 to 9'))
           return
         }
         chord = formatChord({ mods: c.mods, key: 'Digit' })
       }
       const problem = validateChord(chord, isMac)
       if (problem) {
-        say(id, problem)
+        say(id, t(problem))
         return
       }
       const taken = SHORTCUTS.find((s) => s.id !== id && bindings[s.id] === chord)
@@ -70,7 +71,7 @@ export function ShortcutsPage() {
       if (taken) next[taken.id] = null
       save(next)
       setRecording(null)
-      if (taken) say(id, `Taken from “${taken.label}”, which has no key now`, 'info')
+      if (taken) say(id, t('Taken from “{label}”, which has no key now', { label: t(taken.label) }), 'info')
     }
     setShortcutCapture(onKey)
     return () => setShortcutCapture(null)
@@ -87,17 +88,15 @@ export function ShortcutsPage() {
   return (
     <>
       <div className="mb-6 flex items-start gap-4">
-        <p className="max-w-[560px] text-[12px] leading-[1.5] text-muted">
-          Click a shortcut to change it, then press the new keys. Esc keeps the old one, Backspace removes it. A combination that is already in use moves to the shortcut you are editing.
-        </p>
+        <p className="max-w-[560px] text-[12px] leading-[1.5] text-muted">{t('Click a shortcut to change it, then press the new keys. Esc keeps the old one, Backspace removes it. A combination that is already in use moves to the shortcut you are editing.')}</p>
         {changed && (
           <span className="ml-auto shrink-0">
-            <SmallButton onClick={() => save({})}>Reset all</SmallButton>
+            <SmallButton onClick={() => save({})}>{t('Reset all')}</SmallButton>
           </span>
         )}
       </div>
       {SHORTCUT_GROUPS.map((group) => (
-        <Section key={group} title={group}>
+        <Section key={group} title={t(group)}>
           <div className="flex flex-col">
             {SHORTCUTS.filter((s) => s.group === group).map((s) => {
               const chord = bindings[s.id]
@@ -106,7 +105,7 @@ export function ShortcutsPage() {
               return (
                 <div key={s.id} className="setting-row !min-h-[36px] !py-1">
                   <div className="min-w-0 flex-1">
-                    <div className="text-[13px] text-fg">{s.label}</div>
+                    <div className="text-[13px] text-fg">{t(s.label)}</div>
                     {note?.id === s.id && (
                       <div className="fade-in text-[11.5px]" style={{ color: note.tone === 'error' ? 'var(--danger)' : 'var(--text-muted)' }}>
                         {note.text}
@@ -115,24 +114,22 @@ export function ShortcutsPage() {
                   </div>
                   <div className="flex shrink-0 items-center gap-1">
                     {custom && !active && (
-                      <button className="icon-btn h-6 w-6" title={`Back to ${displayChord(defaultChord(s, isMac), isMac)}`} onClick={() => reset(s.id)}>
+                      <button className="icon-btn h-6 w-6" title={t('Back to {chord}', { chord: displayChord(defaultChord(s, isMac), isMac) })} onClick={() => reset(s.id)}>
                         <RotateCcw size={12} />
                       </button>
                     )}
                     <button
                       className="key-cap-btn"
                       data-recording={active}
-                      title={active ? 'Press the new keys' : 'Click to change'}
+                      title={t(active ? 'Press the new keys' : 'Click to change')}
                       onClick={() => setRecording(active ? null : s.id)}
                     >
                       {active ? (
-                        <span className="px-1 text-[11.5px] font-medium" style={{ color: 'var(--accent)' }}>
-                          Press keys…
-                        </span>
+                        <span className="px-1 text-[11.5px] font-medium" style={{ color: 'var(--accent)' }}>{t('Press keys…')}</span>
                       ) : chord ? (
                         <Keys chord={chord} />
                       ) : (
-                        <span className="px-1 text-[11.5px] text-muted">No key</span>
+                        <span className="px-1 text-[11.5px] text-muted">{t('No key')}</span>
                       )}
                     </button>
                   </div>
@@ -142,23 +139,22 @@ export function ShortcutsPage() {
           </div>
         </Section>
       ))}
-      <Section title="Mouse and clipboard" description="These come with the terminal and cannot be changed.">
-        <Row label="Copy selection">
+      <Section title={t('Mouse and clipboard')} description={t('These come with the terminal and cannot be changed.')}>
+        <Row label={t('Copy selection')}>
           <Keys chord={isMac ? 'Mod+C' : 'Mod+Shift+C'} />
           {!isMac && (
             <span className="text-[12px] text-muted">
-              or <Keys chord="Mod+C" /> with a selection
-            </span>
+              {t('or')} <Keys chord="Mod+C" /> {t('with a selection')}</span>
           )}
         </Row>
-        <Row label="Paste text, or hand an image to the agent">
+        <Row label={t('Paste text, or hand an image to the agent')}>
           <Keys chord="Mod+V" />
         </Row>
-        <Row label="Arrange panes">
-          <span className="max-w-[340px] text-right text-[12px] text-muted">Drag a session from the sidebar, or a card title, onto an edge of a pane.</span>
+        <Row label={t('Arrange panes')}>
+          <span className="max-w-[340px] text-right text-[12px] text-muted">{t('Drag a session from the sidebar, or a card title, onto an edge of a pane.')}</span>
         </Row>
-        <Row label="Drop files onto the terminal">
-          <span className="text-[12px] text-muted">Inserts their paths.</span>
+        <Row label={t('Drop files onto the terminal')}>
+          <span className="text-[12px] text-muted">{t('Inserts their paths.')}</span>
         </Row>
       </Section>
     </>

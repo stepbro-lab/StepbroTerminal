@@ -18,6 +18,7 @@ import { StepTray } from './tray'
 import { PromptLog } from './prompts'
 import { registerIpc } from './ipc'
 import { buildAppMenu } from './menu'
+import { setLanguage } from './i18n'
 import { APP_ID, ensureWindowsShortcut, migrateUserData } from './branding'
 import { Updates } from './updates'
 import { folderArgs, onlyFolders } from './openFolders'
@@ -154,6 +155,11 @@ async function boot(): Promise<void> {
       if (shellChanged) ctx.refreshPresets()
       if (partial.addedProjects || partial.hiddenProjects) ctx.emitProjects()
       if (partial.keybindings) buildAppMenu(ctx)
+      if (partial.language !== undefined) {
+        setLanguage(ctx.prefs.language)
+        buildAppMenu(ctx)
+        ctx.tray.refresh()
+      }
       return ctx.prefs
     },
     refreshPresets: () => {
@@ -204,6 +210,7 @@ async function boot(): Promise<void> {
 
   ctx.updates = new Updates({ emit: (state) => ctx.emit('ui:update', state), log })
   registerIpc(ctx)
+  setLanguage(ctx.prefs.language)
   buildAppMenu(ctx)
   ctx.win = createWindow(ctx.prefs)
   forward = (line: string): void => ctx.emit('diag', line)

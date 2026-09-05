@@ -7,6 +7,7 @@ import { openCount, sortNotes, useNotes } from '@/stores/notes'
 import { useData } from '@/stores/data'
 import { timeAgo } from '@/lib/format'
 import { AgentLogo } from '../sidebar/AgentLogo'
+import { t } from '@/lib/i18n'
 
 gsap.registerPlugin(useGSAP)
 
@@ -61,16 +62,14 @@ function Panel() {
       >
         <header className="flex items-center gap-2 px-4 pb-2 pt-3.5">
           <NotebookPen size={15} className="text-muted" />
-          <span className="text-[13.5px] font-semibold">Notes</span>
+          <span className="text-[13.5px] font-semibold">{t('Notes')}</span>
           <span className="text-[12px] text-muted">
             {openCount(notes)} open{notes.length > openCount(notes) ? ` · ${notes.length - openCount(notes)} done` : ''}
           </span>
           <div className="ml-auto flex items-center gap-1">
             <button className="btn btn-secondary" style={{ height: 28, paddingLeft: 9, paddingRight: 11, fontSize: 12 }} onClick={() => setComposing(true)}>
-              <Plus size={14} />
-              New note
-            </button>
-            <button className="icon-btn" title="Close" onClick={() => setOpen(false)}>
+              <Plus size={14} />{t('New note')}</button>
+            <button className="icon-btn" title={t('Close')} onClick={() => setOpen(false)}>
               <X size={15} />
             </button>
           </div>
@@ -81,7 +80,7 @@ function Panel() {
             <textarea
               autoFocus
               value={draft}
-              placeholder="Write it down…"
+              placeholder={t('Write it down…')}
               rows={Math.min(6, Math.max(2, draft.split('\n').length))}
               className="w-full resize-none rounded-[10px] px-3 py-2 text-[13px] leading-[1.45] outline-none"
               style={{ background: 'var(--bg-hover)', color: 'var(--text)' }}
@@ -97,9 +96,7 @@ function Panel() {
                 }
               }}
             />
-            <div className="mt-1 px-1 text-[11px]" style={{ color: 'var(--text-faint)' }}>
-              Enter saves · Shift+Enter for a new line · Esc cancels
-            </div>
+            <div className="mt-1 px-1 text-[11px]" style={{ color: 'var(--text-faint)' }}>{t('Enter saves · Shift+Enter for a new line · Esc cancels')}</div>
           </div>
         )}
 
@@ -108,15 +105,11 @@ function Panel() {
             <NoteRow key={n.id} note={n} />
           ))}
           {notes.length === 0 && !composing && (
-            <p className="px-3 py-10 text-center text-[13px] text-muted">
-              Nothing noted yet. Tell an agent “note that…” or write one yourself.
-            </p>
+            <p className="px-3 py-10 text-center text-[13px] text-muted">{t('Nothing noted yet. Tell an agent “note that…” or write one yourself.')}</p>
           )}
         </div>
 
-        <footer className="border-t border-line px-4 py-2 text-[11px]" style={{ color: 'var(--text-faint)' }}>
-          Claude Code and Codex save here with their save_note tool, and can read, change or remove notes too.
-        </footer>
+        <footer className="border-t border-line px-4 py-2 text-[11px]" style={{ color: 'var(--text-faint)' }}>{t('Claude Code and Codex save here with their save_note tool, and can read, change or remove notes too.')}</footer>
       </div>
     </div>
   )
@@ -151,7 +144,7 @@ function NoteRow({ note }: { note: Note }) {
           background: note.done ? 'var(--accent)' : 'transparent',
           color: 'var(--on-accent)'
         }}
-        title={note.done ? 'Reopen' : 'Mark as done'}
+        title={t(note.done ? 'Reopen' : 'Mark as done')}
         onClick={() => update(note.id, { done: !note.done })}
       >
         {note.done && <Check size={11} strokeWidth={3} />}
@@ -203,7 +196,7 @@ function NoteRow({ note }: { note: Note }) {
           )}
         </div>
       </div>
-      <button className="icon-btn h-6 w-6 opacity-0 group-hover:opacity-100" title="Delete" onClick={() => remove(note.id)}>
+      <button className="icon-btn h-6 w-6 opacity-0 group-hover:opacity-100" title={t('Delete')} onClick={() => remove(note.id)}>
         <Trash2 size={13} />
       </button>
     </div>

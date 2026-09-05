@@ -7,6 +7,7 @@ import { registry } from '@/terminal/TerminalRegistry'
 import { jumpToAttention } from './attention'
 import { useNotes } from '@/stores/notes'
 import { displayChord, matchShortcut, resolveBindings, type Bindings, type ShortcutId, type ShortcutMatch } from '@shared/keybindings'
+import { t } from '@/lib/i18n'
 
 const isMac = window.step.platform === 'darwin'
 
@@ -52,7 +53,7 @@ export function runCommand(cmd: Command): void {
       if (ui.activeId) ui.setRenaming(ui.activeId)
       break
     case 'next-attention':
-      if (!jumpToAttention()) ui.toast('Nothing needs you right now')
+      if (!jumpToAttention()) ui.toast(t('Nothing needs you right now'))
       break
     case 'next-view':
       ui.cycleView(1)

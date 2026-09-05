@@ -8,6 +8,7 @@ import type { MenuPosition } from '@/components/ContextMenu'
 import type { SidebarProject, SidebarSession } from './sidebarModel'
 import { findWorkspace, layoutFor, openablePanes, paneTitle } from './launchConfigs'
 import { hasLeaf, leaves } from './layout'
+import { t } from '@/lib/i18n'
 
 function currentDims(): { cols: number; rows: number } {
   const active = useUi.getState().activeId
@@ -32,7 +33,7 @@ export async function createSession(
     showNewSession(s.id)
     return s
   } catch (e: any) {
-    ui.toast(e?.message ?? 'Could not start session', 'error')
+    ui.toast(e?.message ?? t('Could not start session'), 'error')
     return null
   }
 }
@@ -59,7 +60,7 @@ export async function splitWithNewShell(dir: SplitDir, besideId?: string): Promi
     useData.getState().patchSession(s)
     useUi.getState().split(dir, s.id)
   } catch (e: any) {
-    ui.toast(e?.message ?? 'Could not start session', 'error')
+    ui.toast(e?.message ?? t('Could not start session'), 'error')
   }
 }
 
@@ -67,7 +68,7 @@ export async function closeSession(id: string): Promise<void> {
   const s = useData.getState().sessions[id]
   if (!s) return
   if (s.alive && (s.status === 'working' || s.status === 'attention')) {
-    const pick = await popup([{ id: 'close', label: 'Close anyway (something is still running)' }, { id: 'cancel', label: 'Keep it running' }])
+    const pick = await popup([{ id: 'close', label: t('Close anyway (something is still running)') }, { id: 'cancel', label: t('Keep it running') }])
     if (pick !== 'close') return
   }
   const ui = useUi.getState()
@@ -164,7 +165,7 @@ export async function launchWorkspace(config: LaunchConfig): Promise<void> {
   const name = config.name.trim() || 'Workspace'
   const panes = openablePanes(config)
   if (panes.length === 0) {
-    ui.toast(`${name}: no pane has a folder yet`, 'error')
+    ui.toast(t('{name}: no pane has a folder yet', { name }), 'error')
     return
   }
   const ids: string[] = []
@@ -180,7 +181,7 @@ export async function launchWorkspace(config: LaunchConfig): Promise<void> {
       useData.getState().patchSession(s)
       ids.push(s.id)
     } catch (e: any) {
-      ui.toast(`${name}: ${e?.message ?? 'a pane could not start'}`, 'error')
+      ui.toast(`${name}: ${e?.message ?? t('a pane could not start')}`, 'error')
     }
   }
   if (ids.length === 0) return
@@ -192,7 +193,7 @@ export async function launchWorkspace(config: LaunchConfig): Promise<void> {
 export async function openWorkspaceByKey(key: string): Promise<void> {
   const config = findWorkspace(usePrefs.getState().prefs?.launchConfigs ?? [], key)
   if (!config) {
-    useUi.getState().toast(`No workspace called "${key}"`, 'error')
+    useUi.getState().toast(t('No workspace called "{name}"', { name: key }), 'error')
     return
   }
   await launchWorkspace(config)
@@ -224,11 +225,11 @@ export async function newSessionMenu(projectPath: string): Promise<void> {
   const presets = useData.getState().presets.filter((p) => p.installed)
   const agents = presets.filter((p) => p.id !== 'shell')
   const hasHistory = historyFor(projectPath).length > 0
-  const items: MenuItemSpec[] = [{ id: 'shell', label: 'New shell' }]
+  const items: MenuItemSpec[] = [{ id: 'shell', label: t('New shell') }]
   if (agents.length) {
     items.push(sep, ...agents.map((p) => ({ id: `new:${p.id}`, label: p.name })))
   }
-  if (hasHistory) items.push(sep, { id: 'resume', label: 'Resume a Claude Code conversation…' })
+  if (hasHistory) items.push(sep, { id: 'resume', label: t('Resume a Claude Code conversation…') })
   const pick = await popup(items)
   if (!pick) return
   if (pick === 'shell') await newShell(projectPath)
@@ -242,18 +243,18 @@ export async function sessionMenu(row: SidebarSession, pos: MenuPosition = {}): 
   const canResume = !!s.launch.resumeArgs && !!s.agent.sessionId
   const grouped = ui.views.some((v) => hasLeaf(v, s.id) && leaves(v).length > 1)
   const pick = await popup([
-    { id: 'rename', label: 'Rename' },
-    { id: 'pin', label: s.pinned ? 'Unpin' : 'Pin' },
+    { id: 'rename', label: t('Rename') },
+    { id: 'pin', label: t(s.pinned ? 'Unpin' : 'Pin') },
     sep,
-    { id: 'detach', label: 'Move to its own view', enabled: grouped },
-    { id: 'restart', label: canResume ? 'Restart and resume conversation' : 'Restart' },
-    { id: 'kill', label: 'Kill process', enabled: s.alive },
+    { id: 'detach', label: t('Move to its own view'), enabled: grouped },
+    { id: 'restart', label: t(canResume ? 'Restart and resume conversation' : 'Restart') },
+    { id: 'kill', label: t('Kill process'), enabled: s.alive },
     sep,
-    { id: 'folder', label: 'Open folder' },
-    { id: 'copyPath', label: 'Copy path' },
-    { id: 'copyId', label: 'Copy Claude session id', enabled: !!s.agent.sessionId },
+    { id: 'folder', label: t('Open folder') },
+    { id: 'copyPath', label: t('Copy path') },
+    { id: 'copyId', label: t('Copy Claude session id'), enabled: !!s.agent.sessionId },
     sep,
-    { id: 'close', label: 'Close' }
+    { id: 'close', label: t('Close') }
   ], pos)
   switch (pick) {
     case 'rename':
@@ -275,10 +276,10 @@ export async function sessionMenu(row: SidebarSession, pos: MenuPosition = {}): 
       openFolder(s.projectPath)
       break
     case 'copyPath':
-      copyText(s.projectPath, 'Path copied')
+      copyText(s.projectPath, t('Path copied'))
       break
     case 'copyId':
-      if (s.agent.sessionId) copyText(s.agent.sessionId, 'Session id copied')
+      if (s.agent.sessionId) copyText(s.agent.sessionId, t('Session id copied'))
       break
     case 'close':
       await closeSession(s.id)
@@ -290,15 +291,15 @@ export async function projectMenu(project: SidebarProject, pos: MenuPosition = {
   const presets = useData.getState().presets.filter((p) => p.installed && p.id !== 'shell')
   const prefs = usePrefs.getState()
   const pick = await popup([
-    { id: 'shell', label: 'New shell' },
-    { label: 'New agent session', submenu: presets.map((p) => ({ id: `new:${p.id}`, label: p.name })), enabled: presets.length > 0 },
-    { id: 'resume', label: 'Resume a Claude Code conversation…', enabled: historyFor(project.path).length > 0 },
+    { id: 'shell', label: t('New shell') },
+    { label: t('New agent session'), submenu: presets.map((p) => ({ id: `new:${p.id}`, label: p.name })), enabled: presets.length > 0 },
+    { id: 'resume', label: t('Resume a Claude Code conversation…'), enabled: historyFor(project.path).length > 0 },
     sep,
-    { id: 'folder', label: 'Open folder' },
-    { id: 'copyPath', label: 'Copy path' },
+    { id: 'folder', label: t('Open folder') },
+    { id: 'copyPath', label: t('Copy path') },
     sep,
-    { id: 'collapseAll', label: 'Collapse all projects' },
-    { id: 'remove', label: 'Remove from sidebar' }
+    { id: 'collapseAll', label: t('Collapse all projects') },
+    { id: 'remove', label: t('Remove from sidebar') }
   ], pos)
   if (!pick) return
   if (pick.startsWith('new:')) {
@@ -316,7 +317,7 @@ export async function projectMenu(project: SidebarProject, pos: MenuPosition = {
       openFolder(project.path)
       break
     case 'copyPath':
-      copyText(project.path, 'Path copied')
+      copyText(project.path, t('Path copied'))
       break
     case 'collapseAll':
       void prefs.set({ collapsedProjects: useData.getState().projects.map((p) => p.path) })
@@ -338,15 +339,15 @@ export async function sidebarMenu(pos: MenuPosition = {}): Promise<void> {
   const wanted = (ui.activeProject ?? active?.projectPath)?.toLowerCase()
   const folder = data.projects.find((p) => p.path.toLowerCase() === wanted) ?? data.projects[0]
   const presets = data.presets.filter((p) => p.installed && p.id !== 'shell')
-  const where = folder && data.projects.length > 1 ? ` in ${folder.name}` : ''
+  const where = folder && data.projects.length > 1 ? ` ${t('in {folder}', { folder: folder.name })}` : ''
   const items: MenuItemSpec[] = folder
     ? [
-        { id: 'shell', label: `New shell${where}` },
-        { label: `New agent session${where}`, submenu: presets.map((p) => ({ id: `new:${p.id}`, label: p.name })), enabled: presets.length > 0 },
+        { id: 'shell', label: `${t('New shell')}${where}` },
+        { label: `${t('New agent session')}${where}`, submenu: presets.map((p) => ({ id: `new:${p.id}`, label: p.name })), enabled: presets.length > 0 },
         sep,
-        { id: 'add', label: 'Add folder…' }
+        { id: 'add', label: t('Add folder…') }
       ]
-    : [{ id: 'add', label: 'Add folder…' }]
+    : [{ id: 'add', label: t('Add folder…') }]
   const pick = await popup(items, pos)
   if (!pick) return
   if (pick === 'add') await addProject()

@@ -8,6 +8,7 @@ import { Keys } from './Keys'
 import { DotSpinner } from './sidebar/DotSpinner'
 import { AgentLogo } from './sidebar/AgentLogo'
 import { StatusGlyph } from './sidebar/StatusGlyph'
+import { t } from '@/lib/i18n'
 
 /**
  * Title-bar pulse and inbox. Spins while agents work, shows an amber count when some need you.
@@ -25,7 +26,7 @@ export function ActivityPulse() {
   const { needsYou, done, working } = attentionCounts(list)
   const queue = attentionQueue(list)
   const nextKey = useShortcutLabel('next-attention')
-  const title = needsYou ? `${needsYou} need${needsYou === 1 ? 's' : ''} you${nextKey ? ` · ${nextKey}` : ''}` : working ? `${working} working` : 'All quiet'
+  const title = needsYou ? `${t(needsYou === 1 ? '{n} needs you' : '{n} need you', { n: needsYou })}${nextKey ? ` · ${nextKey}` : ''}` : working ? t('{n} working', { n: working }) : t('All quiet')
 
   useEffect(() => {
     if (!open) return
@@ -79,10 +80,10 @@ export function ActivityPulse() {
           style={{ background: 'var(--bg-elevated)', boxShadow: '0 0 0 1px var(--border-strong) inset, var(--shadow-pop)' }}
         >
           <div className="flex items-center px-2.5 pb-1 pt-1.5 text-[11px] font-medium text-muted">
-            <span>Needs you</span>
+            <span>{t('Needs you')}</span>
             {nextKey && (
               <span className="ml-auto">
-                <Keys id="next-attention" /> next
+                <Keys id="next-attention" /> {t('next')}
               </span>
             )}
           </div>
@@ -94,7 +95,7 @@ export function ActivityPulse() {
               <div key={s.id} className="flex h-8 items-center gap-2 rounded-[6px] px-2 hover:bg-hover" onClick={() => jump(s.id, s.projectPath)}>
                 <StatusGlyph status={s.status} color={color} size={14} />
                 <span className="min-w-0 flex-1 truncate text-[13px]">{s.title || defaultTitle(s)}</span>
-                <span className="text-[11px] text-muted">{waiting ? 'waiting' : s.status === 'error' ? 'error' : 'done'}</span>
+                <span className="text-[11px] text-muted">{t(waiting ? 'waiting' : s.status === 'error' ? 'error' : 'done')}</span>
                 <span style={{ color: 'var(--text-faint)' }}>
                   <AgentLogo presetId={presetId} size={12} />
                 </span>

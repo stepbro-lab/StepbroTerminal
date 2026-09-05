@@ -1,3 +1,4 @@
+import { t } from '@/lib/i18n'
 interface Props {
   presetId: string
   size?: number
@@ -87,7 +88,7 @@ export function AgentLogo({ presetId, size = 14, className, style, brand = false
     case 'shell':
     default:
       return (
-        <svg {...box} viewBox="0 0 16 16" aria-label="Shell">
+        <svg {...box} viewBox="0 0 16 16" aria-label={t('Shell')}>
           <path d="M3 4.2l4.2 3.8L3 11.8M8.6 12.4H13" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       )
