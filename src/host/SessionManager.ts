@@ -400,17 +400,14 @@ export class SessionManager extends EventEmitter {
     const l = this.live.get(to)
     if (!l?.pty) return
     const body = text.replace(/\r?\n/g, '\n')
-    // Agents' TUIs treat a burst of input as a paste and fold an Enter that arrives inside the
-    // burst into it, so the text never gets submitted (Codex showed "[Pasted Content]" and sat
-    // there). Programs that asked for bracketed paste get the text as one paste, and Enter comes
-    // once the burst is over either way.
-    const bracketed = l.screen.modes.bracketedPasteMode
-    if (bracketed) l.pty.write('\x1b[200~')
     // A task names an untitled session; a message passing through it does not.
     if (opts.titled === false) l.pty.write(body)
     else this.input(to, Buffer.from(body, 'utf8'))
     if (opts.suffix) l.pty.write(opts.suffix)
-    if (bracketed) l.pty.write('\x1b[201~')
+    // Agents' TUIs treat a burst of input as a paste and fold an Enter that arrives inside the
+    // burst into it, so the text never gets submitted (Codex showed "[Pasted Content]" and sat
+    // there). Enter comes once the burst is well over. Bracketed-paste markers are not an option:
+    // ConPTY hands them to the program as stray characters.
     if (submit) setTimeout(() => this.input(to, Buffer.from('\r')), 900)
     this.emit('handoff', { from, to, text })
   }

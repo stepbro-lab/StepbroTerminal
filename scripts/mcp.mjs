@@ -25,7 +25,8 @@ if (tool === '--tools') {
   for (const t of tools) console.log(`- ${t.name}: ${t.description?.slice(0, 90)}`)
 } else {
   const started = Date.now()
-  const r = await client.callTool({ name: tool, arguments: json ? JSON.parse(json) : {} })
+  // wait can block for up to two minutes; give the call room beyond that.
+  const r = await client.callTool({ name: tool, arguments: json ? JSON.parse(json) : {} }, undefined, { timeout: 150_000 })
   console.log(`(${Date.now() - started} ms)`)
   for (const c of r.content ?? []) console.log(c.type === 'text' ? c.text : JSON.stringify(c))
 }
