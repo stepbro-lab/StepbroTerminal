@@ -153,6 +153,7 @@ async function boot(): Promise<void> {
       if (themeChanged && ctx.win) applyWindowTheme(ctx.win, ctx.prefs)
       if (shellChanged) ctx.refreshPresets()
       if (partial.addedProjects || partial.hiddenProjects) ctx.emitProjects()
+      if (partial.keybindings) buildAppMenu(ctx)
       return ctx.prefs
     },
     refreshPresets: () => {

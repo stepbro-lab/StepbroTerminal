@@ -3,9 +3,12 @@ import { useData } from '@/stores/data'
 import { useUi } from '@/stores/ui'
 import { addDroppedFolders, addProject, newShell } from '@/lib/actions'
 import { useFolderDrop } from '@/lib/folderDrop'
-import { modKey } from '@/lib/format'
+import { useBinding } from '@/lib/shortcuts'
+import { Keys } from '../Keys'
 
 export function EmptyState() {
+  const shellKey = useBinding('new-shell')
+  const paletteKey = useBinding('palette')
   const projects = useData((s) => s.projects)
   const activeProject = useUi((s) => s.activeProject)
   const project = projects.find((p) => p.path.toLowerCase() === activeProject?.toLowerCase()) ?? projects[0]
@@ -40,12 +43,16 @@ export function EmptyState() {
         <Terminal size={14} /> New shell
       </button>
       <div className="mt-1 flex items-center gap-4 text-[12px] text-muted">
-        <span>
-          <kbd>{modKey}</kbd> <kbd>T</kbd> shell
-        </span>
-        <span>
-          <kbd>{modKey}</kbd> <kbd>K</kbd> palette
-        </span>
+        {shellKey && (
+          <span>
+            <Keys chord={shellKey} /> shell
+          </span>
+        )}
+        {paletteKey && (
+          <span>
+            <Keys chord={paletteKey} /> palette
+          </span>
+        )}
       </div>
       {hint}
     </div>

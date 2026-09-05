@@ -3,7 +3,8 @@ import { useData } from '@/stores/data'
 import { useUi } from '@/stores/ui'
 import { attentionCounts, attentionQueue } from '@/lib/attention'
 import { defaultTitle, rowPresetId } from '@/lib/sidebarModel'
-import { modKey } from '@/lib/format'
+import { useShortcutLabel } from '@/lib/shortcuts'
+import { Keys } from './Keys'
 import { DotSpinner } from './sidebar/DotSpinner'
 import { AgentLogo } from './sidebar/AgentLogo'
 import { StatusGlyph } from './sidebar/StatusGlyph'
@@ -23,7 +24,8 @@ export function ActivityPulse() {
   const list = Object.values(sessions)
   const { needsYou, done, working } = attentionCounts(list)
   const queue = attentionQueue(list)
-  const title = needsYou ? `${needsYou} need${needsYou === 1 ? 's' : ''} you · ${modKey} J` : working ? `${working} working` : 'All quiet'
+  const nextKey = useShortcutLabel('next-attention')
+  const title = needsYou ? `${needsYou} need${needsYou === 1 ? 's' : ''} you${nextKey ? ` · ${nextKey}` : ''}` : working ? `${working} working` : 'All quiet'
 
   useEffect(() => {
     if (!open) return
@@ -78,9 +80,11 @@ export function ActivityPulse() {
         >
           <div className="flex items-center px-2.5 pb-1 pt-1.5 text-[11px] font-medium text-muted">
             <span>Needs you</span>
-            <span className="ml-auto">
-              <kbd>{modKey}</kbd> <kbd>J</kbd> next
-            </span>
+            {nextKey && (
+              <span className="ml-auto">
+                <Keys id="next-attention" /> next
+              </span>
+            )}
           </div>
           {queue.map((s) => {
             const presetId = rowPresetId(s)

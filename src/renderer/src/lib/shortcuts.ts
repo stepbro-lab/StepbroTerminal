@@ -6,28 +6,11 @@ import { flatSessions, type SidebarProject } from './sidebarModel'
 import { registry } from '@/terminal/TerminalRegistry'
 import { jumpToAttention } from './attention'
 import { useNotes } from '@/stores/notes'
+import { displayChord, matchShortcut, resolveBindings, type Bindings, type ShortcutId, type ShortcutMatch } from '@shared/keybindings'
 
 const isMac = window.step.platform === 'darwin'
 
-export type Command =
-  | 'palette'
-  | 'new-session'
-  | 'new-shell'
-  | 'add-project'
-  | 'close-session'
-  | 'toggle-sidebar'
-  | 'find'
-  | 'settings'
-  | 'restart-session'
-  | 'rename-session'
-  | 'split-right'
-  | 'split-down'
-  | 'next-attention'
-  | 'prompt-history'
-  | 'next-view'
-  | 'prev-view'
-  | 'redraw'
-  | 'notes'
+export type Command = ShortcutId
 
 let modelRef: SidebarProject[] = []
 export function setSidebarModelRef(m: SidebarProject[]): void {
@@ -43,9 +26,6 @@ export function runCommand(cmd: Command): void {
       ui.paletteOpen ? ui.closePalette() : ui.openPalette('')
       break
     case 'new-session':
-      if (!target) void addProject()
-      else void newShell(target)
-      break
     case 'new-shell':
       if (!target) void addProject()
       else void newShell(target)
@@ -94,47 +74,57 @@ export function runCommand(cmd: Command): void {
     case 'notes':
       useNotes.getState().toggle()
       break
+    case 'jump':
+      break
   }
 }
 
-/** Maps a keydown to an app command, or null. Shared by the window listener and xterm's key handler. */
-export function commandFor(ev: KeyboardEvent): Command | 'jump' | null {
-  const mod = isMac ? ev.metaKey : ev.ctrlKey
-  if (!mod) return null
-  const k = ev.key.toLowerCase()
-  if (ev.shiftKey) {
-    if (k === 'r') return 'restart-session'
-    if (k === 'o') return 'add-project'
-    if (k === 'h') return 'prompt-history'
-    if (k === 'l') return 'redraw'
-    if (k === 'n') return 'notes'
-    if (ev.key === ']' || ev.key === '}') return 'next-view'
-    if (ev.key === '[' || ev.key === '{') return 'prev-view'
-    if (ev.key === '\\' || ev.key === '|') return 'split-down'
-    return null
+// ---- bindings ----
+
+let cachedFor: unknown = undefined
+let cached: Bindings | null = null
+
+/** The shortcuts in force: defaults with the user's changes from prefs applied. */
+export function currentBindings(): Bindings {
+  const kb = usePrefs.getState().prefs?.keybindings
+  if (!cached || cachedFor !== kb) {
+    cached = resolveBindings(kb, isMac)
+    cachedFor = kb
   }
-  if (ev.key === '\\') return 'split-right'
-  if (ev.altKey) return null
-  switch (k) {
-    case 'k':
-      return 'palette'
-    case 'j':
-      return 'next-attention'
-    case 'n':
-      return 'new-session'
-    case 't':
-      return 'new-shell'
-    case 'w':
-      return 'close-session'
-    case 'b':
-      return 'toggle-sidebar'
-    case 'f':
-      return 'find'
-    case ',':
-      return 'settings'
-  }
-  if (/^[1-9]$/.test(ev.key)) return 'jump'
-  return null
+  return cached
+}
+
+/** Maps a keydown to a shortcut, or null. Shared by the window listener and xterm's key handler. */
+export function commandFor(ev: KeyboardEvent): ShortcutMatch | null {
+  return matchShortcut(ev, currentBindings(), isMac)
+}
+
+/** The chord for a shortcut as people read it ("Ctrl ⇧ N"), or "" when it has no key. */
+export function shortcutLabel(id: ShortcutId): string {
+  const c = currentBindings()[id]
+  return c ? displayChord(c, isMac) : ''
+}
+
+/** "Find (Ctrl F)", or just "Find" when the shortcut has no key. */
+export function titled(text: string, id: ShortcutId): string {
+  const l = shortcutLabel(id)
+  return l ? `${text} (${l})` : text
+}
+
+/** Hooks that follow the user's changes. */
+export function useBinding(id: ShortcutId): string | null {
+  usePrefs((s) => s.prefs?.keybindings)
+  return currentBindings()[id]
+}
+export function useShortcutLabel(id: ShortcutId): string {
+  usePrefs((s) => s.prefs?.keybindings)
+  return shortcutLabel(id)
+}
+
+/** While Settings records a new shortcut every key goes there, so the app does not act on it. */
+let capture: ((ev: KeyboardEvent) => void) | null = null
+export function setShortcutCapture(fn: ((ev: KeyboardEvent) => void) | null): void {
+  capture = fn
 }
 
 export function jumpTo(n: number): void {
@@ -147,6 +137,10 @@ export function jumpTo(n: number): void {
 
 /** Window-level handler. Returns true when the event was consumed. */
 export function handleKeydown(ev: KeyboardEvent): boolean {
+  if (capture) {
+    capture(ev)
+    return true
+  }
   const ui = useUi.getState()
   if (ev.key === 'Escape') {
     if (useNotes.getState().open) {
@@ -168,16 +162,12 @@ export function handleKeydown(ev: KeyboardEvent): boolean {
     }
     return false
   }
-  if (ev.key === 'F2' && ui.activeId) {
-    runCommand('rename-session')
+  const m = commandFor(ev)
+  if (!m) return false
+  if (m.id === 'jump') {
+    if (m.digit) jumpTo(m.digit)
     return true
   }
-  const cmd = commandFor(ev)
-  if (!cmd) return false
-  if (cmd === 'jump') {
-    jumpTo(Number(ev.key))
-    return true
-  }
-  runCommand(cmd)
+  runCommand(m.id)
   return true
 }

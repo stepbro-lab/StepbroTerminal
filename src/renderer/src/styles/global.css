@@ -286,6 +286,24 @@ input[type='range']::-webkit-slider-thumb {
     0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
+/* Key caps you can click to rebind (Settings > Shortcuts). */
+.key-cap-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 24px;
+  padding: 2px 4px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.key-cap-btn:hover {
+  background: var(--bg-hover);
+}
+.key-cap-btn[data-recording='true'] {
+  background: var(--bg-elevated);
+  box-shadow: 0 0 0 1px var(--accent) inset;
+}
+
 kbd {
   font-family: var(--font-ui);
   font-size: 11px;

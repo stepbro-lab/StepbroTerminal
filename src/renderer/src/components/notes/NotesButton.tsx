@@ -1,9 +1,10 @@
 import { NotebookPen } from 'lucide-react'
 import { openCount, useNotes } from '@/stores/notes'
-import { modKey } from '@/lib/format'
+import { useShortcutLabel } from '@/lib/shortcuts'
 
 /** Title-bar button for the Notes panel; the flight animation lands on it. */
 export function NotesButton() {
+  const notesKey = useShortcutLabel('notes')
   const count = useNotes((s) => openCount(s.notes))
   const open = useNotes((s) => s.open)
   const toggle = useNotes((s) => s.toggle)
@@ -13,7 +14,7 @@ export function NotesButton() {
       data-notes-target
       data-on={open}
       style={{ width: 'auto', paddingLeft: 6, paddingRight: count ? 8 : 6 }}
-      title={`Notes  ·  ${modKey} ⇧ N`}
+      title={notesKey ? `Notes  ·  ${notesKey}` : 'Notes'}
       onClick={toggle}
     >
       <span className="flex items-center gap-1.5">

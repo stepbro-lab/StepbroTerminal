@@ -7,7 +7,6 @@ import { useUi } from '@/stores/ui'
 import { launchWorkspace } from '@/lib/actions'
 import { blankPane, newLaunchConfig, workspaceUrl } from '@/lib/launchConfigs'
 import { ACCENTS } from '@/theme/accents'
-import { modKey } from '@/lib/format'
 import { AgentLogo } from '../sidebar/AgentLogo'
 import { Footer, Row, Section, Segmented, Slider, SmallButton, TextArea, TextField, Toggle } from './controls'
 import { playNotificationSound } from '@/lib/sound'
@@ -247,49 +246,6 @@ export function NotificationsPage() {
         )}
       </Section>
     </>
-  )
-}
-
-const SHORTCUTS: Array<[string, string]> = [
-  ['New shell', `${modKey} T`],
-  ['Command palette', `${modKey} K`],
-  ['Next session that needs you', `${modKey} J`],
-  ['Prompt history', `${modKey} ⇧ H`],
-  ['Redraw the screen', `${modKey} ⇧ L`],
-  ['Notes', `${modKey} ⇧ N`],
-  ['Jump to session 1 to 9', `${modKey} 1…9`],
-  ['Split right with a new shell', `${modKey} \\`],
-  ['Split down with a new shell', `${modKey} ⇧ \\`],
-  ['Arrange panes', 'drag a session from the sidebar or a card title onto an edge'],
-  ['Next / previous view', `${modKey} ⇧ ] and ${modKey} ⇧ [`],
-  ['Close session', `${modKey} W`],
-  ['Restart session', `${modKey} ⇧ R`],
-  ['Rename session', 'F2'],
-  ['Find in terminal', `${modKey} F`],
-  ['Toggle sidebar', `${modKey} B`],
-  ['Add folder', `${modKey} ⇧ O`],
-  ['Settings', `${modKey} ,`],
-  ['Copy selection', window.step.platform === 'darwin' ? '⌘ C' : 'Ctrl ⇧ C, or Ctrl C with a selection'],
-  ['Paste text, or hand an image to the agent', window.step.platform === 'darwin' ? '⌘ V' : 'Ctrl V'],
-  ['Drop files onto the terminal', 'inserts their paths']
-]
-
-export function ShortcutsPage() {
-  return (
-    <Section title="Keyboard">
-      <div className="flex flex-col">
-        {SHORTCUTS.map(([what, keys]) => (
-          <div key={what} className="setting-row !min-h-[34px] !py-1">
-            <span className="flex-1 text-[13px]">{what}</span>
-            <span className="flex gap-1">
-              {keys.split(' ').map((k, i) => (
-                <kbd key={i}>{k}</kbd>
-              ))}
-            </span>
-          </div>
-        ))}
-      </div>
-    </Section>
   )
 }
 

@@ -9,8 +9,11 @@ import { defaultTitle, rowPresetId } from '@/lib/sidebarModel'
 import { StatusGlyph } from '../sidebar/StatusGlyph'
 import { DRAG_TYPE } from './TerminalPane'
 import { SearchBar } from './SearchBar'
+import { titled } from '@/lib/shortcuts'
+import { usePrefs } from '@/stores/prefs'
 
 export function CardHeader({ session, split = false, dim = false }: { session: Session; split?: boolean; dim?: boolean }) {
+  usePrefs((s) => s.prefs?.keybindings) // tooltips follow the user's shortcut choices
   const presets = useData((s) => s.presets)
   const searchOpen = useUi((s) => s.searchOpen)
   const setSearchOpen = useUi((s) => s.setSearchOpen)
@@ -138,14 +141,14 @@ export function CardHeader({ session, split = false, dim = false }: { session: S
         {searchOpen && isActive ? (
           <SearchBar id={session.id} onClose={() => setSearchOpen(false)} />
         ) : (
-          <button className="icon-btn" title="Find (Ctrl/Cmd+F)" onClick={() => setSearchOpen(true)}>
+          <button className="icon-btn" title={titled('Find', 'find')} onClick={() => setSearchOpen(true)}>
             <Search size={14} />
           </button>
         )}
-        <button className="icon-btn" title="Split right with a new shell (Ctrl/Cmd+\\)" onClick={() => void splitWithNewShell('row', session.id)}>
+        <button className="icon-btn" title={titled('Split right with a new shell', 'split-right')} onClick={() => void splitWithNewShell('row', session.id)}>
           <Columns2 size={14} />
         </button>
-        <button className="icon-btn" title="Split down with a new shell (Ctrl/Cmd+Shift+\\)" onClick={() => void splitWithNewShell('column', session.id)}>
+        <button className="icon-btn" title={titled('Split down with a new shell', 'split-down')} onClick={() => void splitWithNewShell('column', session.id)}>
           <Rows2 size={14} />
         </button>
         <button className="icon-btn" title="More" onClick={(e) => void more(e.currentTarget)}>

@@ -1,13 +1,21 @@
 import { app, Menu, shell } from 'electron'
 import type { Ctx } from './context'
+import { resolveBindings, toAccelerator, type ShortcutId } from '@shared/keybindings'
 
 /**
  * Application menu. On macOS it is required for Cmd+C/V/Q to work; on other platforms
  * the window is frameless and the menu stays hidden, so only the accelerators matter.
+ * Accelerators follow the user's shortcut choices; the menu is rebuilt when they change.
  */
 export function buildAppMenu(ctx: Ctx): void {
   const mac = process.platform === 'darwin'
-  const cmd = (name: string): (() => void) => () => ctx.emit('ui:command', name)
+  const bindings = resolveBindings(ctx.prefs.keybindings, mac)
+  const cmd = (name: ShortcutId): (() => void) => () => ctx.emit('ui:command', name)
+  const item = (label: string, id: ShortcutId): Electron.MenuItemConstructorOptions => ({
+    label,
+    accelerator: toAccelerator(bindings[id]),
+    click: cmd(id)
+  })
   const template: Electron.MenuItemConstructorOptions[] = [
     ...(mac
       ? [
@@ -16,7 +24,7 @@ export function buildAppMenu(ctx: Ctx): void {
             submenu: [
               { role: 'about' as const },
               { type: 'separator' as const },
-              { label: 'Settings…', accelerator: 'Cmd+,', click: cmd('settings') },
+              item('Settings…', 'settings'),
               { type: 'separator' as const },
               { role: 'hide' as const },
               { role: 'hideOthers' as const },
@@ -30,12 +38,12 @@ export function buildAppMenu(ctx: Ctx): void {
     {
       label: 'File',
       submenu: [
-        { label: 'New Session…', accelerator: 'CmdOrCtrl+N', click: cmd('new-session') },
-        { label: 'New Shell', accelerator: 'CmdOrCtrl+T', click: cmd('new-shell') },
-        { label: 'Add Project…', accelerator: 'CmdOrCtrl+Shift+O', click: cmd('add-project') },
+        item('New Session…', 'new-session'),
+        item('New Shell', 'new-shell'),
+        item('Add Project…', 'add-project'),
         { type: 'separator' },
-        { label: 'Close Session', accelerator: 'CmdOrCtrl+W', click: cmd('close-session') },
-        ...(mac ? [] : [{ type: 'separator' as const }, { role: 'quit' as const }])
+        item('Close Session', 'close-session'),
+        ...(mac ? [] : [{ type: 'separator' as const }, item('Settings…', 'settings'), { type: 'separator' as const }, { role: 'quit' as const }])
       ]
     },
     {
@@ -49,14 +57,19 @@ export function buildAppMenu(ctx: Ctx): void {
         { role: 'paste' },
         { role: 'selectAll' },
         { type: 'separator' },
-        { label: 'Find in Terminal', accelerator: 'CmdOrCtrl+F', click: cmd('find') }
+        item('Find in Terminal', 'find')
       ]
     },
     {
       label: 'View',
       submenu: [
-        { label: 'Command Palette', accelerator: 'CmdOrCtrl+K', click: cmd('palette') },
-        { label: 'Toggle Sidebar', accelerator: 'CmdOrCtrl+B', click: cmd('toggle-sidebar') },
+        item('Command Palette', 'palette'),
+        item('Prompt History', 'prompt-history'),
+        item('Notes', 'notes'),
+        item('Toggle Sidebar', 'toggle-sidebar'),
+        { type: 'separator' },
+        item('Next View', 'next-view'),
+        item('Previous View', 'prev-view'),
         { type: 'separator' },
         { role: 'resetZoom' },
         { role: 'zoomIn' },
@@ -69,8 +82,13 @@ export function buildAppMenu(ctx: Ctx): void {
     {
       label: 'Session',
       submenu: [
-        { label: 'Restart Session', accelerator: 'CmdOrCtrl+Shift+R', click: cmd('restart-session') },
-        { label: 'Rename Session', accelerator: 'F2', click: cmd('rename-session') }
+        item('Split Right', 'split-right'),
+        item('Split Down', 'split-down'),
+        { type: 'separator' },
+        item('Next Session That Needs You', 'next-attention'),
+        item('Restart Session', 'restart-session'),
+        item('Rename Session', 'rename-session'),
+        item('Redraw the Screen', 'redraw')
       ]
     },
     { role: 'windowMenu' },

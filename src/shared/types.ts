@@ -1,3 +1,4 @@
+import type { Keybindings } from './keybindings'
 export type SessionStatus = 'starting' | 'working' | 'attention' | 'done' | 'idle' | 'exited' | 'error'
 
 export type TitleSource = 'none' | 'input' | 'osc' | 'agent' | 'history' | 'user'
@@ -183,6 +184,8 @@ export interface Prefs {
   resumeOnLaunch: boolean
   /** Saved pane arrangements that open in one go. */
   launchConfigs: LaunchConfig[]
+  /** Shortcut chords the user changed, by shortcut id; null means no key. See shared/keybindings. */
+  keybindings: Keybindings
 }
 
 export type SplitDir = 'row' | 'column'
