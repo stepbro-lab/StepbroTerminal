@@ -12,6 +12,7 @@ import { prepareSpawnHelper } from './ptyHelper'
 import { NoteStore } from './NoteStore'
 import { handleMcp } from './mcp'
 import { AgentBus } from './AgentBus'
+import { agentOf } from './handoff'
 import { initLog, log } from './log'
 
 const IDLE_EXIT_MS = 60_000
@@ -51,9 +52,25 @@ async function main(): Promise<void> {
   const notes = new NoteStore(path.join(dir, 'notes.json'))
   notes.load()
 
-  // Agents talk to each other through this; a session's change of state wakes whoever waits on it.
-  const bus = new AgentBus()
-  sm.on('session', (s) => bus.wake(s.id))
+  // Agents talk to each other through this. A message for an agent that is free is typed into its
+  // conversation as if someone had written it there; a session's change of state wakes whoever
+  // waits on it and delivers what was held back while it was busy.
+  const bus = new AgentBus({
+    session: (id) => sm.get(id),
+    deliver: (to, messages) => {
+      const who = (id: string): string => {
+        const s = sm.get(id)
+        return s ? `${s.title || 'a session'} (${agentOf(s)}, ${id.slice(0, 8)})` : id.slice(0, 8)
+      }
+      const text = messages.map((m) => `Message from ${who(m.from)}: ${m.text}`).join('\n\n')
+      const last = messages[messages.length - 1]
+      sm.handoff(last.from, to, text, true, { suffix: ` — reply with the stepbro tool "report", to: "${last.from.slice(0, 8)}".`, titled: false })
+    }
+  })
+  sm.on('session', (s) => {
+    bus.wake(s.id)
+    bus.tryDeliver(s.id)
+  })
   sm.on('removed', (id) => bus.forget(id))
 
   const hooks = new HookServer(sm, token, (sessionId, req, res) =>
@@ -63,7 +80,7 @@ async function main(): Promise<void> {
         bus,
         session: (id) => sm.get(id),
         sessions: () => sm.list(),
-        send: (from, to, text, submit, suffix) => sm.handoff(from, to, text, submit, suffix),
+        send: (from, to, text, submit, suffix) => sm.handoff(from, to, text, submit, { suffix }),
         screen: (id, lines) => sm.screenLines(id, lines),
         version
       },

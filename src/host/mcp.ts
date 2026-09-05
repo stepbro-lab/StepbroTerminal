@@ -28,8 +28,8 @@ const SETTLE_MS = 5000
 
 const INSTRUCTIONS = `You are running inside StepbroTerminal, next to other sessions, and this server lets you work with them. Two layers:
 - Sessions are terminals. list_sessions shows them, read_screen shows what is on one, send_to_session types into one as if the user had.
-- Agents talk through inboxes. report leaves a message for the agent in another session without touching its terminal; wait blocks until a message arrives for you, or until a session you watch goes quiet.
-To delegate: send_to_session the task, then wait for that session; read its report, or its screen; and when someone hands you work, report back to them when you finish.`
+- Agents talk to each other with report. A message you send with report shows up in the other agent's conversation as soon as it is free, the same way a message from another agent arrives in yours as a new turn.
+To delegate: send_to_session the task, then end your turn. Do not sit waiting: the answer arrives in your conversation as a message, and you continue from there. Keep the conversation going: answer questions, ask for what you need, and say when you are done. When someone hands you work, report back to them when you finish. wait exists for the rare case where you must block, for example to watch a session finish; it is not needed to receive messages.`
 
 /**
  * The MCP endpoint agents get per session (`claude --mcp-config`, `codex -c mcp_servers…`).
@@ -193,7 +193,7 @@ function buildServer(deps: McpDeps, sessionId: string): McpServer {
       const suffix = expect_reply === false ? '' : ` — when you are done, call the stepbro tool "report" with to: "${short(sessionId)}".`
       deps.bus.noteSend(sessionId, target.id)
       deps.send(sessionId, target.id, body, submit !== false, suffix)
-      return text(`Sent to "${label(target)}" (${agentOf(target)}). Call wait with for: "${short(target.id)}" to hear back, or read_screen to look.`)
+      return text(`Sent to "${label(target)}" (${agentOf(target)}). Their answer will arrive in your conversation as a message, so you can end your turn now; read_screen shows what they are doing meanwhile.`)
     }
   )
 
@@ -202,9 +202,9 @@ function buildServer(deps: McpDeps, sessionId: string): McpServer {
   server.registerTool(
     'report',
     {
-      title: 'Report to another agent',
+      title: 'Message another agent',
       description:
-        'Leave a message for the agent in another session without typing into its terminal: results, a summary, a question. They get it the next time they call wait. Without `to` it goes to whoever handed you work last. Use it when you finish something another agent asked for.',
+        'Send a message to the agent in another session: results, a summary, a question, an answer. It appears in their conversation as soon as they are free, or as the result of their wait if they are waiting; it is held while they work or ask a person something. Without `to` it goes to whoever last sent you work or a message. Use it to report back, and to keep talking.',
       inputSchema: {
         to: z.string().optional().describe('Agent name, title fragment or session id. Defaults to the session that last sent you work.'),
         text: z.string().min(1).max(8000).describe('What to tell them. Complete and self-contained: files touched, what passed, what is left.')
@@ -223,16 +223,21 @@ function buildServer(deps: McpDeps, sessionId: string): McpServer {
       const target = deps.session(targetId)
       if (!target) return text('That session is gone.')
       deps.bus.post(sessionId, targetId, body)
-      return text(`Reported to "${label(target)}" (${agentOf(target)}). They read it the next time they call wait; if they are not waiting on you, send_to_session would type it into their terminal instead.`)
+      const held = deps.bus.pending(targetId) > 0
+      return text(
+        held
+          ? `Message for "${label(target)}" (${agentOf(target)}) is ${deps.bus.isWaiting(targetId) ? 'waiting for their wait to return' : `held until they are free (they are ${target.status})`}.`
+          : `Message delivered to "${label(target)}" (${agentOf(target)}); it is in their conversation now.`
+      )
     }
   )
 
   server.registerTool(
     'wait',
     {
-      title: 'Wait for a reply or for a session to go quiet',
+      title: 'Block until a message arrives or a session goes quiet',
       description:
-        'Block until something happens, then tell what. Returns as soon as a report arrives for you. With `for`, also returns when that session stops working (idle, or waiting for a person), with its last screen lines. Times out after timeout_s (45 by default, 120 at most) saying so; just call it again to keep waiting, as often as needed.',
+        'Only for when you must block: messages reach your conversation on their own, so normally you just end your turn. Returns as soon as a message arrives for you. With `for`, also returns when that session stops working (idle, or waiting for a person), with its last screen lines. Times out after timeout_s (45 by default, 120 at most) saying so; call it again if you still need to block.',
       inputSchema: {
         for: z.string().optional().describe('A session to watch: agent name, title fragment or id. Without it, only your inbox is watched.'),
         timeout_s: z.number().int().min(1).max(WAIT_MAX_S).optional().describe(`Seconds to wait before giving up. ${WAIT_DEFAULT_S} by default.`)
@@ -244,35 +249,43 @@ function buildServer(deps: McpDeps, sessionId: string): McpServer {
       if (watch && !watched) return text(noMatch(watch))
       const deadline = Date.now() + ms
       const seconds = Math.round(ms / 1000)
-      for (;;) {
-        const msgs = deps.bus.take(sessionId)
-        if (msgs.length) {
-          const who = (id: string): string => {
-            const s = deps.session(id)
-            return s ? `${label(s)} (${agentOf(s)}, ${short(id)})` : short(id)
+      deps.bus.setWaiting(sessionId, true)
+      try {
+        return await waitLoop()
+      } finally {
+        deps.bus.setWaiting(sessionId, false)
+      }
+      async function waitLoop(): Promise<ReturnType<typeof text>> {
+        for (;;) {
+          const msgs = deps.bus.take(sessionId)
+          if (msgs.length) {
+            const who = (id: string): string => {
+              const s = deps.session(id)
+              return s ? `${label(s)} (${agentOf(s)}, ${short(id)})` : short(id)
+            }
+            return text(msgs.map((m) => `Report from ${who(m.from)}:\n${m.text}`).join('\n\n'))
           }
-          return text(msgs.map((m) => `Report from ${who(m.from)}:\n${m.text}`).join('\n\n'))
-        }
-        if (watched) {
-          const cur = deps.session(watched.id)
-          if (!cur) {
-            return text(`Session "${label(watched)}" was closed.`)
+          if (watched) {
+            const cur = deps.session(watched.id)
+            if (!cur) {
+              return text(`Session "${label(watched)}" was closed.`)
+            }
+            if (!busy(deps, cur)) {
+              const rows = await deps.screen(cur.id, 12)
+              const state = cur.alive ? cur.status : 'exited'
+              return text(`"${label(cur)}" is ${state} and has not reported${state === 'attention' ? '; it is waiting for a person' : ''}.\n--- its last lines ---\n${rows.join('\n')}`)
+            }
           }
-          if (!busy(deps, cur)) {
-            const rows = await deps.screen(cur.id, 12)
-            const state = cur.alive ? cur.status : 'exited'
-            return text(`"${label(cur)}" is ${state} and has not reported${state === 'attention' ? '; it is waiting for a person' : ''}.\n--- its last lines ---\n${rows.join('\n')}`)
+          const left = deadline - Date.now()
+          if (left <= 0) {
+            return text(
+              watched
+                ? `"${label(watched)}" is still working after ${seconds} s and nothing arrived. Call wait again to keep waiting, or read_screen to look.`
+                : `Nothing arrived in ${seconds} s. Call wait again to keep waiting.`
+            )
           }
+          await deps.bus.waitFor(watched ? [sessionId, watched.id] : [sessionId], Math.min(left, 2000))
         }
-        const left = deadline - Date.now()
-        if (left <= 0) {
-          return text(
-            watched
-              ? `"${label(watched)}" is still working after ${seconds} s and nothing arrived. Call wait again to keep waiting, or read_screen to look.`
-              : `Nothing arrived in ${seconds} s. Call wait again to keep waiting.`
-          )
-        }
-        await deps.bus.waitFor(watched ? [sessionId, watched.id] : [sessionId], Math.min(left, 2000))
       }
     }
   )

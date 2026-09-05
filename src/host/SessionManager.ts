@@ -396,17 +396,20 @@ export class SessionManager extends EventEmitter {
    * can show it travelling. `suffix` is typed too but stays out of the title an untitled shell
    * takes from its first line: it is the request to report back, not the task.
    */
-  handoff(from: string, to: string, text: string, submit: boolean, suffix = ''): void {
+  handoff(from: string, to: string, text: string, submit: boolean, opts: { suffix?: string; titled?: boolean } = {}): void {
     const l = this.live.get(to)
     if (!l?.pty) return
+    const body = text.replace(/\r?\n/g, '\n')
     // Agents' TUIs treat a burst of input as a paste and fold an Enter that arrives inside the
     // burst into it, so the text never gets submitted (Codex showed "[Pasted Content]" and sat
     // there). Programs that asked for bracketed paste get the text as one paste, and Enter comes
     // once the burst is over either way.
     const bracketed = l.screen.modes.bracketedPasteMode
     if (bracketed) l.pty.write('\x1b[200~')
-    this.input(to, Buffer.from(text.replace(/\r?\n/g, '\n'), 'utf8'))
-    if (suffix) l.pty.write(suffix)
+    // A task names an untitled session; a message passing through it does not.
+    if (opts.titled === false) l.pty.write(body)
+    else this.input(to, Buffer.from(body, 'utf8'))
+    if (opts.suffix) l.pty.write(opts.suffix)
     if (bracketed) l.pty.write('\x1b[201~')
     if (submit) setTimeout(() => this.input(to, Buffer.from('\r')), 900)
     this.emit('handoff', { from, to, text })
