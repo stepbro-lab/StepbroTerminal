@@ -182,6 +182,7 @@ async function boot(): Promise<void> {
     getPrefs: () => ctx.prefs,
     getWindow: () => ctx.win,
     getActive: () => ctx.activeId,
+    log: (...parts) => ctx.log(...parts),
     agentName: (s) => {
       const id = s.agent.detectedPreset ?? s.presetId
       return id === 'shell' ? null : (ctx.presets.find((p) => p.id === id)?.name ?? null)

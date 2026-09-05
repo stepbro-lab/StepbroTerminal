@@ -12,6 +12,8 @@ export interface NotifierDeps {
   focusSession: (id: string) => void
   /** Plays the app's own notification sound (the renderer holds the audio file). */
   playSound: () => void
+  /** The app log, mirrored into DevTools: what was shown, and why one could not be. */
+  log: (...parts: unknown[]) => void
 }
 
 function pathToFileUrl(p: string): string {
@@ -56,7 +58,10 @@ export class Notifier {
     const win = this.deps.getWindow()
     const looking = !!win && win.isFocused() && !win.isMinimized() && this.deps.getActive() === s.id
     if (looking) return
-    if (!Notification.isSupported()) return
+    if (!Notification.isSupported()) {
+      this.deps.log('notification not supported here; nothing shown for', s.id.slice(0, 8), s.status)
+      return
+    }
 
     const notice = noticeFor(s, this.deps.agentName(s))
     if (!notice) return
@@ -67,6 +72,9 @@ export class Notifier {
         : // macOS shows the app's own icon on the left by itself; an extra image would sit on the right.
           new Notification({ title, body, icon: process.platform === 'linux' ? appLogoPath() : undefined, silent: true })
     n.on('click', () => this.show(s.id))
+    // macOS refuses notifications from an app whose bundle is not signed, and says so only here.
+    n.on('failed', (_e, error) => this.deps.log('notification failed', s.id.slice(0, 8), s.status, error))
+    n.on('show', () => this.deps.log('notification shown', s.id.slice(0, 8), s.status, title))
     n.show()
     // The system sound stays off so only ours plays.
     if (prefs.sound) this.deps.playSound()
