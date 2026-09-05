@@ -626,11 +626,6 @@ export class SessionManager extends EventEmitter {
   /**
    * A launch configuration's start text goes in only once the pane has settled: after its first
    * quiet spell, and never while it is working or asking something. Each line gets its own Enter.
-   *
-   * A sacrificial Enter goes first. A shell that has just drawn its prompt may still be waiting
-   * for a terminal reply (PSReadLine asks for the cursor position and reads one byte for it), and
-   * that swallows the first byte typed: "echo" arrived as "cho". If the Enter is eaten, nothing
-   * is lost; if it is not, the shell only prints a fresh prompt. Agents ignore an empty Enter.
    */
   private typeStartCommand(l: Live): void {
     const text = l.runOnStart
@@ -638,12 +633,12 @@ export class SessionManager extends EventEmitter {
     const st = l.s.status
     if (st === 'working' || st === 'attention' || st === 'exited' || st === 'error') return
     l.runOnStart = undefined
-    let burst = '\r'
+    let burst = ''
     for (const line of text.split(/\r?\n/)) {
       const t = line.trim()
       if (t) burst += t + '\r'
     }
-    l.pty.write(burst)
+    if (burst) l.pty.write(burst)
   }
 
   /** Agents without hooks only show their permission questions on screen; look once output settles. */

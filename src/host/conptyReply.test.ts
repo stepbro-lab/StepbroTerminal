@@ -5,12 +5,12 @@ describe('conptyReply', () => {
   it('answers the device-attributes probe', () => {
     expect(conptyReply('\x1b[c')).toBe('\x1b[?1;2c')
     expect(conptyReply('\x1b[0c')).toBe('\x1b[?1;2c')
-    // The real ConPTY startup chunk carries several sequences at once: answer both, DA first.
-    expect(conptyReply('\x1b[6n\x1b[c\x1b[?1004h\x1b[?9001h')).toBe('\x1b[?1;2c\x1b[1;1R')
+    // The real ConPTY startup chunk carries several sequences at once; only DA gets an answer.
+    expect(conptyReply('\x1b[6n\x1b[c\x1b[?1004h\x1b[?9001h')).toBe('\x1b[?1;2c')
   })
 
-  it('answers the cursor-position probe', () => {
-    expect(conptyReply('\x1b[6n')).toBe('\x1b[1;1R')
+  it('leaves the cursor-position probe alone: answering it makes PowerShell swallow the first key', () => {
+    expect(conptyReply('\x1b[6n')).toBe('')
   })
 
   it('stays silent for ordinary output', () => {

@@ -2,23 +2,24 @@
  * At startup ConPTY probes the outer terminal and BLOCKS the shell until it answers. On Windows
  * that means a new shell shows nothing for about three seconds before its prompt. The real
  * terminal is the renderer, which only attaches later, so nobody answers in time. The host
- * answers these probes itself, which brings a new shell up in tens of milliseconds.
+ * answers the probe itself, which brings a new shell up in tens of milliseconds.
  *
- * Only two queries matter and only at startup:
- *  - Primary Device Attributes, ESC[c or ESC[0c  -> "I am a VT100 with an advanced video option"
- *  - Cursor Position Report,     ESC[6n           -> row 1, column 1
+ * Only one query is answered: Primary Device Attributes, ESC[c or ESC[0c, with "I am a VT100
+ * with an advanced video option". That alone lifts the block.
+ *
+ * ConPTY also asks for the cursor position (ESC[6n, because the PTY inherits the cursor) and
+ * it must NOT be answered from here. Measured on Windows PowerShell 5.1 with PSReadLine 2.0:
+ * an ESC[1;1R reply leaves the shell's input in a state where the first key the user types is
+ * swallowed ("echo" arrives as "cho") and the bell rings; without it the prompt is just as fast
+ * and the first key arrives whole.
  *
  * A view that attaches afterwards must not answer again (the renderer already drops its replies
  * while replaying the snapshot), or the program would read the second answer as typed input.
  */
 const DA = /\x1b\[0?c/
-const DSR = /\x1b\[6n/
 
 export function conptyReply(chunk: string): string {
-  let out = ''
-  if (DA.test(chunk)) out += '\x1b[?1;2c'
-  if (DSR.test(chunk)) out += '\x1b[1;1R'
-  return out
+  return DA.test(chunk) ? '\x1b[?1;2c' : ''
 }
 
 /** Whether a chunk is only terminal control sequences (no printable output yet), so the probe window is still open. */
