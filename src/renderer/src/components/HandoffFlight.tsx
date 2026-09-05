@@ -2,7 +2,6 @@ import { useEffect, useMemo } from 'react'
 import { ArrowRight } from 'lucide-react'
 import { useHandoff } from '@/stores/handoff'
 import { useData } from '@/stores/data'
-import { useUi } from '@/stores/ui'
 import { defaultTitle, rowPresetId } from '@/lib/sidebarModel'
 import { AgentLogo } from './sidebar/AgentLogo'
 import { Flight, flightText, type FlightSpec } from './Flight'
@@ -50,10 +49,10 @@ export function HandoffFlight() {
       icon: preset && preset.id !== 'shell' ? <AgentLogo presetId={preset.id} size={11} /> : <ArrowRight size={11} />,
       label: `→ ${name}`,
       text: flightText(pending.text, 42),
+      // The flight and the row lighting up say where it went; no toast on top of that.
       onLand: () => {
         to.el.classList.add('handoff-landed')
         window.setTimeout(() => to.el.classList.remove('handoff-landed'), 1300)
-        if (!to.pane) useUi.getState().toast(`Sent to ${name}`, 'success')
       }
     }
     // The spec is built once per handoff; later store changes must not restart the flight.

@@ -1,6 +1,7 @@
 import type { MenuItemSpec, Session } from '@shared/types'
 import { useData } from '@/stores/data'
 import { useUi } from '@/stores/ui'
+import { useHandoff } from '@/stores/handoff'
 import { registry } from '@/terminal/TerminalRegistry'
 import { popup, sep } from './menus'
 import { defaultTitle, rowPresetId } from './sidebarModel'
@@ -13,15 +14,17 @@ function isAgent(s: Session): boolean {
 }
 
 /**
- * Types text into another session. For agents the text is followed by Enter after a short pause,
- * so the agent sees a prompt rather than a paste burst; shells just get the text to edit or run.
+ * Types text into another session. For agents the text is followed by Enter once the paste burst
+ * is well over, so the agent submits it rather than folding the Enter into the paste; shells just
+ * get the text to edit or run. The text flies to the receiver on screen, which is the whole
+ * confirmation; no toast.
  */
-export function sendToSession(targetId: string, text: string): void {
+export function sendToSession(from: string, targetId: string, text: string): void {
   const target = useData.getState().sessions[targetId]
   if (!target) return
   window.step.send('host:input', targetId, encoder.encode(text))
-  if (isAgent(target)) window.setTimeout(() => window.step.send('host:input', targetId, new Uint8Array([0x0d])), 200)
-  useUi.getState().toast(`Sent to ${target.title || defaultTitle(target)}`, 'success')
+  if (isAgent(target)) window.setTimeout(() => window.step.send('host:input', targetId, new Uint8Array([0x0d])), 900)
+  useHandoff.getState().arrive({ from, to: targetId, text })
 }
 
 /** Right-click menu inside a terminal: copy, paste, hand the selection to another session, find. */
@@ -52,7 +55,7 @@ export async function terminalContextMenu(id: string, x: number, y: number): Pro
   )
   if (!pick) return
   if (pick.startsWith('send:')) {
-    sendToSession(pick.slice(5), selection)
+    sendToSession(id, pick.slice(5), selection)
     return
   }
   switch (pick) {
