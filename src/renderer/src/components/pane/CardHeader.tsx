@@ -147,6 +147,11 @@ export function CardHeader({ session, split = false, dim = false }: { session: S
           </div>
         )}
         <div className="flex items-center gap-0.5">
+          {changedCount === 0 && (
+            <button className="icon-btn" title={t('Changes in this folder')} data-on={changesOpen} onClick={() => setSide(changesOpen ? null : { kind: 'changes', sessionId: session.id })}>
+              <FileDiff size={14} />
+            </button>
+          )}
           {searchOpen && isActive ? (
             <SearchBar id={session.id} onClose={() => setSearchOpen(false)} />
           ) : (
