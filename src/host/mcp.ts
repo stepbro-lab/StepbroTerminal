@@ -19,8 +19,10 @@ export interface McpDeps {
   version: string
 }
 
-const WAIT_DEFAULT_S = 60
-const WAIT_MAX_S = 240
+// Claude Code gives an MCP tool call well under four minutes before it gives up on it; the wait
+// stays short and says to call again, which costs nothing.
+const WAIT_DEFAULT_S = 45
+const WAIT_MAX_S = 120
 /** After work is handed over, the target counts as busy this long even if its status has not moved yet. */
 const SETTLE_MS = 5000
 
@@ -230,7 +232,7 @@ function buildServer(deps: McpDeps, sessionId: string): McpServer {
     {
       title: 'Wait for a reply or for a session to go quiet',
       description:
-        'Block until something happens, then tell what. Returns as soon as a report arrives for you. With `for`, also returns when that session stops working (idle, or waiting for a person), with its last screen lines. Times out after timeout_s (60 by default, 240 at most) saying so; just call it again to keep waiting.',
+        'Block until something happens, then tell what. Returns as soon as a report arrives for you. With `for`, also returns when that session stops working (idle, or waiting for a person), with its last screen lines. Times out after timeout_s (45 by default, 120 at most) saying so; just call it again to keep waiting, as often as needed.',
       inputSchema: {
         for: z.string().optional().describe('A session to watch: agent name, title fragment or id. Without it, only your inbox is watched.'),
         timeout_s: z.number().int().min(1).max(WAIT_MAX_S).optional().describe(`Seconds to wait before giving up. ${WAIT_DEFAULT_S} by default.`)
