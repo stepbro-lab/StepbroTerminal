@@ -1,4 +1,4 @@
-import type { CreateSessionOpts, PromptRecord, Session, Note, Handoff } from './types'
+import type { CreateSessionOpts, PromptRecord, Session, Note, Handoff, HostStats } from './types'
 
 export type ClientMsg =
   | { t: 'hello'; version: string }
@@ -21,6 +21,8 @@ export type ClientMsg =
   | { t: 'notes:add'; text: string }
   | { t: 'notes:update'; id: string; text?: string; done?: boolean }
   | { t: 'notes:delete'; id: string }
+  /** What the host and its sessions use right now; answered with `stats` carrying the same reqId. */
+  | { t: 'stats'; reqId: string }
   | { t: 'shutdown' }
 
 export type HostMsg =
@@ -38,6 +40,7 @@ export type HostMsg =
   | { t: 'notes'; notes: Note[]; added?: Note }
   /** One agent typed text into another session. */
   | { t: 'handoff'; handoff: Handoff }
+  | { t: 'stats'; reqId: string; stats: HostStats }
   | { t: 'error'; message: string; id?: string; reqId?: string }
 
 const HEADER = 8

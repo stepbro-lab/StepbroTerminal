@@ -348,5 +348,28 @@ export const es: Record<string, string> = {
   View: 'Ver',
   'Open Data Folder': 'Abrir carpeta de datos',
   'Show StepbroTerminal': 'Mostrar StepbroTerminal',
-  'Quit StepbroTerminal': 'Salir de StepbroTerminal'
+  'Quit StepbroTerminal': 'Salir de StepbroTerminal',
+
+  // ---- settings: advanced, resource use ----
+  'New versions download in the background and install when you restart.': 'Las versiones nuevas se descargan en segundo plano y se instalan al reiniciar.',
+  'New versions are announced here and in the title bar. The download page has the installer for your system.': 'Las versiones nuevas se anuncian aquí y en la barra de título. La página de descarga tiene el instalador para tu sistema.',
+  Memory: 'Memoria',
+  'What the app and its session host are using right now.': 'Lo que la app y su host de sesiones están usando ahora mismo.',
+  'Window, main process and helpers': 'Ventana, proceso principal y ayudantes',
+  'Waiting for the host…': 'Esperando al host…',
+  'Scrollback on disk': 'Historial en disco',
+  '{n} sessions kept, with what they printed': '{n} sesiones guardadas, con lo que imprimieron',
+  'Running terminals': 'Terminales en marcha',
+  '{n} running · {cpu} CPU · {mem} memory. Sorted by CPU use.': '{n} en marcha · {cpu} de CPU · {mem} de memoria. Ordenadas por uso de CPU.',
+  'Nothing running right now.': 'Nada en marcha ahora mismo.',
+  '1 process': '1 proceso',
+  '{n} processes': '{n} procesos',
+  Stop: 'Detener',
+  Diagnostics: 'Diagnóstico',
+  'Where StepbroTerminal keeps session data, and the host log with hook and MCP traffic.': 'Dónde guarda StepbroTerminal los datos de sesión, y el registro del host con el tráfico de hooks y MCP.',
+  'Session data': 'Datos de sesión',
+  'Host log': 'Registro del host',
+  'Show in Finder': 'Mostrar en Finder',
+  'Show in Explorer': 'Mostrar en el Explorador',
+  'Show in file manager': 'Mostrar en el gestor de archivos'
 }

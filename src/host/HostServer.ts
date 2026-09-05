@@ -185,6 +185,14 @@ export class HostServer {
       case 'notes:list':
         this.send(c, { t: 'notes', notes: this.notes.list() })
         break
+      case 'stats': {
+        const reqId = msg.reqId
+        void this.sm.stats().then(
+          (stats) => this.send(c, { t: 'stats', reqId, stats }),
+          (e) => this.send(c, { t: 'error', message: String((e as Error)?.message ?? e), reqId })
+        )
+        break
+      }
       case 'notes:add':
         this.notes.add(msg.text, { kind: 'user' })
         break

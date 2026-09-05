@@ -5,7 +5,7 @@ import { randomUUID } from 'node:crypto'
 import * as nodePty from 'node-pty'
 import { Terminal as HeadlessTerminal } from '@xterm/headless'
 import { SerializeAddon } from '@xterm/addon-serialize'
-import type { CreateSessionOpts, LiveClaude, Session } from '@shared/types'
+import type { CreateSessionOpts, HostStats, LiveClaude, Session, SessionStats } from '@shared/types'
 import { TitleCapture, detectAgentFromCommand } from './titleCapture'
 import { OscTitleParser, isBoringTitle, stripTitleGlyph } from './oscTitle'
 import { reduceStatus, type ReducerEvent } from './statusReducer'
@@ -25,6 +25,7 @@ export interface SessionManagerOpts {
   /** Where the posix shims live; goes first on PATH inside every session. */
   binDir: string
   /** The per-session MCP endpoint (notes tools) for agents that take one. */
+import { CpuMeter, readProcesses, subtree } from './procStats'
   mcpUrl: (sessionId: string) => string
   scrollback: number
   baseEnv: NodeJS.ProcessEnv
@@ -118,6 +119,50 @@ export class SessionManager extends EventEmitter {
       log('state.json unreadable, starting empty', e)
       return
     }
+  // ---- resource use ----
+
+  private cpu = new CpuMeter()
+
+  /** What every live session and the host itself use right now; CPU is measured between two calls. */
+  async stats(): Promise<HostStats> {
+    const procs = await readProcesses()
+    const now = Date.now()
+    const seen = new Set<number>([process.pid])
+    const sessions: SessionStats[] = []
+    for (const l of this.live.values()) {
+      if (!l.s.alive || !l.s.pid) continue
+      const tree = subtree(procs, l.s.pid)
+      let cpu = 0
+      let memory = 0
+      for (const p of tree) {
+        seen.add(p.pid)
+        cpu += this.cpu.rate(p, now)
+        memory += p.rss
+      }
+      sessions.push({ id: l.s.id, pid: l.s.pid, processes: tree.length, cpu, memory })
+    }
+    const self = procs.get(process.pid)
+    const cpu = self ? this.cpu.rate(self, now) : 0
+    this.cpu.keepOnly(seen)
+    return { pid: process.pid, memory: process.memoryUsage().rss, cpu, sessions, sessionsOnDisk: this.live.size, scrollbackBytes: this.scrollbackOnDisk(), at: now }
+  }
+
+  private scrollbackOnDisk(): number {
+    let total = 0
+    try {
+      for (const name of fs.readdirSync(this.opts.logDir)) {
+        try {
+          total += fs.statSync(path.join(this.opts.logDir, name)).size
+        } catch {
+          /* gone between readdir and stat */
+        }
+      }
+    } catch {
+      /* no log dir yet */
+    }
+    return total
+  }
+
     for (const s of parsed.sessions ?? []) {
       if (!s || typeof s.id !== 'string' || !s.launch) continue
       const wasAlive = s.alive

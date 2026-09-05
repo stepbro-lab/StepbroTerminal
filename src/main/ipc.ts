@@ -146,7 +146,24 @@ export function registerIpc(ctx: Ctx): void {
   handle('app:openPath', (p) => {
     void shell.openPath(p)
   })
-  void app
+  handle('app:revealPath', (p) => shell.showItemInFolder(p))
+  handle('app:paths', () => ({ data: stepDir(), hostLog: hostLogPath() }))
+
+  // ---- resource use (Settings > Advanced) ----
+  handle('stats:get', async () => {
+    // Every process Electron runs for us: the window, this one, the GPU and utility helpers.
+    let appBytes = 0
+    for (const m of app.getAppMetrics()) appBytes += (m.memory?.workingSetSize ?? 0) * 1024
+    let host = null
+    if (ctx.client.connected) {
+      try {
+        host = await ctx.client.stats()
+      } catch {
+        host = null
+      }
+    }
+    return { app: appBytes, host }
+  })
 }
 
 async function createSession(ctx: Ctx, req: CreateRequest): Promise<Session> {

@@ -13,7 +13,8 @@ import type {
   WorkspaceState,
   UpdateState,
   Note,
-  Handoff
+  Handoff,
+  AppStats
 } from './types'
 
 export interface CreateRequest {
@@ -68,6 +69,12 @@ export interface InvokeMap {
   'app:pendingWorkspaces': () => string[]
   /** The host and app logs, for reading real failures from DevTools. */
   'diag:dump': () => string
+  /** Memory and CPU of the app, the host and every live session, for Settings > Advanced. */
+  'stats:get': () => AppStats
+  /** Where session data and the host log live on this machine. */
+  'app:paths': () => { data: string; hostLog: string }
+  /** Shows a file selected in Finder, Explorer or the file manager. */
+  'app:revealPath': (path: string) => void
 }
 
 /** Renderer -> main fire-and-forget channels. */

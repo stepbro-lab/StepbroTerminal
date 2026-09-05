@@ -2,7 +2,7 @@ import { EventEmitter } from 'node:events'
 import net from 'node:net'
 import { randomUUID } from 'node:crypto'
 import { encodeFrame, FrameParser, type ClientMsg, type HostMsg } from '@shared/protocol'
-import type { CreateSessionOpts, HostInfo, Session } from '@shared/types'
+import type { CreateSessionOpts, HostInfo, HostStats, Session } from '@shared/types'
 
 /**
  * Socket client for step-host. Events:
@@ -12,7 +12,7 @@ import type { CreateSessionOpts, HostInfo, Session } from '@shared/types'
 export class HostClient extends EventEmitter {
   private sock: net.Socket | null = null
   private parser = new FrameParser()
-  private pending = new Map<string, { resolve: (s: Session) => void; reject: (e: Error) => void }>()
+  private pending = new Map<string, { resolve: (v: unknown) => void; reject: (e: Error) => void }>()
   info: HostInfo | null = null
 
   get connected(): boolean {
@@ -59,14 +59,23 @@ export class HostClient extends EventEmitter {
   }
 
   create(opts: CreateSessionOpts): Promise<Session> {
+    return this.request<Session>((reqId) => ({ t: 'new', opts, reqId }), 10_000)
+  }
+
+  /** What the host and its sessions use right now; the host samples processes, so allow it a moment. */
+  stats(): Promise<HostStats> {
+    return this.request<HostStats>((reqId) => ({ t: 'stats', reqId }), 15_000)
+  }
+
+  private request<T>(build: (reqId: string) => ClientMsg, timeoutMs: number): Promise<T> {
     const reqId = randomUUID()
-    return new Promise((resolve, reject) => {
+    return new Promise<T>((resolve, reject) => {
       if (!this.connected) return reject(new Error('host not connected'))
-      this.pending.set(reqId, { resolve, reject })
-      this.send({ t: 'new', opts, reqId })
+      this.pending.set(reqId, { resolve: resolve as (v: unknown) => void, reject })
+      this.send(build(reqId))
       setTimeout(() => {
         if (this.pending.delete(reqId)) reject(new Error('host did not answer'))
-      }, 10_000)
+      }, timeoutMs)
     })
   }
 
@@ -114,6 +123,14 @@ export class HostClient extends EventEmitter {
       case 'handoff':
         this.emit('handoff', msg.handoff)
         break
+      case 'stats': {
+        const p = this.pending.get(msg.reqId)
+        if (p) {
+          this.pending.delete(msg.reqId)
+          p.resolve(msg.stats)
+        }
+        break
+      }
       case 'error': {
         const p = msg.reqId ? this.pending.get(msg.reqId) : undefined
         if (p && msg.reqId) {

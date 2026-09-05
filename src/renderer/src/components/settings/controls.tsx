@@ -1,10 +1,13 @@
 import { useId } from 'react'
 
-/** A titled block: bold 13 px title, muted description, then rows. */
-export function Section({ title, description, children }: { title: string; description?: React.ReactNode; children: React.ReactNode }) {
+/** A titled block: bold 13 px title, muted description, then rows. `action` sits at the title's right. */
+export function Section({ title, description, action, children }: { title: string; description?: React.ReactNode; action?: React.ReactNode; children: React.ReactNode }) {
   return (
     <section className="mb-9">
-      <h3 className="text-[13px] font-semibold text-fg">{title}</h3>
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="text-[13px] font-semibold text-fg">{title}</h3>
+        {action}
+      </div>
       {description && <p className="mt-1 max-w-[560px] text-[12px] leading-[1.5] text-muted">{description}</p>}
       <div className="mt-3">{children}</div>
     </section>

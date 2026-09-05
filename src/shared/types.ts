@@ -267,6 +267,36 @@ export interface HostInfo {
   version: string
 }
 
+/** What one live session's processes use, the shell and everything under it. */
+export interface SessionStats {
+  id: string
+  pid: number
+  processes: number
+  /** Percent of one core since the previous look. */
+  cpu: number
+  /** Resident memory in bytes. */
+  memory: number
+}
+
+/** The host's own use and every live session's, as of `at`. */
+export interface HostStats {
+  pid: number
+  memory: number
+  cpu: number
+  sessions: SessionStats[]
+  /** Sessions the host keeps, running or not. */
+  sessionsOnDisk: number
+  /** Bytes of scrollback logs on disk. */
+  scrollbackBytes: number
+  at: number
+}
+
+/** Memory of the app's own processes plus what the host reports, or null while it is away. */
+export interface AppStats {
+  app: number
+  host: HostStats | null
+}
+
 export type HostState =
   | { kind: 'connecting' }
   | { kind: 'connected'; info: HostInfo }

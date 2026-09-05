@@ -10,6 +10,7 @@ import { ACCENTS } from '@/theme/accents'
 import { LANGUAGES } from '@shared/i18n'
 import { AgentLogo } from '../sidebar/AgentLogo'
 import { Footer, Row, Section, Segmented, Slider, SmallButton, TextArea, TextField, Toggle } from './controls'
+import { ResourceSections } from './Resources'
 import { playNotificationSound } from '@/lib/sound'
 import { useUpdates } from '@/stores/updates'
 import { t } from '@/lib/i18n'
@@ -285,8 +286,8 @@ function UpdatesSection() {
       title={t('Updates')}
       description={
         direct
-          ? 'New versions download in the background and install when you restart.'
-          : 'New versions are announced here and in the title bar. The download page has the installer for your system.'
+          ? t('New versions download in the background and install when you restart.')
+          : t('New versions are announced here and in the title bar. The download page has the installer for your system.')
       }
     >
       <Row label={t('Version')} hint={hint}>
@@ -298,7 +299,6 @@ function UpdatesSection() {
 
 export function AdvancedPage() {
   const hostState = useData((s) => s.hostState)
-  const dir = window.step.platform === 'win32' ? '%USERPROFILE%\\.step' : '~/.step'
   return (
     <>
       <UpdatesSection />
@@ -310,11 +310,7 @@ export function AdvancedPage() {
           <SmallButton onClick={() => void window.step.invoke('host:restartHost')}>{t('Restart host')}</SmallButton>
         </Row>
       </Section>
-      <Section title={t('Data')} description={t('Session state, scrollback logs and per-session hook files.')}>
-        <Row label={t('Folder')} hint={dir}>
-          <SmallButton onClick={() => void window.step.invoke('app:openPath', dir)}>{t('Open')}</SmallButton>
-        </Row>
-      </Section>
+      <ResourceSections />
     </>
   )
 }
