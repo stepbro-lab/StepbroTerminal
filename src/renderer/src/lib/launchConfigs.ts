@@ -25,3 +25,24 @@ export function paneTitle(config: LaunchConfig, pane: LaunchPane): string {
 export function openablePanes(config: LaunchConfig): LaunchPane[] {
   return config.panes.filter((p) => p.cwd.trim().length > 0)
 }
+
+/** A link name: lower case, words joined by dashes, nothing else. "Demo stack" becomes "demo-stack". */
+export function slugOf(name: string): string {
+  return name
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
+/** The step:// link that opens this workspace from a shortcut or a script, even when the app is closed. */
+export function workspaceUrl(config: LaunchConfig): string {
+  return `step://workspace/${slugOf(config.name) || config.id}`
+}
+
+/** The workspace a link names: by id, or by name ignoring case, spaces and punctuation. */
+export function findWorkspace(configs: LaunchConfig[], key: string): LaunchConfig | undefined {
+  const k = key.trim()
+  return configs.find((c) => c.id === k) ?? configs.find((c) => slugOf(c.name) === slugOf(k))
+}

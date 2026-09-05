@@ -5,7 +5,7 @@ import { usePrefs } from '@/stores/prefs'
 import { useData } from '@/stores/data'
 import { useUi } from '@/stores/ui'
 import { launchWorkspace } from '@/lib/actions'
-import { blankPane, newLaunchConfig } from '@/lib/launchConfigs'
+import { blankPane, newLaunchConfig, workspaceUrl } from '@/lib/launchConfigs'
 import { ACCENTS } from '@/theme/accents'
 import { modKey } from '@/lib/format'
 import { AgentLogo } from '../sidebar/AgentLogo'
@@ -389,7 +389,12 @@ export function WorkspacesPage() {
     useUi.getState().setSettingsOpen(false)
     void launchWorkspace(c)
   }
-  const summary = (c: LaunchConfig): string => `${c.panes.length} pane${c.panes.length === 1 ? '' : 's'} · ${c.split === 'row' ? 'side by side' : 'stacked'}`
+  const summary = (c: LaunchConfig): string => `${c.panes.length} pane${c.panes.length === 1 ? '' : 's'} · ${c.split === 'row' ? 'side by side' : 'stacked'} · ${workspaceUrl(c)}`
+  const copyLink = (c: LaunchConfig): void => {
+    window.step.send('clipboard:write', workspaceUrl(c))
+    useUi.getState().toast('Link copied', 'success')
+  }
+  const example = configs[0] ? workspaceUrl(configs[0]) : 'step://workspace/my-project'
 
   return (
     <>
@@ -402,6 +407,7 @@ export function WorkspacesPage() {
           <Row key={c.id} label={c.name.trim() || 'Untitled'} hint={summary(c)}>
             <div className="flex items-center gap-1.5">
               <SmallButton onClick={() => open(c)}>Open</SmallButton>
+              <SmallButton onClick={() => copyLink(c)}>Copy link</SmallButton>
               <SmallButton onClick={() => setEditing(editing === c.id ? null : c.id)}>{editing === c.id ? 'Close' : 'Edit'}</SmallButton>
               <SmallButton tone="danger" onClick={() => remove(c.id)}>
                 Delete
@@ -409,6 +415,11 @@ export function WorkspacesPage() {
             </div>
           </Row>
         ))}
+        <div className="mt-3 text-[11.5px] leading-relaxed text-muted">
+          Every workspace has a link that opens it from a shortcut or a script, starting the app if it is closed.
+          Windows: <code className="font-mono text-[11px] text-secondary">start "" "{example}"</code> · macOS: <code className="font-mono text-[11px] text-secondary">open "{example}"</code> · Linux:{' '}
+          <code className="font-mono text-[11px] text-secondary">xdg-open "{example}"</code>
+        </div>
       </Section>
       <Footer>
         <SmallButton onClick={add}>New workspace</SmallButton>

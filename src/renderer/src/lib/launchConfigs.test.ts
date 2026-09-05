@@ -49,3 +49,31 @@ describe('openablePanes', () => {
     expect(openablePanes(c).map((p) => p.cwd)).toEqual(['/a'])
   })
 })
+
+import { findWorkspace, slugOf, workspaceUrl } from './launchConfigs'
+
+describe('slugOf', () => {
+  it('lower-cases, joins words with dashes and drops the rest', () => {
+    expect(slugOf('Demo stack')).toBe('demo-stack')
+    expect(slugOf('  Frontend + Backend!  ')).toBe('frontend-backend')
+    expect(slugOf('Café Ünïcode')).toBe('cafe-unicode')
+  })
+})
+
+describe('workspaceUrl and findWorkspace', () => {
+  const a = cfg('Demo stack', [{ cwd: '/a' }])
+  const b = { ...cfg('Frontend + Backend', [{ cwd: '/b' }]), id: 'wsb' }
+
+  it('links by slug and falls back to the id for a nameless workspace', () => {
+    expect(workspaceUrl(a)).toBe('step://workspace/demo-stack')
+    expect(workspaceUrl({ ...a, name: '' })).toBe('step://workspace/x')
+  })
+
+  it('finds by id, by slug, or by a loosely typed name', () => {
+    expect(findWorkspace([a, b], 'wsb')).toBe(b)
+    expect(findWorkspace([a, b], 'demo-stack')).toBe(a)
+    expect(findWorkspace([a, b], 'Demo Stack')).toBe(a)
+    expect(findWorkspace([a, b], 'frontend_backend')).toBe(b)
+    expect(findWorkspace([a, b], 'nope')).toBeUndefined()
+  })
+})

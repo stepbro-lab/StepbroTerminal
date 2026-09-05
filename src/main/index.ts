@@ -21,6 +21,7 @@ import { buildAppMenu } from './menu'
 import { APP_ID, ensureWindowsShortcut, migrateUserData } from './branding'
 import { Updates } from './updates'
 import { folderArgs, onlyFolders } from './openFolders'
+import { workspaceKeyFromUrl } from './stepUrl'
 import type { Ctx } from './context'
 
 const VERSION = app.getVersion()
@@ -70,6 +71,31 @@ function openFolders(ctx: Ctx, paths: string[]): void {
   }
 }
 
+/** Asks the renderer to open a workspace, or holds the request until it is ready. */
+function openWorkspace(ctx: Ctx, key: string): void {
+  if (ctx.rendererReady && ctx.win && !ctx.win.isDestroyed()) ctx.emit('ui:openWorkspace', key)
+  else ctx.pendingWorkspaces.push(key)
+}
+
+/** A step:// link from a script, a shortcut or a notification button. Workspace links come first. */
+function handleStepUrl(ctx: Ctx, url: string): boolean {
+  const key = workspaceKeyFromUrl(url)
+  if (key) {
+    ctx.log('workspace link', key)
+    openWorkspace(ctx, key)
+    return true
+  }
+  return ctx.notifier.handleUrl(url)
+}
+
+// On macOS a link can arrive through open-url before the app is ready; keep it until then.
+const earlyUrls: string[] = []
+app.on('open-url', (e, url) => {
+  e.preventDefault()
+  if (ctxRef) handleStepUrl(ctxRef, url)
+  else earlyUrls.push(url)
+})
+
 async function boot(): Promise<void> {
   // Every host/app log line also goes to the renderer's DevTools console, so a real failure can be
   // read there instead of guessed at. `forward` is wired once the window exists.
@@ -112,6 +138,7 @@ async function boot(): Promise<void> {
     updates: null as unknown as Updates,
     notes: [],
     pendingFolders: [],
+    pendingWorkspaces: [],
     rendererReady: false,
     log,
     emit: <K extends EventName>(channel: K, ...args: Parameters<EventMap[K]>): void => {
@@ -187,12 +214,14 @@ async function boot(): Promise<void> {
   // Folders given at launch: dropped on the app icon, or named on the command line.
   ctx.pendingFolders.push(...folderArgs(process.argv, process.cwd(), [app.getAppPath(), process.execPath]), ...onlyFolders(earlyFolders, process.cwd()))
   earlyFolders.length = 0
+  for (const u of earlyUrls.splice(0)) handleStepUrl(ctx, u)
   void connectHost(ctx)
 
   app.on('second-instance', (_e, argv, cwd) => {
     const url = stepUrlIn(argv)
     if (url) log('protocol link', url)
-    if (url && ctx.notifier.handleUrl(url) && !url.startsWith('step://focus/')) return
+    // Notification answers stay in the background; a workspace link opens and comes forward.
+    if (url && handleStepUrl(ctx, url) && !url.startsWith('step://focus/') && !workspaceKeyFromUrl(url)) return
     // A folder dropped on the icon while the app is already open: hand it over and come forward.
     openFolders(ctx, folderArgs(argv, cwd, [app.getAppPath(), process.execPath]))
     if (!ctx.win) ctx.win = createWindow(ctx.prefs)
@@ -200,12 +229,8 @@ async function boot(): Promise<void> {
     ctx.win.show()
     ctx.win.focus()
   })
-  app.on('open-url', (e, url) => {
-    e.preventDefault()
-    ctx.notifier.handleUrl(url)
-  })
   const launchUrl = stepUrlIn(process.argv)
-  if (launchUrl) ctx.notifier.handleUrl(launchUrl)
+  if (launchUrl) handleStepUrl(ctx, launchUrl)
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       ctx.win = createWindow(ctx.prefs)

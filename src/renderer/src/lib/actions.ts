@@ -6,7 +6,7 @@ import { registry } from '@/terminal/TerminalRegistry'
 import { popup, sep } from './menus'
 import type { MenuPosition } from '@/components/ContextMenu'
 import type { SidebarProject, SidebarSession } from './sidebarModel'
-import { layoutFor, openablePanes, paneTitle } from './launchConfigs'
+import { findWorkspace, layoutFor, openablePanes, paneTitle } from './launchConfigs'
 
 function currentDims(): { cols: number; rows: number } {
   const active = useUi.getState().activeId
@@ -185,6 +185,16 @@ export async function launchWorkspace(config: LaunchConfig): Promise<void> {
   if (ids.length === 0) return
   ui.setActiveProject(panes[0].cwd)
   ui.openView(layoutFor(ids, config.split), ids[0])
+}
+
+/** Opens the workspace a step://workspace/<name> link named, and says so when there is none. */
+export async function openWorkspaceByKey(key: string): Promise<void> {
+  const config = findWorkspace(usePrefs.getState().prefs?.launchConfigs ?? [], key)
+  if (!config) {
+    useUi.getState().toast(`No workspace called "${key}"`, 'error')
+    return
+  }
+  await launchWorkspace(config)
 }
 
 export function hideProject(path: string): void {

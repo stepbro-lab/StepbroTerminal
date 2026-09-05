@@ -64,6 +64,8 @@ export interface InvokeMap {
   'notes:list': () => Note[]
   /** Folders dropped on the app icon or given on the command line before the window was ready; cleared once read. */
   'app:pendingFolders': () => string[]
+  /** Workspaces asked for by step://workspace links before the window was ready; cleared once read. */
+  'app:pendingWorkspaces': () => string[]
   /** The host and app logs, for reading real failures from DevTools. */
   'diag:dump': () => string
 }
@@ -123,6 +125,8 @@ export interface EventMap {
   'win:captionHover': (over: boolean) => void
   /** A folder handed to the app from outside: dropped on its icon, or given on the command line. */
   'ui:openFolder': (path: string) => void
+  /** A step://workspace/<name> link: open that workspace. */
+  'ui:openWorkspace': (key: string) => void
   'theme:system': (dark: boolean) => void
   /** A line of host/app diagnostics, mirrored into the DevTools console. */
   'diag': (line: string) => void

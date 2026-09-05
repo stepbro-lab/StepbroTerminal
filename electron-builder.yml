@@ -1,6 +1,11 @@
 appId: com.stepbro.terminal
 productName: StepbroTerminal
 copyright: Copyright © 2026 Kevin
+# step:// links: notification buttons, and step://workspace/<name> to open a workspace from a script.
+protocols:
+  - name: StepbroTerminal
+    schemes:
+      - step
 directories:
   buildResources: build
   output: release

@@ -30,6 +30,8 @@ export interface Ctx {
   notes: Note[]
   /** Folders dropped on the app icon or named on the command line, waiting for the renderer. */
   pendingFolders: string[]
+  /** Workspaces named by step://workspace links, waiting for the renderer. */
+  pendingWorkspaces: string[]
   /** True once the renderer has asked for pending folders; after that they are sent live. */
   rendererReady: boolean
   log: (...a: unknown[]) => void

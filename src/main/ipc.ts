@@ -94,6 +94,7 @@ export function registerIpc(ctx: Ctx): void {
     ctx.rendererReady = true
     return ctx.pendingFolders.splice(0)
   })
+  handle('app:pendingWorkspaces', () => ctx.pendingWorkspaces.splice(0))
 
   // ---- claude data ----
   handle('history:list', () => ctx.history.sessions())

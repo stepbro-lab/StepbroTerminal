@@ -7,7 +7,7 @@ import { handleKeydown, runCommand, setSidebarModelRef, type Command } from '@/l
 import { terminalContextMenu } from '@/lib/terminalMenu'
 import { defaultTitle } from '@/lib/sidebarModel'
 import { pruneLayout, type LayoutNode } from '@/lib/layout'
-import { addDroppedFolders } from '@/lib/actions'
+import { addDroppedFolders, openWorkspaceByKey } from '@/lib/actions'
 import { TitleBar } from '@/components/TitleBar'
 import { Sidebar, useSidebarModel } from '@/components/sidebar/Sidebar'
 import { TerminalPane } from '@/components/pane/TerminalPane'
@@ -73,7 +73,8 @@ export default function App() {
       s.on('ui:handoff', (h) => useHandoff.getState().arrive(h)),
       s.on('win:maximized', (m) => useUi.getState().setMaximized(m)),
       s.on('win:captionHover', (over) => useUi.getState().setCaptionHover(over)),
-      s.on('ui:openFolder', (p) => void addDroppedFolders([p]))
+      s.on('ui:openFolder', (p) => void addDroppedFolders([p])),
+      s.on('ui:openWorkspace', (k) => void openWorkspaceByKey(k))
     ]
     void s.invoke('win:isMaximized').then((m) => useUi.getState().setMaximized(m))
     void s.invoke('notes:list').then((notes) => useNotes.getState().receive(notes))
@@ -132,6 +133,17 @@ export default function App() {
       if (paths.length) void addDroppedFolders(paths)
     })
   }, [hostState.kind, booted])
+
+  // ---- workspaces asked for by a step://workspace link before the window was ready ----
+  // Needs the preferences, which is where the workspaces live.
+  const pulledWsRef = useRef(false)
+  useEffect(() => {
+    if (pulledWsRef.current || hostState.kind !== 'connected' || !booted || !prefs) return
+    pulledWsRef.current = true
+    void window.step.invoke('app:pendingWorkspaces').then((keys) => {
+      for (const k of keys) void openWorkspaceByKey(k)
+    })
+  }, [hostState.kind, booted, prefs])
 
   // ---- terminal prefs ----
   useEffect(() => {
