@@ -78,24 +78,42 @@ class TerminalRegistry {
     return e ? this.paste(e) : Promise.resolve()
   }
 
-  /** Resolves once the configured terminal font is available (or the fallback is settled). */
+  /**
+   * Resolves once the terminal font is available in every weight the terminal draws with, or the
+   * fallback is settled. Terminals must not open before this: xterm measures the cell from
+   * whatever font is available at that moment, and a narrower fallback leaves every glyph
+   * squeezed into a cell that is too small once the real font arrives.
+   */
   async fontsReady(): Promise<void> {
     const family = fontStack(this.prefs?.fontFamily)
     try {
-      await Promise.race([document.fonts.load(`13px ${family}`), new Promise((r) => setTimeout(r, 1500))])
+      const faces = ['400', '700'].map((w) => document.fonts.load(`${w} 13px ${family}`))
+      await Promise.race([Promise.all(faces), new Promise((r) => setTimeout(r, 2000))])
       await document.fonts.ready
     } catch {
       /* fall back silently */
     }
   }
 
+  /**
+   * Re-measures cells and rebuilds the glyph atlas once a web font finishes loading. The WebGL
+   * renderer caches its atlas by font settings, so setting the family back to the same string
+   * would hand back the old glyphs; the family alternates with a trailing space instead, which
+   * the browser reads identically and xterm treats as a new configuration.
+   */
   private remeasureAll(): void {
     for (const e of this.entries.values()) {
-      const f = e.term.options.fontFamily
-      e.term.options.fontFamily = f + ' '
-      e.term.options.fontFamily = f
+      const f = e.term.options.fontFamily ?? ''
+      this.syncSpacing(e)
+      e.term.options.fontFamily = f.endsWith(' ') ? f.trimEnd() : f + ' '
       if (e.mounted) this.fitNow(e)
     }
+  }
+
+  /** Keeps the cell padding right for the font, size and screen the terminal is on now. */
+  private syncSpacing(e: Entry): void {
+    const pad = cellPadding(e.term.options.fontFamily ?? '', e.term.options.fontSize ?? 13)
+    if (e.term.options.letterSpacing !== pad) e.term.options.letterSpacing = pad
   }
 
   get(id: string): Entry | undefined {
@@ -114,8 +132,9 @@ class TerminalRegistry {
       fontFamily: fontStack(p?.fontFamily),
       fontSize: p?.fontSize ?? 13,
       lineHeight: p?.lineHeight ?? 1.2,
-      letterSpacing: 0,
-      fontWeight: window.devicePixelRatio < 1.5 ? '500' : '400',
+      letterSpacing: cellPadding(fontStack(p?.fontFamily), p?.fontSize ?? 13),
+      // Regular weight everywhere: the medium face read heavy next to other terminals.
+      fontWeight: '400',
       fontWeightBold: '700',
       customGlyphs: true,
       rescaleOverlappingGlyphs: true,
@@ -337,6 +356,7 @@ class TerminalRegistry {
         e.term.options.fontFamily = fontStack(prefs.fontFamily)
         e.term.options.fontSize = prefs.fontSize
         e.term.options.lineHeight = prefs.lineHeight
+        this.syncSpacing(e)
       }
       e.term.options.cursorStyle = prefs.cursorStyle
       e.term.options.cursorBlink = prefs.cursorBlink
@@ -380,6 +400,7 @@ class TerminalRegistry {
   }
 
   private fitNow(e: Entry): void {
+    this.syncSpacing(e)
     try {
       e.fit.fit()
     } catch {
@@ -557,6 +578,19 @@ class TerminalRegistry {
 function windowsBuild(): number | undefined {
   const m = /\.(\d+)$/.exec(window.step.osVersion ?? '')
   return m ? Number(m[1]) : undefined
+}
+
+/**
+ * Extra cell width, in device pixels, so glyphs are never squeezed. xterm floors the measured
+ * advance of the font to whole device pixels, and the WebGL renderer then scales any glyph wider
+ * than its cell down to fit: Geist Mono at 13 px advances 7.8 px, the cell became 7, and every
+ * letter came out narrow and heavy. One pixel of spacing gives the glyph back the room it lost.
+ */
+function cellPadding(family: string, size: number): number {
+  if (!measure) return 0
+  measure.font = `400 ${size}px ${family}`
+  const advance = measure.measureText('W').width * window.devicePixelRatio
+  return advance - Math.floor(advance) > 0.05 ? 1 : 0
 }
 
 function fontStack(family: string | undefined): string {

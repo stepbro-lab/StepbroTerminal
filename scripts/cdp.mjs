@@ -57,6 +57,10 @@ if (arg === '--shot') {
   const r = await send('Page.captureScreenshot', { format: 'png', ...clip })
   fs.writeFileSync(extra || 'shot.png', Buffer.from(r.result.data, 'base64'))
   console.log('saved', extra || 'shot.png')
+} else if (arg === '--reload') {
+  // Reloads the page through the protocol, bypassing the cache, so edited modules are fetched again.
+  await send('Page.reload', { ignoreCache: true })
+  console.log('reloading')
 } else if (arg === '--drag') {
   // Real mouse drag through Chromium: --drag x1 y1 x2 y2 [shift]
   const [x1, y1, x2, y2] = [extra, ...rest].map(Number)
