@@ -6,9 +6,9 @@ import type { Prefs, WorkspaceState } from '@shared/types'
 export const defaultPrefs: Prefs = {
   theme: 'system',
   accent: 'graphite',
-  fontFamily: 'Geist Mono',
+  fontFamily: 'JetBrains Mono',
   fontSize: 13,
-  lineHeight: 1.2,
+  lineHeight: 1.1,
   ligatures: false,
   cursorStyle: 'bar',
   cursorBlink: true,
@@ -38,9 +38,12 @@ function file(): string {
 export function loadPrefs(): Prefs {
   try {
     const raw = JSON.parse(fs.readFileSync(file(), 'utf8'))
-    // 'JetBrains Mono' used to be the default terminal font; move those who never chose it
-    // themselves onto the new default. Anyone can pick JetBrains Mono again in Settings.
-    if (raw && raw.fontFamily === 'JetBrains Mono') raw.fontFamily = defaultPrefs.fontFamily
+    // 'Geist Mono' at line height 1.2 used to be the default terminal text; those who never
+    // chose it themselves move onto the new default. Anyone can pick Geist Mono again in Settings.
+    if (raw && raw.fontFamily === 'Geist Mono') {
+      raw.fontFamily = defaultPrefs.fontFamily
+      if (raw.lineHeight === 1.2) raw.lineHeight = defaultPrefs.lineHeight
+    }
     return { ...defaultPrefs, ...raw }
   } catch {
     return { ...defaultPrefs }

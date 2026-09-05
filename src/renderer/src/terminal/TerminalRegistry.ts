@@ -594,9 +594,9 @@ function cellPadding(family: string, size: number): number {
 }
 
 function fontStack(family: string | undefined): string {
-  const f = (family || 'Geist Mono').trim()
+  const f = (family || 'JetBrains Mono').trim()
   const quoted = /\s/.test(f) && !f.startsWith('"') && !f.startsWith("'") ? `"${f}"` : f
-  return `${quoted}, "Geist Mono", "JetBrains Mono", "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace`
+  return `${quoted}, "JetBrains Mono", "Geist Mono", "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace`
 }
 
 export const registry = new TerminalRegistry()

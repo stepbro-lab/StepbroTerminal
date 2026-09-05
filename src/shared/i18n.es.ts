@@ -256,7 +256,7 @@ export const es: Record<string, string> = {
   Purple: 'Morado',
   Pink: 'Rosa',
   'Terminal text': 'Texto del terminal',
-  'The bundled Geist Mono and JetBrains Mono render crisply everywhere. Any font installed on this machine works too.': 'Las fuentes incluidas Geist Mono y JetBrains Mono se ven nítidas en todas partes. Cualquier fuente instalada en este equipo también sirve.',
+  'The bundled JetBrains Mono and Geist Mono render crisply everywhere. Any font installed on this machine works too.': 'Las fuentes incluidas JetBrains Mono y Geist Mono se ven nítidas en todas partes. Cualquier fuente instalada en este equipo también sirve.',
   Font: 'Fuente',
   Size: 'Tamaño',
   'Line height': 'Altura de línea',
