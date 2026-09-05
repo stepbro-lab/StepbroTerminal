@@ -49,21 +49,26 @@ render(logoSvg(1024, 0.1), 1024, path.join(buildDir, 'icon-mac.png'))
 // The logo inside notifications.
 render(logoSvg(256), 256, path.join(iconsDir, 'app-256.png'))
 
-// Tray icons: a small chevron whose color reflects the aggregate state.
-const tray = (color, dot) => `
-<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
-  <path d="M9 8 L18 16 L9 24" fill="none" stroke="${color}" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>
-  ${dot ? `<circle cx="24" cy="9" r="4.5" fill="${dot}"/>` : ''}
+// Tray icons. Windows and Linux show the logo itself, with a dot in the corner for the aggregate
+// state (blue while agents work, amber when one needs a person). The dot sits on a dark ring so it
+// reads against the logo at 16 px.
+const trayLogo = (dot) => `
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="32" height="32" viewBox="0 0 32 32">
+  <image x="1" y="1" width="30" height="30" xlink:href="${logo}"/>
+  ${dot ? `<circle cx="25" cy="25" r="7" fill="#1c1b1b"/><circle cx="25" cy="25" r="5" fill="${dot}"/>` : ''}
 </svg>`
 
-const moods = {
-  idle: { color: '#c8c8cc', dot: null },
-  working: { color: '#6e9cff', dot: '#6e9cff' },
-  attention: { color: '#c8c8cc', dot: '#f5b640' }
-}
-for (const [mood, { color, dot }] of Object.entries(moods)) {
-  render(tray(color, dot), 32, path.join(iconsDir, `tray-${mood}.png`))
-  // macOS template images are monochrome; the dot still reads as "something changed".
-  render(tray('#000000', dot ? '#000000' : null), 32, path.join(iconsDir, `tray-${mood}Template@2x.png`))
-  render(tray('#000000', dot ? '#000000' : null), 16, path.join(iconsDir, `tray-${mood}Template.png`))
+// macOS menu bar icons are monochrome template images, so the logo cannot go there as is: a
+// small chevron stands in, and the dot still reads as "something changed".
+const trayTemplate = (dot) => `
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+  <path d="M9 8 L18 16 L9 24" fill="none" stroke="#000000" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>
+  ${dot ? `<circle cx="24" cy="9" r="4.5" fill="#000000"/>` : ''}
+</svg>`
+
+const moods = { idle: null, working: '#6e9cff', attention: '#f5b640' }
+for (const [mood, dot] of Object.entries(moods)) {
+  render(trayLogo(dot), 32, path.join(iconsDir, `tray-${mood}.png`))
+  render(trayTemplate(dot), 32, path.join(iconsDir, `tray-${mood}Template@2x.png`))
+  render(trayTemplate(dot), 16, path.join(iconsDir, `tray-${mood}Template.png`))
 }
