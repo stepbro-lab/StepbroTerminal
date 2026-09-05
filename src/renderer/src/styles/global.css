@@ -85,6 +85,31 @@ button {
   color: var(--text);
 }
 
+/* ---- the sidebar's add button: small, round and raised off the surface ---- */
+.fab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: var(--bg-elevated);
+  color: var(--text);
+  box-shadow:
+    var(--shadow-chip),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  transition:
+    background-color 120ms var(--ease),
+    transform 140ms var(--ease);
+}
+.fab:hover {
+  background: var(--bg-hover);
+  transform: translateY(-1px);
+}
+.fab:active {
+  transform: translateY(0) scale(0.97);
+}
+
 /* ---- sidebar rows ---- */
 .row {
   position: relative;
