@@ -118,57 +118,78 @@ export function CardHeader({ session, split = false, dim = false }: { session: S
         </span>
       )}
       {session.pinned && <Pin size={12} className="text-muted" />}
-      {session.previewUrl && (
-        <button
-          className="ml-1 flex h-6 items-center gap-1.5 rounded-full px-2 text-[11.5px] font-medium transition hover:brightness-110"
-          style={{ background: previewOpen ? 'var(--accent)' : 'var(--accent-soft)', color: previewOpen ? 'var(--on-accent)' : 'var(--accent)' }}
-          title={`Preview ${session.previewUrl} beside the terminal`}
-          onClick={() => setSide(previewOpen ? null : { kind: 'preview', url: session.previewUrl!, sessionId: session.id })}
-        >
-          <Globe size={12} />
-          {session.previewUrl.replace(/^https?:\/\//, '')}
-        </button>
-      )}
-      <div className="ml-auto flex items-center gap-0.5">
-        <button
-          className="icon-btn relative"
-          title={t('Changes in this folder')}
-          data-on={changesOpen}
-          onClick={() => setSide(changesOpen ? null : { kind: 'changes', sessionId: session.id })}
-        >
-          <FileDiff size={14} />
-          {changedCount > 0 && (
-            <span className="absolute -right-0.5 -top-0.5 min-w-[14px] rounded-full px-1 text-center text-[9px] font-semibold leading-[14px]" style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}>
-              {changedCount}
-            </span>
+      {/* What the session has to show sits in pills that read as words; what you can do to it sits in plain icons after a gap. */}
+      <div className="ml-auto flex items-center gap-2.5">
+        {(session.previewUrl || changedCount > 0) && (
+          <div className="flex items-center gap-1">
+            {session.previewUrl && (
+              <HeaderPill
+                icon={<Globe size={12} />}
+                label={session.previewUrl.replace(/^https?:\/\//, '')}
+                on={previewOpen}
+                title={`Preview ${session.previewUrl} beside the terminal`}
+                onClick={() => setSide(previewOpen ? null : { kind: 'preview', url: session.previewUrl!, sessionId: session.id })}
+              />
+            )}
+            {changedCount > 0 && (
+              <HeaderPill
+                icon={<FileDiff size={12} />}
+                label={String(changedCount)}
+                on={changesOpen}
+                title={t('Changes in this folder')}
+                onClick={() => setSide(changesOpen ? null : { kind: 'changes', sessionId: session.id })}
+              />
+            )}
+          </div>
+        )}
+        <div className="flex items-center gap-0.5">
+          {changedCount === 0 && (
+            <button className="icon-btn" title={t('Changes in this folder')} data-on={changesOpen} onClick={() => setSide(changesOpen ? null : { kind: 'changes', sessionId: session.id })}>
+              <FileDiff size={14} />
+            </button>
           )}
-        </button>
-        {searchOpen && isActive ? (
-          <SearchBar id={session.id} onClose={() => setSearchOpen(false)} />
-        ) : (
-          <button className="icon-btn" title={titled(t('Find'), 'find')} onClick={() => setSearchOpen(true)}>
-            <Search size={14} />
+          {searchOpen && isActive ? (
+            <SearchBar id={session.id} onClose={() => setSearchOpen(false)} />
+          ) : (
+            <button className="icon-btn" title={titled(t('Find'), 'find')} onClick={() => setSearchOpen(true)}>
+              <Search size={14} />
+            </button>
+          )}
+          <button className="icon-btn" title={titled(t('Split right with a new shell'), 'split-right')} onClick={() => void splitWithNewShell('row', session.id)}>
+            <Columns2 size={14} />
           </button>
-        )}
-        <button className="icon-btn" title={titled(t('Split right with a new shell'), 'split-right')} onClick={() => void splitWithNewShell('row', session.id)}>
-          <Columns2 size={14} />
-        </button>
-        <button className="icon-btn" title={titled(t('Split down with a new shell'), 'split-down')} onClick={() => void splitWithNewShell('column', session.id)}>
-          <Rows2 size={14} />
-        </button>
-        {split && (
-          <button className="icon-btn" title={titled(t('Move to its own view'), 'detach-pane')} onClick={() => useUi.getState().detach(session.id)}>
-            <Ungroup size={14} />
+          <button className="icon-btn" title={titled(t('Split down with a new shell'), 'split-down')} onClick={() => void splitWithNewShell('column', session.id)}>
+            <Rows2 size={14} />
           </button>
-        )}
-        <button className="icon-btn" title={t('More')} onClick={(e) => void more(e.currentTarget)}>
-          <MoreHorizontal size={15} />
-        </button>
-        <button className="icon-btn" title={t('Close session')} onClick={() => void closeSession(session.id)}>
-          <X size={15} />
-        </button>
+          {split && (
+            <button className="icon-btn" title={titled(t('Move to its own view'), 'detach-pane')} onClick={() => useUi.getState().detach(session.id)}>
+              <Ungroup size={14} />
+            </button>
+          )}
+          <button className="icon-btn" title={t('More')} onClick={(e) => void more(e.currentTarget)}>
+            <MoreHorizontal size={15} />
+          </button>
+          <button className="icon-btn" title={t('Close session')} onClick={() => void closeSession(session.id)}>
+            <X size={15} />
+          </button>
+        </div>
       </div>
     </div>
+  )
+}
+
+/** A small word-shaped button: an icon and a label, tinted while its panel is open. */
+function HeaderPill({ icon, label, on, title, onClick }: { icon: React.ReactNode; label: string; on: boolean; title: string; onClick: () => void }) {
+  return (
+    <button
+      className="flex h-6 items-center gap-1.5 rounded-full pl-2 pr-2.5 text-[11.5px] font-medium tabular-nums transition hover:brightness-110"
+      style={{ background: on ? 'var(--accent)' : 'var(--accent-soft)', color: on ? 'var(--on-accent)' : 'var(--accent)' }}
+      title={title}
+      onClick={onClick}
+    >
+      {icon}
+      {label}
+    </button>
   )
 }
 
