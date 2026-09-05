@@ -26,9 +26,11 @@ export function createWindow(prefs: Prefs): BrowserWindow {
     title: 'StepbroTerminal',
     backgroundColor: isDark(prefs) ? BG.dark : BG.light,
     ...(devIcon && !devIcon.isEmpty() ? { icon: devIcon } : {}),
-    // macOS keeps its traffic lights inset in our bar. Windows and Linux draw no frame at all: the
-    // bar is ours, and the caption buttons are ours too (on Windows they show only on hover).
-    ...(platform === 'darwin' ? { titleBarStyle: 'hiddenInset' as const, trafficLightPosition: { x: 14, y: 12 } } : { frame: false }),
+    // macOS keeps its traffic lights in our bar, centred on its height, with the sidebar toggle and
+    // the rest of the bar's buttons following them on the same line. Windows and Linux draw no
+    // frame at all: the bar is ours, and the caption buttons are ours too (on Windows they show
+    // only on hover).
+    ...(platform === 'darwin' ? { titleBarStyle: 'hiddenInset' as const, trafficLightPosition: { x: 14, y: (TITLEBAR_HEIGHT - 12) / 2 } } : { frame: false }),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,
@@ -47,6 +49,10 @@ export function createWindow(prefs: Prefs): BrowserWindow {
   win.webContents.on('will-navigate', (e) => e.preventDefault())
   win.on('maximize', () => win.webContents.send('win:maximized', true))
   win.on('unmaximize', () => win.webContents.send('win:maximized', false))
+  // In macOS full screen the traffic lights go away with the menu bar, and the space kept for them
+  // in our bar goes with them.
+  win.on('enter-full-screen', () => win.webContents.send('win:fullscreen', true))
+  win.on('leave-full-screen', () => win.webContents.send('win:fullscreen', false))
   if (platform === 'win32') watchCaptionHover(win)
   if (process.env['ELECTRON_RENDERER_URL']) {
     void win.loadURL(process.env['ELECTRON_RENDERER_URL'])

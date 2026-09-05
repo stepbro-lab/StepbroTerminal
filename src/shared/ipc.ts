@@ -121,6 +121,8 @@ export interface EventMap {
   'notes:update': (notes: Note[], added?: Note) => void
   'ui:handoff': (handoff: Handoff) => void
   'win:maximized': (maximized: boolean) => void
+  /** macOS: the window went full screen, where the traffic lights leave the bar. */
+  'win:fullscreen': (fullscreen: boolean) => void
   /** Windows: whether the pointer is over the title bar; the caption buttons show while it is. */
   'win:captionHover': (over: boolean) => void
   /** A folder handed to the app from outside: dropped on its icon, or given on the command line. */

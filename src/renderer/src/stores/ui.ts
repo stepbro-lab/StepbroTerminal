@@ -40,6 +40,8 @@ interface UiState {
   toasts: Toast[]
   spinnerFrame: number
   maximized: boolean
+  /** macOS: full screen, where the traffic lights leave the title bar. */
+  fullscreen: boolean
   /** Windows: the pointer is over the title bar, so the caption buttons show. */
   captionHover: boolean
   setActive: (id: string | null) => void
@@ -69,6 +71,7 @@ interface UiState {
   dismissToast: (id: number) => void
   tickSpinner: () => void
   setMaximized: (v: boolean) => void
+  setFullscreen: (fullscreen: boolean) => void
   setCaptionHover: (v: boolean) => void
 }
 
@@ -103,6 +106,7 @@ export const useUi = create<UiState>((set, get) => ({
   toasts: [],
   spinnerFrame: 0,
   maximized: false,
+  fullscreen: false,
   captionHover: false,
 
   // Showing a session brings its view forward; a session with no view gets one of its own.
@@ -239,6 +243,7 @@ export const useUi = create<UiState>((set, get) => ({
   dismissToast: (id) => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
   tickSpinner: () => set((s) => ({ spinnerFrame: (s.spinnerFrame + 1) % 10 })),
   setMaximized: (maximized) => set({ maximized }),
+  setFullscreen: (fullscreen) => set({ fullscreen }),
   setCaptionHover: (captionHover) => set({ captionHover })
 }))
 

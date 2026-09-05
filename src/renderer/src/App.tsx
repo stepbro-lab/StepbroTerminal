@@ -72,6 +72,7 @@ export default function App() {
       s.on('notes:update', (notes, added) => useNotes.getState().receive(notes, added)),
       s.on('ui:handoff', (h) => useHandoff.getState().arrive(h)),
       s.on('win:maximized', (m) => useUi.getState().setMaximized(m)),
+      s.on('win:fullscreen', (f) => useUi.getState().setFullscreen(f)),
       s.on('win:captionHover', (over) => useUi.getState().setCaptionHover(over)),
       s.on('ui:openFolder', (p) => void addDroppedFolders([p])),
       s.on('ui:openWorkspace', (k) => void openWorkspaceByKey(k))

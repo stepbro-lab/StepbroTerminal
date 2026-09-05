@@ -20,6 +20,7 @@ export function TitleBar() {
   const activeId = useUi((s) => s.activeId)
   const maximized = useUi((s) => s.maximized)
   const captionHover = useUi((s) => s.captionHover)
+  const fullscreen = useUi((s) => s.fullscreen)
   const session = useData((s) => (activeId ? s.sessions[activeId] : undefined))
   const presets = useData((s) => s.presets)
   const collapsed = prefs?.sidebarCollapsed ?? false
@@ -38,7 +39,9 @@ export function TitleBar() {
   return (
     <header
       className="drag relative flex shrink-0 items-center"
-      style={{ height: 'var(--titlebar-h)', paddingLeft: platform === 'darwin' ? 78 : 10, paddingRight: 10 }}
+      // On a Mac the traffic lights sit at the left of this bar; the buttons start after them,
+      // except in full screen, where macOS takes the lights away.
+      style={{ height: 'var(--titlebar-h)', paddingLeft: platform === 'darwin' && !fullscreen ? 78 : 10, paddingRight: 10 }}
       onMouseMove={platform === 'win32' ? ping : undefined}
     >
       <div className="no-drag flex items-center gap-0.5">
