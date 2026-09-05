@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { conptyReply, isControlOnly } from './conptyReply'
+import { conptyReply, isControlOnly, stripProbeReplies } from './conptyReply'
 
 describe('conptyReply', () => {
   it('answers the device-attributes probe', () => {
@@ -31,5 +31,19 @@ describe('isControlOnly', () => {
   it('is false once the shell prints something', () => {
     expect(isControlOnly('Microsoft Windows [Version 10]')).toBe(false)
     expect(isControlOnly('\x1b[32mPS C:\\>\x1b[0m')).toBe(false)
+  })
+})
+
+describe('stripProbeReplies', () => {
+  it('drops the replies a view sends to the startup probes', () => {
+    expect(stripProbeReplies('\x1b[?1;2c')).toBe('')
+    expect(stripProbeReplies('\x1b[24;1R')).toBe('')
+    expect(stripProbeReplies('\x1b[1;1R\x1b[?1;2c')).toBe('')
+  })
+
+  it('keeps what the user typed around them', () => {
+    expect(stripProbeReplies('\x1b[?1;2cls\r')).toBe('ls\r')
+    expect(stripProbeReplies('echo hola\r')).toBe('echo hola\r')
+    expect(stripProbeReplies('\x1b[A')).toBe('\x1b[A')
   })
 })

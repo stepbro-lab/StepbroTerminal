@@ -14,7 +14,7 @@ import { describeSpawnEnv } from './ptyHelper'
 import { findAncestor, processTable } from './procTree'
 import { log } from './log'
 import { waitingForApproval } from './screenPrompts'
-import { conptyReply, isControlOnly } from './conptyReply'
+import { conptyReply, isControlOnly, stripProbeReplies } from './conptyReply'
 import { isOwnEndpoint, previewUrlIn } from './previewUrl'
 
 export interface SessionManagerOpts {
@@ -48,6 +48,8 @@ interface Live {
   paused: boolean
   /** From a launch configuration: typed into the pane once it first settles, then forgotten. */
   runOnStart?: string
+  /** ConPTY is still probing the terminal (nothing printable yet); the host answers and views must not. */
+  probing: boolean
 }
 
 const QUIET_MS = 1500
@@ -269,6 +271,15 @@ export class SessionManager extends EventEmitter {
   input(id: string, bytes: Uint8Array): void {
     const l = this.live.get(id)
     if (!l?.pty) return
+    let text = Buffer.from(bytes).toString('utf8')
+    if (l.probing) {
+      // A view attached while the shell starts answers ConPTY's probes as well (a restored
+      // session does: its pane is on screen before the shell is respawned). The host has already
+      // answered, and a second answer reaches the shell as typed text, "[?1;2c" at the prompt.
+      text = stripProbeReplies(text)
+      if (!text) return
+      bytes = Buffer.from(text, 'utf8')
+    }
     const line = l.lines.feed(bytes)
     if (line) {
       if (l.s.titleSource === 'none') {
@@ -293,7 +304,7 @@ export class SessionManager extends EventEmitter {
         })
       }
     }
-    l.pty.write(Buffer.from(bytes).toString('utf8'))
+    l.pty.write(text)
   }
 
   resize(id: string, cols: number, rows: number): void {
@@ -502,7 +513,8 @@ export class SessionManager extends EventEmitter {
       osc: new OscTitleParser(),
       burstStart: 0,
       logBytes: 0,
-      paused: false
+      paused: false,
+      probing: false
     }
   }
 
@@ -572,11 +584,11 @@ export class SessionManager extends EventEmitter {
     s.exitCode = undefined
     this.openLog(l)
     // Answer ConPTY's startup probes so the shell does not sit blocked for ~3s. The window closes
-    // on the first printable output, before any renderer attaches, so no reply is ever doubled.
-    let probing = true
+    // on the first printable output; while it is open, input() also drops the replies a view sends.
+    l.probing = true
     p.onData((data) => {
       if (l.pty !== p) return
-      if (probing) {
+      if (l.probing) {
         // Answer ConPTY's probes only while nothing printable has arrived yet: the shell is still
         // blocked waiting, and ConPTY consumes the reply. The moment real output shows (the prompt),
         // the shell is interactive; injecting a reply then would land it at the prompt and PSReadLine
@@ -585,7 +597,7 @@ export class SessionManager extends EventEmitter {
           const reply = conptyReply(data)
           if (reply) p.write(reply)
         } else {
-          probing = false
+          l.probing = false
         }
       }
       this.onOutput(l, data)

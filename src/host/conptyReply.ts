@@ -32,3 +32,15 @@ export function isControlOnly(chunk: string): boolean {
     .replace(/[\x00-\x1f\x7f]/g, '')
   return stripped.trim().length === 0
 }
+
+/**
+ * Replies a terminal emulator sends to those same probes: the DA answer and a cursor-position
+ * report. A view that is attached while the shell starts (a restored session, whose pane is on
+ * screen before the respawn) produces them for its own copy of the output. The host has already
+ * answered, so while the probe window is open these are dropped from the input.
+ */
+const PROBE_REPLIES = /\x1b\[\?[\d;]*c|\x1b\[\d+;\d+R/g
+
+export function stripProbeReplies(input: string): string {
+  return input.replace(PROBE_REPLIES, '')
+}
