@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
-import { FolderPlus, Plus, Settings } from 'lucide-react'
+import { FolderPlus, Plus, Settings, Ungroup } from 'lucide-react'
 import gsap from 'gsap'
 import { Flip } from 'gsap/Flip'
 import { useData } from '@/stores/data'
@@ -46,6 +46,7 @@ export function Sidebar() {
   const activeView = useUi((s) => s.activeView)
   const draggingId = useUi((s) => s.dragging)
   const setSettingsOpen = useUi((s) => s.setSettingsOpen)
+  const closeView = useUi((s) => s.closeView)
   const width = prefs?.sidebarWidth ?? 240
   const collapsed = prefs?.sidebarCollapsed ?? false
   const dragging = useRef(false)
@@ -111,6 +112,9 @@ export function Sidebar() {
       return (
         <div key={`view-${c.view}`} className="view-box" data-on={c.view === activeView} data-insert={outside ? (ins.after ? 'after' : 'before') : undefined}>
           {rows}
+          <button className="view-box-ungroup icon-btn" title="Ungroup: each session on its own" onClick={() => c.view !== null && closeView(c.view)}>
+            <Ungroup size={12} />
+          </button>
         </div>
       )
     })

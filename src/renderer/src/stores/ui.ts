@@ -50,6 +50,8 @@ interface UiState {
   /** Shows a prebuilt arrangement as a new view; its sessions leave whatever views held them. */
   openView: (layout: LayoutNode, focus: string) => void
   unsplit: () => void
+  /** Takes a pane out of its group and shows it on its own; the others stay together. */
+  detach: (id: string) => void
   dropPane: (id: string) => void
   dropSession: (id: string, target: string, zone: DropZone) => void
   setDragging: (id: string | null) => void
@@ -172,6 +174,11 @@ export const useUi = create<UiState>((set, get) => ({
     const next = views.slice()
     next[activeView] = leaf(activeId)
     set({ views: next })
+  },
+  detach: (id) => {
+    const views = withoutSession(get().views, id)
+    set({ activeId: id, views: [...views, leaf(id)], activeView: views.length, searchOpen: false })
+    announce(id)
   },
   dropPane: (id) => {
     const { views, activeView, activeId } = get()

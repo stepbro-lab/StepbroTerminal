@@ -60,6 +60,9 @@ export function runCommand(cmd: Command): void {
     case 'prev-view':
       ui.cycleView(-1)
       break
+    case 'detach-pane':
+      if (ui.activeId) ui.detach(ui.activeId)
+      break
     case 'prompt-history':
       if (ui.paletteOpen && ui.paletteMode === 'prompts') ui.closePalette()
       else ui.openPalette('', 'prompts')

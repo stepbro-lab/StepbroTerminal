@@ -7,6 +7,7 @@ import { popup, sep } from './menus'
 import type { MenuPosition } from '@/components/ContextMenu'
 import type { SidebarProject, SidebarSession } from './sidebarModel'
 import { findWorkspace, layoutFor, openablePanes, paneTitle } from './launchConfigs'
+import { hasLeaf, leaves } from './layout'
 
 function currentDims(): { cols: number; rows: number } {
   const active = useUi.getState().activeId
@@ -239,10 +240,12 @@ export async function sessionMenu(row: SidebarSession, pos: MenuPosition = {}): 
   const ui = useUi.getState()
   const s = row.session
   const canResume = !!s.launch.resumeArgs && !!s.agent.sessionId
+  const grouped = ui.views.some((v) => hasLeaf(v, s.id) && leaves(v).length > 1)
   const pick = await popup([
     { id: 'rename', label: 'Rename' },
     { id: 'pin', label: s.pinned ? 'Unpin' : 'Pin' },
     sep,
+    { id: 'detach', label: 'Move to its own view', enabled: grouped },
     { id: 'restart', label: canResume ? 'Restart and resume conversation' : 'Restart' },
     { id: 'kill', label: 'Kill process', enabled: s.alive },
     sep,
@@ -258,6 +261,9 @@ export async function sessionMenu(row: SidebarSession, pos: MenuPosition = {}): 
       break
     case 'pin':
       pinSession(s.id, !s.pinned)
+      break
+    case 'detach':
+      ui.detach(s.id)
       break
     case 'restart':
       restartSession(s.id)

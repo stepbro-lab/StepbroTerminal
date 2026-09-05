@@ -23,6 +23,7 @@ export type ShortcutId =
   | 'split-down'
   | 'next-view'
   | 'prev-view'
+  | 'detach-pane'
   | 'find'
   | 'palette'
   | 'prompt-history'
@@ -60,6 +61,7 @@ export const SHORTCUTS: ShortcutDef[] = [
   { id: 'split-down', label: 'Split down with a new shell', group: 'Panes and views', default: 'Mod+Shift+E' },
   { id: 'next-view', label: 'Next view', group: 'Panes and views', default: { mac: 'Ctrl+Tab', other: 'Mod+Tab' } },
   { id: 'prev-view', label: 'Previous view', group: 'Panes and views', default: { mac: 'Ctrl+Shift+Tab', other: 'Mod+Shift+Tab' } },
+  { id: 'detach-pane', label: 'Move pane to its own view', group: 'Panes and views', default: 'Mod+Shift+U' },
   { id: 'find', label: 'Find in terminal', group: 'Find and navigate', default: 'Mod+F' },
   { id: 'palette', label: 'Command palette', group: 'Find and navigate', default: 'Mod+K' },
   { id: 'prompt-history', label: 'Prompt history', group: 'Find and navigate', default: 'Mod+Shift+H' },

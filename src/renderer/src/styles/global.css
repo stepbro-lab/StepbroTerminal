@@ -125,6 +125,19 @@ button {
 .view-box[data-on='true'] {
   border-color: var(--border-strong);
 }
+/* Pulls the group apart; shows while the pointer is over the box. */
+.view-box-ungroup {
+  position: absolute;
+  top: 3px;
+  right: 5px;
+  width: 20px;
+  height: 20px;
+  opacity: 0;
+  z-index: 2;
+}
+.view-box:hover .view-box-ungroup {
+  opacity: 1;
+}
 
 /* Where a dragged session would land: a line with a dot, above or below the row (or the box). */
 :is(.row, .view-box)[data-insert]::before,

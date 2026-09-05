@@ -84,6 +84,7 @@ export function buildAppMenu(ctx: Ctx): void {
       submenu: [
         item('Split Right', 'split-right'),
         item('Split Down', 'split-down'),
+        item('Move Pane to Its Own View', 'detach-pane'),
         { type: 'separator' },
         item('Next Session That Needs You', 'next-attention'),
         item('Restart Session', 'restart-session'),

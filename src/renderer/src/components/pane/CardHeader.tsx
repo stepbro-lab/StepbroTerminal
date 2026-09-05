@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Columns2, FileDiff, Globe, MoreHorizontal, Pin, Rows2, Search, X } from 'lucide-react'
+import { Columns2, FileDiff, Globe, MoreHorizontal, Pin, Rows2, Search, Ungroup, X } from 'lucide-react'
 import type { Session } from '@shared/types'
 import { useData } from '@/stores/data'
 import { useUi } from '@/stores/ui'
@@ -37,7 +37,8 @@ export function CardHeader({ session, split = false, dim = false }: { session: S
         sep,
         { id: 'split-right', label: 'Split right' },
         { id: 'split-down', label: 'Split down' },
-        { id: 'unsplit', label: 'Close other panes', enabled: split },
+        { id: 'detach', label: 'Move to its own view', enabled: split },
+        { id: 'unsplit', label: 'Keep only this pane', enabled: split },
         sep,
         { id: 'redraw', label: 'Redraw screen' },
         { id: 'restart', label: canResume ? 'Restart and resume conversation' : 'Restart' },
@@ -63,6 +64,9 @@ export function CardHeader({ session, split = false, dim = false }: { session: S
         break
       case 'split-down':
         await splitWithNewShell('column')
+        break
+      case 'detach':
+        useUi.getState().detach(session.id)
         break
       case 'unsplit':
         useUi.getState().unsplit()
@@ -151,6 +155,11 @@ export function CardHeader({ session, split = false, dim = false }: { session: S
         <button className="icon-btn" title={titled('Split down with a new shell', 'split-down')} onClick={() => void splitWithNewShell('column', session.id)}>
           <Rows2 size={14} />
         </button>
+        {split && (
+          <button className="icon-btn" title={titled('Move to its own view', 'detach-pane')} onClick={() => useUi.getState().detach(session.id)}>
+            <Ungroup size={14} />
+          </button>
+        )}
         <button className="icon-btn" title="More" onClick={(e) => void more(e.currentTarget)}>
           <MoreHorizontal size={15} />
         </button>
