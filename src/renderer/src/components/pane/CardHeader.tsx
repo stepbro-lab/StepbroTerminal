@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Columns2, FileDiff, Globe, MoreHorizontal, Pin, Rows2, Search, Ungroup, X } from 'lucide-react'
+import { FileDiff, Globe, MoreHorizontal, Pin, Search, Ungroup, X } from 'lucide-react'
 import type { Session } from '@shared/types'
 import { useData } from '@/stores/data'
 import { useUi } from '@/stores/ui'
@@ -35,6 +35,7 @@ export function CardHeader({ session, split = false, dim = false }: { session: S
       [
         { id: 'rename', label: t('Rename') },
         { id: 'pin', label: t(session.pinned ? 'Unpin' : 'Pin') },
+        { id: 'changes', label: t('Changes in this folder') },
         sep,
         { id: 'split-right', label: t('Split right') },
         { id: 'split-down', label: t('Split down') },
@@ -60,11 +61,14 @@ export function CardHeader({ session, split = false, dim = false }: { session: S
       case 'pin':
         pinSession(session.id, !session.pinned)
         break
+      case 'changes':
+        setSide(changesOpen ? null : { kind: 'changes', sessionId: session.id })
+        break
       case 'split-right':
-        await splitWithNewShell('row')
+        await splitWithNewShell('row', session.id)
         break
       case 'split-down':
-        await splitWithNewShell('column')
+        await splitWithNewShell('column', session.id)
         break
       case 'detach':
         useUi.getState().detach(session.id)
@@ -118,7 +122,7 @@ export function CardHeader({ session, split = false, dim = false }: { session: S
         </span>
       )}
       {session.pinned && <Pin size={12} className="text-muted" />}
-      {/* What the session has to show sits in pills that read as words; what you can do to it sits in plain icons after a gap. */}
+      {/* What the session has to show sits in pills that read as words; the few actions worth a button follow after a gap, the rest live under More. */}
       <div className="ml-auto flex items-center gap-2.5">
         {(session.previewUrl || changedCount > 0) && (
           <div className="flex items-center gap-1">
@@ -143,11 +147,6 @@ export function CardHeader({ session, split = false, dim = false }: { session: S
           </div>
         )}
         <div className="flex items-center gap-0.5">
-          {changedCount === 0 && (
-            <button className="icon-btn" title={t('Changes in this folder')} data-on={changesOpen} onClick={() => setSide(changesOpen ? null : { kind: 'changes', sessionId: session.id })}>
-              <FileDiff size={14} />
-            </button>
-          )}
           {searchOpen && isActive ? (
             <SearchBar id={session.id} onClose={() => setSearchOpen(false)} />
           ) : (
@@ -155,12 +154,6 @@ export function CardHeader({ session, split = false, dim = false }: { session: S
               <Search size={14} />
             </button>
           )}
-          <button className="icon-btn" title={titled(t('Split right with a new shell'), 'split-right')} onClick={() => void splitWithNewShell('row', session.id)}>
-            <Columns2 size={14} />
-          </button>
-          <button className="icon-btn" title={titled(t('Split down with a new shell'), 'split-down')} onClick={() => void splitWithNewShell('column', session.id)}>
-            <Rows2 size={14} />
-          </button>
           {split && (
             <button className="icon-btn" title={titled(t('Move to its own view'), 'detach-pane')} onClick={() => useUi.getState().detach(session.id)}>
               <Ungroup size={14} />
