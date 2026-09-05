@@ -9,10 +9,23 @@ import type { CreateSessionOpts, HostStats, LiveClaude, Session, SessionStats } 
 import { TitleCapture, detectAgentFromCommand } from './titleCapture'
 import { OscTitleParser, isBoringTitle, stripTitleGlyph } from './oscTitle'
 import { reduceStatus, type ReducerEvent } from './statusReducer'
-import { applyAgentWrap, findOnPath, posixShellWithAgents, ptyEnv, resolveCommand, shellArgsWithAgents, substituteArgs, writeHooksSettings, writeMcpConfig, type AgentWrap } from './launch'
+import {
+  applyAgentWrap,
+  findOnPath,
+  posixShellWithAgents,
+  ptyEnv,
+  resolveCommand,
+  shellArgsWithAgents,
+  substituteArgs,
+  writeHooksSettings,
+  writeMcpConfig,
+  writeOpencodeConfig,
+  type AgentWrap
+} from './launch'
 import { describeSpawnEnv } from './ptyHelper'
 import { findAncestor, processTable } from './procTree'
 import { log } from './log'
+import { CpuMeter, readProcesses, subtree } from './procStats'
 import { waitingForApproval } from './screenPrompts'
 import { conptyReply, isControlOnly, stripProbeReplies } from './conptyReply'
 import { isOwnEndpoint, previewUrlIn } from './previewUrl'
@@ -25,8 +38,9 @@ export interface SessionManagerOpts {
   /** Where the posix shims live; goes first on PATH inside every session. */
   binDir: string
   /** The per-session MCP endpoint (notes tools) for agents that take one. */
-import { CpuMeter, readProcesses, subtree } from './procStats'
   mcpUrl: (sessionId: string) => string
+  /** The OpenCode plugin file, when it could be written; every session's OpenCode config points at it. */
+  opencodePlugin?: string
   scrollback: number
   baseEnv: NodeJS.ProcessEnv
 }
@@ -42,6 +56,8 @@ interface Live {
   lines: TitleCapture
   osc: OscTitleParser
   quietTimer?: NodeJS.Timeout
+  /** A typed agent has been seen drawing on the alternate screen; its going away means the agent quit. */
+  altSeen?: boolean
   /** When the current burst of output started; reset after QUIET_MS of silence. */
   burstStart: number
   logFd?: number
@@ -103,22 +119,6 @@ export class SessionManager extends EventEmitter {
     }
   }
 
-  // ---- persistence ----
-
-  load(): void {
-    let raw: string
-    try {
-      raw = fs.readFileSync(this.opts.stateFile, 'utf8')
-    } catch {
-      return
-    }
-    let parsed: { sessions?: Session[] }
-    try {
-      parsed = JSON.parse(raw)
-    } catch (e) {
-      log('state.json unreadable, starting empty', e)
-      return
-    }
   // ---- resource use ----
 
   private cpu = new CpuMeter()
@@ -163,6 +163,22 @@ export class SessionManager extends EventEmitter {
     return total
   }
 
+  // ---- persistence ----
+
+  load(): void {
+    let raw: string
+    try {
+      raw = fs.readFileSync(this.opts.stateFile, 'utf8')
+    } catch {
+      return
+    }
+    let parsed: { sessions?: Session[] }
+    try {
+      parsed = JSON.parse(raw)
+    } catch (e) {
+      log('state.json unreadable, starting empty', e)
+      return
+    }
     for (const s of parsed.sessions ?? []) {
       if (!s || typeof s.id !== 'string' || !s.launch) continue
       const wasAlive = s.alive
@@ -611,14 +627,25 @@ export class SessionManager extends EventEmitter {
         return ''
       }
     }
-    const hooksSettings = tryWrite('hooks settings', () => writeHooksSettings(this.opts.hooksDir, s.id, this.opts.hookUrl(s.id)))
+    const hookUrl = this.opts.hookUrl(s.id)
+    const hooksSettings = tryWrite('hooks settings', () => writeHooksSettings(this.opts.hooksDir, s.id, hookUrl))
     const mcpUrl = this.opts.mcpUrl(s.id)
     const mcpConfig = tryWrite('mcp config', () => writeMcpConfig(this.opts.hooksDir, s.id, mcpUrl))
+    const plugin = this.opts.opencodePlugin
+    const opencodeConfig = plugin ? tryWrite('opencode config', () => writeOpencodeConfig(this.opts.hooksDir, s.id, mcpUrl, plugin, env['OPENCODE_CONFIG'])) : ''
     const template = resume && s.launch.resumeArgs ? s.launch.resumeArgs : s.launch.args
     const args = substituteArgs(template, { sessionId, hooksSettings, mcpConfig, mcpUrl })
     // Resolve against the plain PATH, before the shims go in front of it.
     const resolved = resolveCommand(s.launch.command, env)
-    const wrap: AgentWrap = { hooksSettings, mcpConfig, mcpUrl, claude: findOnPath('claude', env), codex: findOnPath('codex', env) }
+    const wrap: AgentWrap = {
+      hooksSettings,
+      mcpConfig,
+      mcpUrl,
+      hookUrl,
+      opencodeConfig: opencodeConfig || undefined,
+      claude: findOnPath('claude', env),
+      codex: findOnPath('codex', env)
+    }
     if (!resolved) {
       s.status = 'error'
       s.error = `Command not found: ${s.launch.command}`
@@ -707,7 +734,32 @@ export class SessionManager extends EventEmitter {
       this.apply(l, { kind: 'quiet' })
       this.typeStartCommand(l)
       void this.lookAtScreen(l)
+      void this.noteAgentScreen(l)
     }, QUIET_MS)
+  }
+
+  /**
+   * An agent typed into a shell draws on the alternate screen (OpenCode, Codex, Gemini all do).
+   * When that screen goes away, the agent has quit and the pane is a plain shell again: the
+   * status stops following the agent's events and the shell's own output counts once more.
+   */
+  private async noteAgentScreen(l: Live): Promise<void> {
+    const s = l.s
+    if (s.launch.hooks || s.agent.registryPid || !s.agent.detectedPreset) return
+    await l.drained
+    if (!this.live.has(s.id)) return
+    if (l.screen.buffer.active.type === 'alternate') {
+      l.altSeen = true
+      return
+    }
+    if (!l.altSeen) return
+    l.altSeen = false
+    const hooked = s.agent.hooked
+    s.agent.hooked = false
+    s.agent.detectedPreset = undefined
+    s.agent.tool = undefined
+    if (hooked) this.apply(l, { kind: 'hook', name: 'SessionEnd', payload: {} })
+    else this.emitSession(l)
   }
 
   /**

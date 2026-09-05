@@ -44,7 +44,19 @@ export const builtinPresets: BuiltinPreset[] = [
     args: [],
     hooks: false
   },
-  { id: 'opencode', name: 'OpenCode', color: '#f2c94c', binary: 'opencode', binaries: ['opencode'], args: [], hooks: false },
+  {
+    // OpenCode finds its notes server and its status plugin through OPENCODE_CONFIG in the
+    // session's environment, so it needs no arguments; a restart picks the last conversation
+    // of that folder back up.
+    id: 'opencode',
+    name: 'OpenCode',
+    color: '#f2c94c',
+    binary: 'opencode',
+    binaries: ['opencode'],
+    args: [],
+    resumeArgs: ['--continue'],
+    hooks: false
+  },
   { id: 'kimi', name: 'Kimi Code', color: '#9b8cff', binary: 'kimi', binaries: ['kimi'], args: [], hooks: false }
 ]
 

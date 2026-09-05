@@ -159,7 +159,7 @@ function buildServer(deps: McpDeps, sessionId: string): McpServer {
       description:
         'The last lines on another session\'s screen, scrollback included: what an agent there printed, test output, a prompt it is stuck on. Use it to check on work you handed over or to see what someone is doing before you send them something.',
       inputSchema: {
-        to: z.string().describe('Agent name (codex, claude, gemini), part of the session title, or an id from list_sessions'),
+        to: z.string().describe('Agent name (codex, claude, gemini, opencode), part of the session title, or an id from list_sessions'),
         lines: z.number().int().min(5).max(200).optional().describe('How many lines from the bottom. 40 by default.')
       }
     },
@@ -178,7 +178,7 @@ function buildServer(deps: McpDeps, sessionId: string): McpServer {
     {
       title: 'Send text to another session',
       description:
-        'Type text into another session of this terminal and press Enter, as if the user had written it there. Use it to hand work to another agent ("send this to codex") or when the user asks you to pass something along. `to` can be an agent name (codex, claude, gemini), part of the session title, or an id from list_sessions. Unless expect_reply is false, the text ends with a request to report back to you; then call wait to hear from them.',
+        'Type text into another session of this terminal and press Enter, as if the user had written it there. Use it to hand work to another agent ("send this to codex") or when the user asks you to pass something along. `to` can be an agent name (codex, claude, gemini, opencode), part of the session title, or an id from list_sessions. Unless expect_reply is false, the text ends with a request to report back to you; then call wait to hear from them.',
       inputSchema: {
         to: z.string().describe('Agent name, title fragment or session id'),
         text: z.string().min(1).max(20000).describe('What to type there. Make it complete and self-contained: the other agent knows nothing about this conversation.'),

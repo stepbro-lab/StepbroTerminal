@@ -285,7 +285,7 @@ export const es: Record<string, string> = {
   'Type any of these in a shell and StepbroTerminal recognizes it. Right-click a folder to start one directly with live status.': 'Escribe cualquiera de estos en una shell y StepbroTerminal lo reconoce. Haz clic derecho en una carpeta para iniciar uno directamente con estado en vivo.',
   'Not installed': 'No instalado',
   'As you type': 'Mientras escribes',
-  'Type claude, codex or gemini at a prompt and the flag that skips its permission prompts shows up in grey. Tab or → accepts it, Esc hides it.': 'Escribe claude, codex o gemini en un prompt y el flag que salta sus preguntas de permisos aparece en gris. Tab o → lo acepta, Esc lo oculta.',
+  'Type claude, codex, gemini or opencode at a prompt and the flag that skips its permission prompts shows up in grey. Tab or → accepts it, Esc hides it.': 'Escribe claude, codex, gemini u opencode en un prompt y el flag que salta sus preguntas de permisos aparece en gris. Tab o → lo acepta, Esc lo oculta.',
   'Suggest skip-permissions flags': 'Sugerir los flags que saltan los permisos',
   'StepbroTerminal passes hooks to Claude per session so it can show working, waiting and done. Only set a path if the binary is not on PATH.': 'StepbroTerminal le pasa hooks a Claude por sesión para poder mostrar trabajando, esperando y terminado. Indica una ruta solo si el binario no está en el PATH.',
   Binary: 'Binario',

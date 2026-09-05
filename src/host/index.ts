@@ -7,7 +7,7 @@ import type { HostInfo } from '@shared/types'
 import { SessionManager } from './SessionManager'
 import { HostServer } from './HostServer'
 import { HookServer } from './HookServer'
-import { writeShims } from './launch'
+import { writeAgentPlugins, writeShims } from './launch'
 import { prepareSpawnHelper } from './ptyHelper'
 import { NoteStore } from './NoteStore'
 import { handleMcp } from './mcp'
@@ -37,6 +37,13 @@ async function main(): Promise<void> {
     }
     prepareSpawnHelper(binDir)
   }
+  // OpenCode learns about the session through a plugin, on every platform.
+  let opencodePlugin: string | undefined
+  try {
+    opencodePlugin = writeAgentPlugins(binDir)
+  } catch (e) {
+    log('agent plugin write failed', e)
+  }
   const sm = new SessionManager({
     stateFile: path.join(dir, 'state.json'),
     logDir: path.join(dir, 'sessions'),
@@ -44,6 +51,7 @@ async function main(): Promise<void> {
     hookUrl: (id) => hookUrlFor(id),
     binDir,
     mcpUrl: (id) => mcpUrlFor(id),
+    opencodePlugin,
     scrollback: SCROLLBACK_LINES,
     baseEnv: process.env
   })

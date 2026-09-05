@@ -168,7 +168,7 @@ export function AgentsPage() {
 
       <Section
         title={t('As you type')}
-        description={t('Type claude, codex or gemini at a prompt and the flag that skips its permission prompts shows up in grey. Tab or → accepts it, Esc hides it.')}
+        description={t('Type claude, codex, gemini or opencode at a prompt and the flag that skips its permission prompts shows up in grey. Tab or → accepts it, Esc hides it.')}
       >
         <Row label={t('Suggest skip-permissions flags')}>
           <Toggle value={p.flagHints} onChange={(flagHints) => upd({ flagHints })} />

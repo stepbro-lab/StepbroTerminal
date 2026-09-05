@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
+import { pathToFileURL } from 'node:url'
 
 const HOOK_EVENTS = [
   'SessionStart',
@@ -52,11 +53,150 @@ export function writeMcpConfig(dir: string, sessionId: string, url: string): str
   return file
 }
 
+/**
+ * Writes the config OpenCode reads through OPENCODE_CONFIG: the notes server for this session and
+ * the plugin that reports what it is doing. OpenCode merges it with the user's own files, arrays
+ * included, so their plugins and servers stay. If they already pointed OPENCODE_CONFIG at a file
+ * of their own, its contents come along, since the variable can only name one file.
+ */
+export function writeOpencodeConfig(dir: string, sessionId: string, mcpUrl: string, pluginFile: string, userConfig?: string): string {
+  fs.mkdirSync(dir, { recursive: true })
+  let base: Record<string, unknown> = {}
+  if (userConfig) {
+    try {
+      const parsed = JSON.parse(fs.readFileSync(userConfig, 'utf8'))
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) base = parsed
+    } catch {
+      /* their file; OpenCode will tell them about it */
+    }
+  }
+  const plugin = pathToFileURL(pluginFile).href
+  const mcp = { ...((base['mcp'] as Record<string, unknown> | undefined) ?? {}), stepbro: { type: 'remote', url: mcpUrl, enabled: true } }
+  const plugins = Array.isArray(base['plugin']) ? (base['plugin'] as unknown[]).filter((p) => p !== plugin) : []
+  const file = path.join(dir, `${sessionId}.opencode.json`)
+  fs.writeFileSync(file, JSON.stringify({ ...base, mcp, plugin: [...plugins, plugin] }, null, 2), { mode: 0o600 })
+  return file
+}
+
+/**
+ * OpenCode has no hooks of its own; it has plugins, which see everything it does. This one turns
+ * that into the events Claude Code's hooks post, at the same address, so the session shows
+ * working, waiting and done the same way. Sub-agent sessions have a parent and are ignored, so a
+ * task running underneath does not flip the status of the conversation itself.
+ */
+const OPENCODE_PLUGIN = `// StepbroTerminal: reports what OpenCode is doing to the terminal it runs in.
+const url = process.env.STEP_HOOK_URL
+
+export const StepbroPlugin = async () => {
+  if (!url) return {}
+  let current = ''
+  let model = ''
+  const roles = new Map()
+  const lastText = new Map()
+  // Sessions with a turn under way: only those are "done" when they go idle. OpenCode reports
+  // idle as it opens too, which is not the end of anything.
+  const busy = new Set()
+  const post = (name, sessionID, extra) =>
+    fetch(url, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(Object.assign({ hook_event_name: name, session_id: sessionID || current || '' }, extra || {}))
+    }).catch(() => {})
+  const mine = (sessionID) => !sessionID || !current || sessionID === current
+  const errorText = (e) => (e && ((e.data && e.data.message) || e.name)) || 'OpenCode reported an error'
+  const finished = async (sessionID) => {
+    if (!busy.has(sessionID || current)) return
+    busy.delete(sessionID || current)
+    await post('Stop', sessionID, { last_assistant_message: lastText.get(sessionID) })
+  }
+  void post('SessionStart', '')
+  return {
+    'chat.message': async (input) => {
+      if (input.sessionID) current = input.sessionID
+      busy.add(current)
+      const m = input.model && input.model.modelID
+      if (m && m !== model) {
+        model = m
+        void post('PostModelSwitch', current, { to_model: m })
+      }
+      await post('UserPromptSubmit', current)
+    },
+    'tool.execute.before': async (input) => {
+      if (!mine(input.sessionID)) return
+      if (input.tool === 'question') {
+        await post('Notification', input.sessionID, { notification_type: 'agent_needs_input', message: 'OpenCode has a question for you' })
+        return
+      }
+      await post('PreToolUse', input.sessionID, { tool_name: input.tool })
+    },
+    'tool.execute.after': async (input) => {
+      if (!mine(input.sessionID)) return
+      const args = input.args || {}
+      const file = args.filePath || args.file_path
+      const name = input.tool === 'edit' ? 'Edit' : input.tool === 'write' ? 'Write' : input.tool
+      await post('PostToolUse', input.sessionID, { tool_name: name, tool_input: file ? { file_path: file } : undefined })
+    },
+    event: async ({ event }) => {
+      const p = (event && event.properties) || {}
+      switch (event && event.type) {
+        case 'session.created':
+          if (p.info && !p.info.parentID && p.info.id !== current) {
+            current = p.info.id
+            await post('SessionStart', current)
+          }
+          return
+        case 'session.status':
+          if (!mine(p.sessionID) || !p.status) return
+          if (p.status.type === 'busy') {
+            busy.add(p.sessionID || current)
+            await post('PostToolBatch', p.sessionID)
+          } else if (p.status.type === 'idle') await finished(p.sessionID)
+          return
+        case 'session.idle':
+          if (mine(p.sessionID)) await finished(p.sessionID)
+          return
+        case 'session.error':
+          if (mine(p.sessionID)) await post('StopFailure', p.sessionID, { error: errorText(p.error) })
+          return
+        case 'permission.asked':
+        case 'permission.updated':
+          if (mine(p.sessionID)) await post('Notification', p.sessionID, { notification_type: 'permission_prompt', message: p.title || p.type || 'OpenCode is waiting on an approval' })
+          return
+        case 'permission.replied':
+          if (mine(p.sessionID)) await post('PostToolBatch', p.sessionID)
+          return
+        case 'message.updated':
+          if (p.info) roles.set(p.info.id, p.info.role)
+          return
+        case 'message.part.updated':
+          if (p.part && p.part.type === 'text' && p.part.text && roles.get(p.part.messageID) === 'assistant') lastText.set(p.part.sessionID, p.part.text)
+          return
+      }
+    },
+    dispose: async () => {
+      await post('SessionEnd', current)
+    }
+  }
+}
+`
+
+/** Writes the OpenCode plugin every platform needs and returns its path. */
+export function writeAgentPlugins(binDir: string): string {
+  const file = path.join(binDir, 'opencode', 'stepbro.js')
+  fs.mkdirSync(path.dirname(file), { recursive: true })
+  fs.writeFileSync(file, OPENCODE_PLUGIN)
+  return file
+}
+
 /** What an agent typed inside a shell needs to find its hooks and notes. */
 export interface AgentWrap {
   hooksSettings: string
   mcpConfig: string
   mcpUrl: string
+  /** Where this session's hook events go; OpenCode's plugin posts there. */
+  hookUrl?: string
+  /** OpenCode's config for this session: the notes server and the plugin that reports its status. */
+  opencodeConfig?: string
   /** The real binaries on PATH, when installed. */
   claude?: string
   codex?: string
@@ -67,6 +207,9 @@ export function applyAgentWrap(env: Record<string, string>, w: AgentWrap, binDir
   env['STEP_HOOKS_SETTINGS'] = w.hooksSettings
   env['STEP_MCP_CONFIG'] = w.mcpConfig
   env['STEP_MCP_URL'] = w.mcpUrl
+  if (w.hookUrl) env['STEP_HOOK_URL'] = w.hookUrl
+  // OpenCode reads its config from the environment, so a typed opencode needs no shim or function.
+  if (w.opencodeConfig) env['OPENCODE_CONFIG'] = w.opencodeConfig
   if (w.claude) env['STEP_REAL_CLAUDE'] = w.claude
   if (w.codex) {
     env['STEP_REAL_CODEX'] = w.codex

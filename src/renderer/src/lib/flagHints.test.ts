@@ -82,8 +82,9 @@ describe('hintFor', () => {
     expect(hintFor('echo claude')).toBeNull()
   })
 
-  it('knows codex and gemini too', () => {
+  it('knows codex, gemini and opencode too', () => {
     expect(hintFor('codex')).toBe(' --dangerously-bypass-approvals-and-sandbox')
     expect(hintFor('gemini ')).toBe('--yolo')
+    expect(hintFor('opencode')).toBe(' --auto')
   })
 })
