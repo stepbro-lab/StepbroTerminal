@@ -64,7 +64,10 @@ const AGENT_BINARIES: Record<string, string> = {
   'cursor-agent': 'cursor',
   agent: 'cursor',
   opencode: 'opencode',
-  kimi: 'kimi'
+  kimi: 'kimi',
+  deepcode: 'deepcode',
+  codewhale: 'codewhale',
+  codew: 'codewhale'
 }
 
 /** Returns the agent preset id when a typed command line starts with a known agent binary. */

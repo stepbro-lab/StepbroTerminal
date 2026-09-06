@@ -75,6 +75,17 @@ export function AgentLogo({ presetId, size = 14, className, style, brand = false
         </svg>
       )
     }
+    case 'deepcode':
+    case 'codewhale': {
+      // A whale seen from the side: DeepSeek's animal, and Codewhale's name.
+      const c = brand ? (presetId === 'deepcode' ? '#4d6bfe' : '#2f9bd6') : 'currentColor'
+      return (
+        <svg {...box} viewBox="0 0 16 16" aria-label={presetId === 'deepcode' ? 'Deep Code' : 'Codewhale'}>
+          <path d="M1.6 8.6c0-3 2.6-5 6.2-5 2.6 0 4.4 1.1 5.4 2.6.6-.9 1.3-1.5 2.1-1.8-.4 1.3-.5 2.5-.2 3.7-.6.4-1.4.6-2.1.5-1 1.6-2.9 2.6-5.2 2.6-1.1 0-2.1-.2-3-.6l-1.1 1.4-.3-1.9c-1.1-.7-1.8-1.6-1.8-2.5z" fill={c} />
+          <circle cx="4.6" cy="7.9" r="0.75" fill={brand ? '#ffffff' : 'var(--bg-sidebar, #fff)'} />
+        </svg>
+      )
+    }
     case 'kimi': {
       // Kimi: the Moonshot "K" with a crescent cut.
       const c = brand ? '#111' : 'currentColor'

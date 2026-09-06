@@ -57,7 +57,11 @@ export const builtinPresets: BuiltinPreset[] = [
     resumeArgs: ['--continue'],
     hooks: false
   },
-  { id: 'kimi', name: 'Kimi Code', color: '#9b8cff', binary: 'kimi', binaries: ['kimi'], args: [], hooks: false }
+  { id: 'kimi', name: 'Kimi Code', color: '#9b8cff', binary: 'kimi', binaries: ['kimi'], args: [], hooks: false },
+  // The two terminal agents DeepSeek itself lists for its models. Deep Code keeps its own settings
+  // file and picks conversations back up with /resume inside; Codewhale grew out of DeepSeek-TUI.
+  { id: 'deepcode', name: 'Deep Code', color: '#4d6bfe', binary: 'deepcode', binaries: ['deepcode'], args: [], hooks: false },
+  { id: 'codewhale', name: 'Codewhale', color: '#2f9bd6', binary: 'codewhale', binaries: ['codewhale', 'codew'], args: [], hooks: false }
 ]
 
 export function presetColor(id: string, presets?: Preset[]): string {

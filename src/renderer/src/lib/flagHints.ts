@@ -6,7 +6,8 @@ export const FLAG_HINTS: Record<string, string> = {
   claude: '--dangerously-skip-permissions',
   codex: '--dangerously-bypass-approvals-and-sandbox',
   gemini: '--yolo',
-  opencode: '--auto'
+  opencode: '--auto',
+  codewhale: '--yolo'
 }
 
 /**
