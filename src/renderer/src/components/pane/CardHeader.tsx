@@ -131,7 +131,7 @@ export function CardHeader({ session, split = false, dim = false }: { session: S
                 icon={<Globe size={12} />}
                 label={session.previewUrl.replace(/^https?:\/\//, '')}
                 on={previewOpen}
-                title={`Preview ${session.previewUrl} beside the terminal`}
+                title={t('Preview {url} beside the terminal', { url: session.previewUrl })}
                 onClick={() => setSide(previewOpen ? null : { kind: 'preview', url: session.previewUrl!, sessionId: session.id })}
               />
             )}

@@ -7,10 +7,13 @@ import { ActivityPulse } from './ActivityPulse'
 import { UpdatePill } from './UpdatePill'
 import { NotesButton } from './notes/NotesButton'
 import { StatusGlyph } from './sidebar/StatusGlyph'
-import { defaultTitle, rowPresetId } from '@/lib/sidebarModel'
+import { rowPresetId } from '@/lib/sidebarModel'
 import { t } from '@/lib/i18n'
 
 const platform = window.step.platform
+/** The last part of a path, on either kind of slash. */
+const folderName = (p: string): string => p.split(/[\\/]/).filter(Boolean).pop() ?? p
+
 /** Windows and Linux draw their own caption buttons; on Windows they show only while hovered. */
 const ownControls = platform === 'win32' || platform === 'linux'
 
@@ -57,12 +60,12 @@ export function TitleBar() {
         <UpdatePill />
         <NotesButton />
       </div>
-      {/* Just the session on screen. Views are switched from the sidebar or with the cycle shortcut. */}
+      {/* The folder the session on screen lives in; its own name is on the pane. Views are switched from the sidebar or with the cycle shortcut. */}
       <div className="pointer-events-none absolute inset-x-0 flex items-center justify-center gap-1.5 text-[12.5px] text-muted">
         {session && (
           <>
             <StatusGlyph status={session.status} color={color} size={12} />
-            <span className="max-w-[46vw] truncate">{session.title || defaultTitle(session)}</span>
+            <span className="max-w-[46vw] truncate">{folderName(session.projectPath)}</span>
           </>
         )}
       </div>

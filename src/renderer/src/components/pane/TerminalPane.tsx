@@ -1,4 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
+import { AlertTriangle } from 'lucide-react'
+import type { Session } from '@shared/types'
 import { useData } from '@/stores/data'
 import { usePrefs } from '@/stores/prefs'
 import { activeLayout, useUi, type DropZone, type LayoutNode } from '@/stores/ui'
@@ -12,6 +14,7 @@ import { HostBanner } from './HostBanner'
 import { PreviewPane } from './PreviewPane'
 import { ChangesPane } from './ChangesPane'
 import { t } from '@/lib/i18n'
+import { describeSessionError } from '@/lib/sessionErrors'
 
 export const DRAG_TYPE = 'application/x-step-session'
 
@@ -188,13 +191,7 @@ function PaneCard({ id, connected, multi }: { id: string; connected: boolean; mu
             registry.focus(id)
           }}
         />
-        {session.status === 'error' && session.error && (
-          <Bar>
-            <span className="font-medium text-danger">{t('Error')}</span>
-            <span className="text-fg">{session.error}</span>
-            <button className="text-accent hover:underline" onClick={() => restartSession(session.id)}>{t('Retry')}</button>
-          </Bar>
-        )}
+        {session.status === 'error' && session.error && <ErrorBar session={session} />}
         {!session.alive && session.status === 'exited' && (
           <Bar>
             <span className="text-muted">{session.exitCode !== undefined ? t('Process exited with code {code}.', { code: session.exitCode }) : t('Process exited.')}</span>
@@ -213,10 +210,46 @@ function PaneCard({ id, connected, multi }: { id: string; connected: boolean; mu
   )
 }
 
+/** What went wrong, in words a person can act on, with the host's own message a click away. */
+function ErrorBar({ session }: { session: Session }) {
+  const [open, setOpen] = useState(false)
+  const words = describeSessionError(session.error)
+  const detail = session.errorDetail || session.error
+  return (
+    <div
+      className="fade-in absolute inset-x-2 bottom-2 rounded-lg px-3 py-2.5 text-[12.5px]"
+      style={{ background: 'var(--bg-overlay)', boxShadow: '0 0 0 1px var(--border) inset, var(--shadow-card)' }}
+    >
+      <div className="flex items-center gap-3">
+        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-danger" style={{ background: 'color-mix(in srgb, var(--danger) 14%, transparent)' }}>
+          <AlertTriangle size={13} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="text-fg">{words.title}</div>
+          {words.hint && <div className="truncate text-[11.5px] text-muted">{words.hint}</div>}
+        </div>
+        {detail && (
+          <button className="text-[11.5px] text-muted hover:text-fg" onClick={() => setOpen(!open)}>
+            {t(open ? 'Hide details' : 'Details')}
+          </button>
+        )}
+        <button className="btn btn-secondary h-7 px-3 text-[12.5px]" onClick={() => restartSession(session.id)}>
+          {t('Retry')}
+        </button>
+      </div>
+      {open && detail && (
+        <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap rounded-md p-2 font-mono text-[11.5px] text-muted" style={{ background: 'var(--bg-input)' }}>
+          {detail}
+        </pre>
+      )}
+    </div>
+  )
+}
+
 function Bar({ children }: { children: React.ReactNode }) {
   return (
     <div
-      className="fade-in absolute inset-x-2 bottom-2 flex items-center gap-3 rounded-lg px-3 py-2 text-[12px]"
+      className="fade-in absolute inset-x-2 bottom-2 flex items-center gap-3 rounded-lg px-3 py-2 text-[12.5px]"
       style={{ background: 'var(--bg-overlay)', boxShadow: '0 0 0 1px var(--border) inset, var(--shadow-card)' }}
     >
       {children}

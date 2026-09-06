@@ -30,7 +30,34 @@ function keysInCode(): Map<string, string> {
   return keys
 }
 
+/** Lines of prose written straight into JSX, outside t(): three or more words starting with a capital. */
+function bareProseInJsx(): string[] {
+  const root = path.resolve(__dirname, '..', 'renderer', 'src')
+  const found: string[] = []
+  const walk = (dir: string): void => {
+    for (const name of fs.readdirSync(dir)) {
+      const p = path.join(dir, name)
+      if (fs.statSync(p).isDirectory()) walk(p)
+      else if (name.endsWith('.tsx')) {
+        const lines = fs.readFileSync(p, 'utf8').split('\n')
+        lines.forEach((line, i) => {
+          const s = line.trim()
+          if (s.startsWith('//') || s.startsWith('*') || s.startsWith('/*') || s.startsWith('{/*') || s.startsWith('import ')) return
+          // A line that is only words, or a tag followed by words, with no braces: text nobody translated.
+          if (/^[A-Z][a-z]+(?: [a-z][a-z',.]*){2,}[.!?]?$/.test(s) || /^<\w[^>]*>[A-Z][a-z]+(?: [a-z][a-z',.]*){2,}/.test(s)) found.push(`${path.relative(root, p)}:${i + 1}  ${s.slice(0, 60)}`)
+        })
+      }
+    }
+  }
+  walk(root)
+  return found
+}
+
 describe('translations', () => {
+  it('has no prose written straight into the markup', () => {
+    expect(bareProseInJsx()).toEqual([])
+  })
+
   it('substitutes placeholders and falls back to English', () => {
     expect(translate('es', 'New shell')).toBe('Nueva shell')
     expect(translate('es', '{n} working', { n: 3 })).toBe('3 trabajando')

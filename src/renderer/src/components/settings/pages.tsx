@@ -94,7 +94,7 @@ export function TerminalPage() {
   return (
     <>
       <Section title={t('Shell')} description={t('Every new session runs this program inside the selected folder. Leave it empty to use the system default.')}>
-        <Row label={t('Program')} hint={shell?.resolvedPath ? `Now: ${shell.resolvedPath}` : undefined}>
+        <Row label={t('Program')} hint={shell?.resolvedPath ? t('Now {path}', { path: shell.resolvedPath }) : undefined}>
           <TextField value={p.shell ?? ''} placeholder="auto" mono width={300} onChange={(v) => upd({ shell: v || undefined })} />
         </Row>
       </Section>
@@ -160,7 +160,7 @@ export function AgentsPage() {
               <span className="flex-1 text-[13px]" style={{ color: a.installed ? 'var(--text)' : 'var(--text-muted)' }}>
                 {a.name}
               </span>
-              <span className="max-w-[320px] truncate font-mono text-[11px] text-muted">
+              <span className="max-w-[320px] truncate font-mono text-[11.5px] text-muted">
                 {a.installed ? a.resolvedPath : a.id === 'deepseek' && a.resolvedPath ? t('Needs an API key') : t('Not installed')}
               </span>
             </div>
@@ -239,7 +239,7 @@ function CustomLaunchers({ list, onChange }: { list: CustomPreset[]; onChange: (
       <div className="setting-row">
         <input className="field h-7 w-[140px] text-[12.5px]" placeholder={t('Name')} value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
         <input
-          className="field h-7 flex-1 font-mono text-[12px]"
+          className="field h-7 flex-1 font-mono text-[12.5px]"
           placeholder="command --flags"
           value={draft.command}
           onChange={(e) => setDraft({ ...draft, command: e.target.value })}
@@ -328,7 +328,7 @@ export function AdvancedPage() {
         title={t('Session host')}
         description={t('A small background process owns every shell so they survive the window. Restarting it ends the shells that are open right now.')}
       >
-        <Row label={t('Status')} hint={hostState.kind === 'connected' ? `Connected · host ${hostState.info.version} · pid ${hostState.info.pid}` : hostState.kind}>
+        <Row label={t('Status')} hint={hostState.kind === 'connected' ? t('Connected to host {version}', { version: hostState.info.version }) : hostState.kind === 'connecting' ? t('Connecting…') : t('Not running')}>
           <SmallButton onClick={() => void window.step.invoke('host:restartHost')}>{t('Restart host')}</SmallButton>
         </Row>
       </Section>
@@ -368,7 +368,7 @@ export function WorkspacesPage() {
     useUi.getState().setSettingsOpen(false)
     void launchWorkspace(c)
   }
-  const summary = (c: LaunchConfig): string => `${c.panes.length} pane${c.panes.length === 1 ? '' : 's'} · ${c.split === 'row' ? 'side by side' : 'stacked'} · ${workspaceUrl(c)}`
+  const summary = (c: LaunchConfig): string => `${t(c.panes.length === 1 ? '{n} pane' : '{n} panes', { n: c.panes.length })} · ${t(c.split === 'row' ? 'side by side' : 'stacked')} · ${workspaceUrl(c)}`
   const copyLink = (c: LaunchConfig): void => {
     window.step.send('clipboard:write', workspaceUrl(c))
     useUi.getState().toast(t('Link copied'), 'success')
@@ -383,7 +383,7 @@ export function WorkspacesPage() {
       >
         {configs.length === 0 && <div className="py-2 text-[12.5px] text-muted">{t('No workspaces yet.')}</div>}
         {configs.map((c) => (
-          <Row key={c.id} label={c.name.trim() || 'Untitled'} hint={summary(c)}>
+          <Row key={c.id} label={c.name.trim() || t('Untitled')} hint={summary(c)}>
             <div className="flex items-center gap-1.5">
               <SmallButton onClick={() => open(c)}>{t('Open')}</SmallButton>
               <SmallButton onClick={() => copyLink(c)}>{t('Copy link')}</SmallButton>
@@ -393,9 +393,9 @@ export function WorkspacesPage() {
           </Row>
         ))}
         <div className="mt-3 text-[11.5px] leading-relaxed text-muted">
-          Every workspace has a link that opens it from a shortcut or a script, starting the app if it is closed.
-          Windows: <code className="font-mono text-[11px] text-secondary">start "" "{example}"</code> · macOS: <code className="font-mono text-[11px] text-secondary">open "{example}"</code> · Linux:{' '}
-          <code className="font-mono text-[11px] text-secondary">xdg-open "{example}"</code>
+          {t('Every workspace has a link that opens it from a shortcut or a script, starting the app if it is closed.')} Windows:{' '}
+          <code className="font-mono text-[11.5px] text-secondary">start "" "{example}"</code> · macOS: <code className="font-mono text-[11.5px] text-secondary">open "{example}"</code> · Linux:{' '}
+          <code className="font-mono text-[11.5px] text-secondary">xdg-open "{example}"</code>
         </div>
       </Section>
       <Footer>
@@ -420,7 +420,7 @@ export function WorkspacesPage() {
           {current.panes.map((pane, i) => (
             <div key={i} className="card mt-3 px-4 py-3">
               <div className="mb-1 flex items-center justify-between">
-                <div className="text-[12px] font-semibold text-secondary">Pane {i + 1}</div>
+                <div className="text-[12.5px] font-semibold text-secondary">Pane {i + 1}</div>
                 {current.panes.length > 1 && (
                   <button className="icon-btn h-6 w-6" title={t('Remove pane')} onClick={() => update(current.id, { panes: current.panes.filter((_, k) => k !== i) })}>
                     <Trash2 size={13} />

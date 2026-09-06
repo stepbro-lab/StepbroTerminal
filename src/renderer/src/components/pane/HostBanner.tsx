@@ -20,10 +20,10 @@ export function HostBanner() {
       </div>
       <div>
         <div className="text-[15px] font-medium">{t('The session host is not running')}</div>
-        <pre className="mt-2 max-w-[520px] whitespace-pre-wrap rounded-md p-3 text-left font-mono text-[11px] text-muted" style={{ background: 'var(--bg-input)' }}>
+        <pre className="mt-2 max-w-[520px] whitespace-pre-wrap rounded-md p-3 text-left font-mono text-[11.5px] text-muted" style={{ background: 'var(--bg-input)' }}>
           {hostState.message}
         </pre>
-        <div className="mt-2 font-mono text-[11px] text-muted">{hostState.logPath}</div>
+        <div className="mt-2 font-mono text-[11.5px] text-muted">{hostState.logPath}</div>
       </div>
       <button
         className="btn btn-primary disabled:opacity-50"
@@ -37,7 +37,7 @@ export function HostBanner() {
           }
         }}
       >
-        Retry
+        {t('Retry')}
       </button>
     </div>
   )
