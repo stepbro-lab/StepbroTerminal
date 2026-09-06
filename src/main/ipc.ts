@@ -93,6 +93,10 @@ export function registerIpc(ctx: Ctx): void {
   // Folders dropped on the app icon or passed on the command line, waiting for the renderer.
   handle('app:pendingFolders', () => {
     ctx.rendererReady = true
+    const focus = ctx.pendingFocus
+    ctx.pendingFocus = null
+    // A moment for the session list to land before the renderer is asked to show one of them.
+    if (focus) setTimeout(() => ctx.emit('ui:focusSession', focus), 400)
     return ctx.pendingFolders.splice(0)
   })
   handle('app:pendingWorkspaces', () => ctx.pendingWorkspaces.splice(0))

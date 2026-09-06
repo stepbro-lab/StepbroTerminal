@@ -31,9 +31,12 @@ process.env['STEP_VERSION'] = VERSION
 // Another data folder lets a second copy (a dev build, a test install) run next to the installed app.
 if (process.env['STEP_USER_DATA']) app.setPath('userData', resolve(process.env['STEP_USER_DATA']))
 
-// step:// links come back from notification buttons (Windows) and open-url (macOS).
+// step:// links come back from notification buttons (Windows) and open-url (macOS). The
+// registration is system-wide, so a development build must not take it from the installed app
+// unless asked to: it used to, and the installed app's notifications then launched the dev
+// Electron, or opened the dev project as a folder.
 if (app.isPackaged) app.setAsDefaultProtocolClient('step')
-else if (process.argv[1]) app.setAsDefaultProtocolClient('step', process.execPath, [resolve(process.argv[1])])
+else if (process.env['STEP_DEV_PROTOCOL'] && process.argv[1]) app.setAsDefaultProtocolClient('step', process.execPath, [resolve(process.argv[1])])
 
 if (!app.requestSingleInstanceLock()) {
   app.quit()
@@ -139,6 +142,7 @@ async function boot(): Promise<void> {
     updates: null as unknown as Updates,
     notes: [],
     pendingFolders: [],
+    pendingFocus: null,
     pendingWorkspaces: [],
     rendererReady: false,
     log,
@@ -187,7 +191,11 @@ async function boot(): Promise<void> {
       const id = s.agent.detectedPreset ?? s.presetId
       return id === 'shell' ? null : (ctx.presets.find((p) => p.id === id)?.name ?? null)
     },
-    focusSession: (id) => ctx.emit('ui:focusSession', id),
+    focusSession: (id) => {
+      // A click on a notification while the app was closed: the window is still loading, so hold the request.
+      if (ctx.rendererReady && ctx.win && !ctx.win.isDestroyed()) ctx.emit('ui:focusSession', id)
+      else ctx.pendingFocus = id
+    },
     playSound: () => ctx.emit('ui:sound')
   })
   ctx.tray = new StepTray({

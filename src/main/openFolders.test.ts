@@ -21,9 +21,15 @@ afterAll(() => {
 })
 
 describe('folderArgs', () => {
-  it('keeps existing folders and drops flags, links, files and nonsense', () => {
-    const argv = ['app.exe', '--remote-debugging-port=0', 'step://focus/1', sub, file, path.join(root, 'missing'), '']
+  it('keeps existing folders and drops flags, files and nonsense', () => {
+    const argv = ['app.exe', '--remote-debugging-port=0', sub, file, path.join(root, 'missing'), '']
     expect(folderArgs(argv, root, [])).toEqual([sub])
+  })
+
+  it('opens no folder at all when a step:// link brought the app up', () => {
+    // The dev build's protocol registration puts its project folder on the command line.
+    expect(folderArgs(['electron.exe', sub, 'step://focus/1'], root, [])).toEqual([])
+    expect(folderArgs(['app.exe', 'step://workspace/demo', sub], root, [])).toEqual([])
   })
 
   it('ignores the app itself and repeats', () => {

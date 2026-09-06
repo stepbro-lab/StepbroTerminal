@@ -34,6 +34,8 @@ export interface Ctx {
   pendingWorkspaces: string[]
   /** True once the renderer has asked for pending folders; after that they are sent live. */
   rendererReady: boolean
+  /** A session a notification asked to show before the renderer was ready to show it. */
+  pendingFocus: string | null
   log: (...a: unknown[]) => void
   emit: <K extends EventName>(channel: K, ...args: Parameters<EventMap[K]>) => void
   setPrefs: (partial: Partial<Prefs>) => Prefs
