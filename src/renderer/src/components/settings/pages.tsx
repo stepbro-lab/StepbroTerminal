@@ -131,7 +131,7 @@ export function TerminalPage() {
         </Row>
       </Section>
 
-      <Section title={t('Sessions')} description={t('Sessions run in a background host that outlives the window. When it ends — an update, a restart — StepbroTerminal can bring them back on launch, resuming any agent where it stopped.')}>
+      <Section title={t('Sessions')} description={t('Sessions run in a background host that outlives the window. When it ends — an update, a restart — stepbro terminal can bring them back on launch, resuming any agent where it stopped.')}>
         <Row label={t('Resume sessions on launch')}>
           <Toggle value={p.resumeOnLaunch} onChange={(resumeOnLaunch) => upd({ resumeOnLaunch })} />
         </Row>
@@ -153,7 +153,7 @@ export function AgentsPage() {
   const agents = presets.filter((x) => x.id !== 'shell' && !x.custom)
   return (
     <>
-      <Section title={t('Detected')} description={t('Type any of these in a shell and StepbroTerminal recognizes it. Right-click a folder to start one directly with live status.')}>
+      <Section title={t('Detected')} description={t('Type any of these in a shell and stepbro terminal recognizes it. Right-click a folder to start one directly with live status.')}>
         <div className="flex flex-col">
           {agents.map((a) => (
             <div key={a.id} className="setting-row">
@@ -180,7 +180,7 @@ export function AgentsPage() {
         </Row>
       </Section>
 
-      <Section title="Claude Code" description={t('StepbroTerminal passes hooks to Claude per session so it can show working, waiting and done. Only set a path if the binary is not on PATH.')}>
+      <Section title="Claude Code" description={t('stepbro terminal passes hooks to Claude per session so it can show working, waiting and done. Only set a path if the binary is not on PATH.')}>
         <Row label={t('Binary')}>
           <TextField
             value={p.claudePath ?? ''}

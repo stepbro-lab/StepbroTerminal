@@ -91,7 +91,7 @@ export const es: Record<string, string> = {
   Sidebar: 'Barra lateral',
   Width: 'Ancho',
   Minimize: 'Minimizar',
-  'Pick a folder, or drag one in, and StepbroTerminal opens a shell in it.': 'Elige una carpeta, o arrastra una, y StepbroTerminal abre una shell dentro.',
+  'Pick a folder, or drag one in, and stepbro terminal opens a shell in it.': 'Elige una carpeta, o arrastra una, y stepbro terminal abre una shell dentro.',
 
   // ---- activity and notifications ----
   'Needs you': 'Te necesitan',
@@ -116,7 +116,7 @@ export const es: Record<string, string> = {
   'Play a sound': 'Reproducir un sonido',
   Volume: 'Volumen',
   'Try it': 'Probar',
-  'When StepbroTerminal should get your attention.': 'Cuándo debe StepbroTerminal reclamar tu atención.',
+  'When stepbro terminal should get your attention.': 'Cuándo debe stepbro terminal reclamar tu atención.',
   Notifications: 'Notificaciones',
 
   // ---- palette ----
@@ -230,8 +230,8 @@ export const es: Record<string, string> = {
   Agents: 'Agentes',
   Shortcuts: 'Atajos',
   Advanced: 'Avanzado',
-  'How StepbroTerminal looks. Auto follows your system appearance.': 'Cómo se ve StepbroTerminal. Automático sigue la apariencia del sistema.',
-  'The shell StepbroTerminal opens and how text is drawn inside it.': 'La shell que abre StepbroTerminal y cómo se dibuja el texto dentro.',
+  'How stepbro terminal looks. Auto follows your system appearance.': 'Cómo se ve stepbro terminal. Automático sigue la apariencia del sistema.',
+  'The shell stepbro terminal opens and how text is drawn inside it.': 'La shell que abre stepbro terminal y cómo se dibuja el texto dentro.',
   'Coding agents found on this machine and your own launchers.': 'Agentes de programación encontrados en este equipo y tus propios lanzadores.',
   'Arrangements of panes that open in one go, each in its own folder, running what you tell it.': 'Disposiciones de paneles que se abren de una vez, cada uno en su carpeta, ejecutando lo que le digas.',
   'Everything you can do without leaving the keyboard, and the keys you prefer for it.': 'Todo lo que puedes hacer sin soltar el teclado, y las teclas que prefieres para ello.',
@@ -277,17 +277,17 @@ export const es: Record<string, string> = {
   History: 'Historial',
   'Lines kept above the visible screen, per session. The host keeps the same amount while the window is closed.': 'Líneas guardadas por encima de la pantalla visible, por sesión. El host guarda la misma cantidad mientras la ventana está cerrada.',
   Scrollback: 'Historial de pantalla',
-  'Sessions run in a background host that outlives the window. When it ends — an update, a restart — StepbroTerminal can bring them back on launch, resuming any agent where it stopped.': 'Las sesiones viven en un host en segundo plano que sobrevive a la ventana. Cuando termina (una actualización, un reinicio), StepbroTerminal puede recuperarlas al abrir, retomando cada agente donde se quedó.',
+  'Sessions run in a background host that outlives the window. When it ends — an update, a restart — stepbro terminal can bring them back on launch, resuming any agent where it stopped.': 'Las sesiones viven en un host en segundo plano que sobrevive a la ventana. Cuando termina (una actualización, un reinicio), stepbro terminal puede recuperarlas al abrir, retomando cada agente donde se quedó.',
   'Resume sessions on launch': 'Reanudar las sesiones al abrir',
 
   // ---- settings: agents ----
   Detected: 'Detectados',
-  'Type any of these in a shell and StepbroTerminal recognizes it. Right-click a folder to start one directly with live status.': 'Escribe cualquiera de estos en una shell y StepbroTerminal lo reconoce. Haz clic derecho en una carpeta para iniciar uno directamente con estado en vivo.',
+  'Type any of these in a shell and stepbro terminal recognizes it. Right-click a folder to start one directly with live status.': 'Escribe cualquiera de estos en una shell y stepbro terminal lo reconoce. Haz clic derecho en una carpeta para iniciar uno directamente con estado en vivo.',
   'Not installed': 'No instalado',
   'As you type': 'Mientras escribes',
   'Type claude, codex, gemini or opencode at a prompt and the flag that skips its permission prompts shows up in grey. Tab or → accepts it, Esc hides it.': 'Escribe claude, codex, gemini u opencode en un prompt y el flag que salta sus preguntas de permisos aparece en gris. Tab o → lo acepta, Esc lo oculta.',
   'Suggest skip-permissions flags': 'Sugerir los flags que saltan los permisos',
-  'StepbroTerminal passes hooks to Claude per session so it can show working, waiting and done. Only set a path if the binary is not on PATH.': 'StepbroTerminal le pasa hooks a Claude por sesión para poder mostrar trabajando, esperando y terminado. Indica una ruta solo si el binario no está en el PATH.',
+  'stepbro terminal passes hooks to Claude per session so it can show working, waiting and done. Only set a path if the binary is not on PATH.': 'stepbro terminal le pasa hooks a Claude por sesión para poder mostrar trabajando, esperando y terminado. Indica una ruta solo si el binario no está en el PATH.',
   Binary: 'Binario',
   'Your launchers': 'Tus lanzadores',
   'Any command becomes an entry in the folder menu and the palette.': 'Cualquier comando se convierte en una entrada del menú de carpeta y de la paleta.',
@@ -347,8 +347,8 @@ export const es: Record<string, string> = {
   Edit: 'Editar',
   View: 'Ver',
   'Open Data Folder': 'Abrir carpeta de datos',
-  'Show StepbroTerminal': 'Mostrar StepbroTerminal',
-  'Quit StepbroTerminal': 'Salir de StepbroTerminal',
+  'Show stepbro terminal': 'Mostrar stepbro terminal',
+  'Quit stepbro terminal': 'Salir de stepbro terminal',
 
   // ---- settings: agents, DeepSeek ----
   'Claude Code on DeepSeek models, through the Anthropic-shaped API DeepSeek serves: same hooks, notes and status. With a key, DeepSeek shows up next to the other agents.': 'Claude Code con los modelos de DeepSeek, a través de la API con forma de Anthropic que sirve DeepSeek: los mismos hooks, notas y estado. Con una clave, DeepSeek aparece junto a los demás agentes.',
@@ -398,7 +398,7 @@ export const es: Record<string, string> = {
   '{n} processes': '{n} procesos',
   Stop: 'Detener',
   Diagnostics: 'Diagnóstico',
-  'Where StepbroTerminal keeps session data, and the host log with hook and MCP traffic.': 'Dónde guarda StepbroTerminal los datos de sesión, y el registro del host con el tráfico de hooks y MCP.',
+  'Where stepbro terminal keeps session data, and the host log with hook and MCP traffic.': 'Dónde guarda stepbro terminal los datos de sesión, y el registro del host con el tráfico de hooks y MCP.',
   'Session data': 'Datos de sesión',
   'Host log': 'Registro del host',
   'Show in Finder': 'Mostrar en Finder',

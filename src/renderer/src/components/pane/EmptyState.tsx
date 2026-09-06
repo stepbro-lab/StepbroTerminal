@@ -25,7 +25,7 @@ export function EmptyState() {
   if (!project) {
     return (
       <div {...drop.props} className="relative flex h-full flex-col items-center justify-center gap-4 p-8 text-center">
-        <div className="text-[14px] text-secondary">{t('Pick a folder, or drag one in, and StepbroTerminal opens a shell in it.')}</div>
+        <div className="text-[14px] text-secondary">{t('Pick a folder, or drag one in, and stepbro terminal opens a shell in it.')}</div>
         <button className="btn btn-primary" onClick={() => void addProject()}>{t('Choose folder')}</button>
         {hint}
       </div>

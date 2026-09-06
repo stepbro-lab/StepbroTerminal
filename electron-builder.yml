@@ -1,9 +1,10 @@
 appId: com.stepbro.terminal
-productName: StepbroTerminal
+# The name people see: window titles, the Dock, the Start Menu, notifications, the installer.
+productName: stepbro terminal
 copyright: Copyright © 2026 Kevin
 # step:// links: notification buttons, and step://workspace/<name> to open a workspace from a script.
 protocols:
-  - name: StepbroTerminal
+  - name: stepbro terminal
     schemes:
       - step
 directories:
@@ -40,7 +41,10 @@ win:
   target:
     - nsis
   icon: build/icon.png
-  artifactName: ${productName}-${version}-win-${arch}.${ext}
+  # The file names stay as they were: the installed folder, the .exe the step:// handler points
+  # at and the update feed all carry this name, and a space would only get in the way there.
+  executableName: StepbroTerminal
+  artifactName: StepbroTerminal-${version}-win-${arch}.${ext}
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
@@ -64,11 +68,12 @@ mac:
         LSHandlerRank: Alternate
         LSItemContentTypes:
           - public.folder
-  artifactName: ${productName}-${version}-mac-${arch}.${ext}
+  artifactName: StepbroTerminal-${version}-mac-${arch}.${ext}
 linux:
   target:
     - AppImage
     - deb
   icon: build/icon.png
   category: Development
-  artifactName: ${productName}-${version}-linux-${arch}.${ext}
+  executableName: StepbroTerminal
+  artifactName: StepbroTerminal-${version}-linux-${arch}.${ext}

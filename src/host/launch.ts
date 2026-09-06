@@ -84,7 +84,7 @@ export function writeOpencodeConfig(dir: string, sessionId: string, mcpUrl: stri
  * working, waiting and done the same way. Sub-agent sessions have a parent and are ignored, so a
  * task running underneath does not flip the status of the conversation itself.
  */
-const OPENCODE_PLUGIN = `// StepbroTerminal: reports what OpenCode is doing to the terminal it runs in.
+const OPENCODE_PLUGIN = `// stepbro terminal: reports what OpenCode is doing to the terminal it runs in.
 const url = process.env.STEP_HOOK_URL
 
 export const StepbroPlugin = async () => {
@@ -260,7 +260,7 @@ if [ -n "$STEP_REAL_CODEX" ]; then codex() { "$STEP_REAL_CODEX" -c "mcp_servers.
 
 /** zsh reads its files from ZDOTDIR; each of ours runs the user's own file of the same name first. */
 function zshFile(name: string, tail = ''): string {
-  return `# StepbroTerminal: your own ${name} runs first; this only adds the agent commands.
+  return `# stepbro terminal: your own ${name} runs first; this only adds the agent commands.
 _step_zdotdir="$ZDOTDIR"
 ZDOTDIR="\${STEP_USER_ZDOTDIR:-$HOME}"
 if [ -f "$ZDOTDIR/${name}" ]; then . "$ZDOTDIR/${name}"; fi
@@ -296,7 +296,7 @@ export function writeShims(binDir: string): void {
   // bash: what a login shell would read, then the functions.
   write(
     'bash/rc',
-    `# StepbroTerminal: what your login bash reads runs first; this only adds the agent commands.
+    `# stepbro terminal: what your login bash reads runs first; this only adds the agent commands.
 if [ -f /etc/profile ]; then . /etc/profile; fi
 for _step_f in "$HOME/.bash_profile" "$HOME/.bash_login" "$HOME/.profile"; do
   if [ -f "$_step_f" ]; then . "$_step_f"; break; fi
@@ -307,7 +307,7 @@ ${POSIX_FUNCTIONS}`
   // fish: its own syntax, run after the normal startup.
   write(
     'fish/init.fish',
-    `# StepbroTerminal: the agent commands for this session.
+    `# stepbro terminal: the agent commands for this session.
 if set -q STEP_REAL_CLAUDE
     function claude; "$STEP_REAL_CLAUDE" --settings "$STEP_HOOKS_SETTINGS" --mcp-config "$STEP_MCP_CONFIG" $argv; end
 end

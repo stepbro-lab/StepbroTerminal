@@ -6,11 +6,11 @@ import { TopStrip } from '../Chrome'
 import { t } from '@/lib/i18n'
 
 const pages = (): Array<{ id: SettingsPage; label: string; icon: React.ReactNode; title: string; blurb: string }> => [
-  { id: 'appearance', label: t('Appearance'), icon: <Palette size={14} />, title: t('Appearance'), blurb: t('How StepbroTerminal looks. Auto follows your system appearance.') },
-  { id: 'terminal', label: t('Terminal'), icon: <Terminal size={14} />, title: t('Terminal'), blurb: t('The shell StepbroTerminal opens and how text is drawn inside it.') },
+  { id: 'appearance', label: t('Appearance'), icon: <Palette size={14} />, title: t('Appearance'), blurb: t('How stepbro terminal looks. Auto follows your system appearance.') },
+  { id: 'terminal', label: t('Terminal'), icon: <Terminal size={14} />, title: t('Terminal'), blurb: t('The shell stepbro terminal opens and how text is drawn inside it.') },
   { id: 'agents', label: t('Agents'), icon: <Cpu size={14} />, title: t('Agents'), blurb: t('Coding agents found on this machine and your own launchers.') },
   { id: 'workspaces', label: t('Workspaces'), icon: <LayoutGrid size={14} />, title: t('Workspaces'), blurb: t('Arrangements of panes that open in one go, each in its own folder, running what you tell it.') },
-  { id: 'notifications', label: t('Notifications'), icon: <Bell size={14} />, title: t('Notifications'), blurb: t('When StepbroTerminal should get your attention.') },
+  { id: 'notifications', label: t('Notifications'), icon: <Bell size={14} />, title: t('Notifications'), blurb: t('When stepbro terminal should get your attention.') },
   { id: 'shortcuts', label: t('Shortcuts'), icon: <Keyboard size={14} />, title: t('Shortcuts'), blurb: t('Everything you can do without leaving the keyboard, and the keys you prefer for it.') },
   { id: 'advanced', label: t('Advanced'), icon: <Wrench size={14} />, title: t('Advanced'), blurb: t('The session host, data on disk and paths.') }
 ]
@@ -36,7 +36,7 @@ export function SettingsView() {
             {p.label}
           </button>
         ))}
-        <div className="mt-auto pb-3 pl-2 text-[11.5px] text-muted">StepbroTerminal {window.step.version}</div>
+        <div className="mt-auto pb-3 pl-2 text-[11.5px] text-muted">stepbro terminal {window.step.version}</div>
       </aside>
       <main className="flex min-w-0 flex-1 flex-col">
         <TopStrip chrome={false} />

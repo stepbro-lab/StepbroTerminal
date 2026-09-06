@@ -24,10 +24,13 @@ function findApp() {
     }
     if (!entry.endsWith('-unpacked')) continue
     const files = fs.readdirSync(dir)
-    // Windows names the binary after the product; Linux after the package. Match either, then fall
-    // back to any executable next to resources/ that is not one of Chromium's helpers.
+    // The binary is named after the product, or after the executableName the builder config sets
+    // for the platform (Linux may also use the package name). Match any of those, then fall back
+    // to any executable next to resources/ that is not one of Chromium's helpers.
     const pkg = JSON.parse(fs.readFileSync(path.resolve('package.json'), 'utf8'))
-    const wanted = [pkg.productName, pkg.name].filter(Boolean).map((n) => String(n).toLowerCase())
+    const builder = fs.existsSync('electron-builder.yml') ? fs.readFileSync('electron-builder.yml', 'utf8') : ''
+    const executables = [...builder.matchAll(/^\s*executableName:\s*(.+?)\s*$/gm)].map((m) => m[1])
+    const wanted = [pkg.productName, pkg.name, ...executables].filter(Boolean).map((n) => String(n).toLowerCase())
     const exe =
       files.find((f) => wanted.includes(f.replace(/\.exe$/i, '').toLowerCase())) ??
       files.find((f) => {

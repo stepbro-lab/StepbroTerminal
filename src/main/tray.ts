@@ -49,7 +49,7 @@ export class StepTray {
       this.tray = null
       return
     }
-    this.tray.setToolTip('StepbroTerminal')
+    this.tray.setToolTip('stepbro terminal')
     this.tray.on('click', () => this.showWindow())
     this.refresh()
   }
@@ -87,7 +87,7 @@ export class StepTray {
       this.mood = mood
       this.tray.setImage(loadIcon(mood))
     }
-    const parts = ['StepbroTerminal']
+    const parts = ['stepbro terminal']
     if (working) parts.push(t('{n} working', { n: working }))
     if (attention) parts.push(t(attention === 1 ? '{n} needs you' : '{n} need you', { n: attention }))
     this.tray.setToolTip(parts.join(' · '))
@@ -112,8 +112,8 @@ export class StepTray {
       }
     }
     if (template.length) template.push({ type: 'separator' })
-    template.push({ label: t('Show StepbroTerminal'), click: () => this.showWindow() })
-    template.push({ label: t('Quit StepbroTerminal'), click: () => app.quit() })
+    template.push({ label: t('Show stepbro terminal'), click: () => this.showWindow() })
+    template.push({ label: t('Quit stepbro terminal'), click: () => app.quit() })
     this.tray.setContextMenu(Menu.buildFromTemplate(template))
   }
 }

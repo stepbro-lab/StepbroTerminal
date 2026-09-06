@@ -26,7 +26,7 @@ const WAIT_MAX_S = 120
 /** After work is handed over, the target counts as busy this long even if its status has not moved yet. */
 const SETTLE_MS = 5000
 
-const INSTRUCTIONS = `You are running inside StepbroTerminal, next to other sessions, and this server lets you work with them. Two layers:
+const INSTRUCTIONS = `You are running inside stepbro terminal, next to other sessions, and this server lets you work with them. Two layers:
 - Sessions are terminals. list_sessions shows them, read_screen shows what is on one, send_to_session types into one as if the user had.
 - Agents talk to each other with report. A message you send with report shows up in the other agent's conversation as soon as it is free, the same way a message from another agent arrives in yours as a new turn.
 To delegate: send_to_session the task, then end your turn. Do not sit waiting: the answer arrives in your conversation as a message, and you continue from there. Keep the conversation going: answer questions, ask for what you need, and say when you are done. When someone hands you work, report back to them when you finish. wait exists for the rare case where you must block, for example to watch a session finish; it is not needed to receive messages.`

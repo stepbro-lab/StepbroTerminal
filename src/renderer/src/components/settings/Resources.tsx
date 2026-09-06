@@ -100,7 +100,7 @@ export function ResourceSections() {
         })}
       </Section>
 
-      <Section title={t('Diagnostics')} description={t('Where StepbroTerminal keeps session data, and the host log with hook and MCP traffic.')}>
+      <Section title={t('Diagnostics')} description={t('Where stepbro terminal keeps session data, and the host log with hook and MCP traffic.')}>
         <Row label={t('Session data')} hint={paths?.data}>
           <SmallButton onClick={() => paths && void window.step.invoke('app:openPath', paths.data)}>{revealLabel()}</SmallButton>
         </Row>

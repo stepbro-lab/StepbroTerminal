@@ -29,7 +29,10 @@ const VERSION = app.getVersion()
 process.env['STEP_VERSION'] = VERSION
 
 // Another data folder lets a second copy (a dev build, a test install) run next to the installed app.
+// Otherwise the folder keeps the name the app had before it was called "stepbro terminal", so an
+// update finds everyone's preferences where they were.
 if (process.env['STEP_USER_DATA']) app.setPath('userData', resolve(process.env['STEP_USER_DATA']))
+else app.setPath('userData', join(app.getPath('appData'), 'StepbroTerminal'))
 
 // step:// links come back from notification buttons (Windows) and open-url (macOS). The
 // registration is system-wide, so a development build must not take it from the installed app

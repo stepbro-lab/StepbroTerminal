@@ -1,8 +1,8 @@
-# StepbroTerminal
+# stepbro terminal
 
 A terminal for people who run coding agents all day. Windows, macOS and Linux.
 
-StepbroTerminal is a real terminal first: every session is your shell (PowerShell, bash, zsh) running inside a project folder. Type `claude`, `codex`, `gemini`, `npm run dev` or anything else. On top of that StepbroTerminal adds the things a plain terminal tab is missing:
+stepbro terminal is a real terminal first: every session is your shell (PowerShell, bash, zsh) running inside a project folder. Type `claude`, `codex`, `gemini`, `npm run dev` or anything else. On top of that stepbro terminal adds the things a plain terminal tab is missing:
 
 - **Sessions that survive the window.** Every shell runs in a small host process outside the app. Quit Step, come back later, and the terminal is still there with its output.
 - **A sidebar that works as a dashboard.** Folders on the left, sessions under them, and a status mark per session: working, needs you, done.

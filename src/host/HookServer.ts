@@ -13,7 +13,7 @@ const MAX_BODY = 1024 * 1024
 
 /** Handed to Claude Code at session start, so "note that…" goes straight to the notes tools. */
 const NOTES_CONTEXT =
-  'You are running inside StepbroTerminal and its `stepbro` MCP server is connected: it keeps the notes of the person you are working with. ' +
+  'You are running inside stepbro terminal and its `stepbro` MCP server is connected: it keeps the notes of the person you are working with. ' +
   'When they ask you to note, write down, remember, keep or save something for later (in Spanish: anota, anótate, apunta, guárdame, acuérdate), ' +
   'call the save_note tool right away with the note in their own words, and do not look for a notes feature in the project. ' +
   'list_notes reads the notes, update_note edits them or marks them done, delete_note removes one. ' +

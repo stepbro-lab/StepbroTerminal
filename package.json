@@ -1,9 +1,9 @@
 {
   "name": "step-terminal",
-  "productName": "StepbroTerminal",
+  "productName": "stepbro terminal",
   "version": "0.1.0-beta.16",
   "private": true,
-  "description": "StepbroTerminal: a beautiful cross-platform terminal for always-on AI coding agents.",
+  "description": "stepbro terminal: a beautiful cross-platform terminal for always-on AI coding agents.",
   "author": {
     "name": "Kevin",
     "email": "roloocoste@gmail.com"

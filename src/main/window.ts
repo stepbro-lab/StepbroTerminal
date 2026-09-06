@@ -23,7 +23,7 @@ export function createWindow(prefs: Prefs): BrowserWindow {
     minWidth: 720,
     minHeight: 480,
     show: false,
-    title: 'StepbroTerminal',
+    title: 'stepbro terminal',
     backgroundColor: isDark(prefs) ? BG.dark : BG.light,
     ...(devIcon && !devIcon.isEmpty() ? { icon: devIcon } : {}),
     // macOS keeps its traffic lights in our bar, centred on its height, with the sidebar toggle and

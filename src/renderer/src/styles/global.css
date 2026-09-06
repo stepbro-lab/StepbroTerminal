@@ -523,7 +523,7 @@ kbd {
   animation: toast-in 180ms var(--ease);
 }
 
-/* Ghost text after the cursor: the flag StepbroTerminal suggests when an agent is typed. */
+/* Ghost text after the cursor: the flag stepbro terminal suggests when an agent is typed. */
 .xterm .step-ghost {
   color: var(--text-faint);
   white-space: pre;

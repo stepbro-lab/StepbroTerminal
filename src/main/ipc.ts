@@ -125,7 +125,7 @@ export function registerIpc(ctx: Ctx): void {
   on('win:setActiveSession', (id) => {
     ctx.activeId = id
   })
-  on('win:setTitle', (title) => ctx.win?.setTitle(title ? `${title} — StepbroTerminal` : 'StepbroTerminal'))
+  on('win:setTitle', (title) => ctx.win?.setTitle(title ? `${title} — stepbro terminal` : 'stepbro terminal'))
   on('win:captionPing', () => captionPing(ctx.win))
   on('clipboard:write', (text) => clipboard.writeText(text))
   handle('clipboard:kind', () => {

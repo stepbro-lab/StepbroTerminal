@@ -2,7 +2,7 @@ import { app, shell } from 'electron'
 import fs from 'node:fs'
 import path from 'node:path'
 
-export const APP_NAME = 'StepbroTerminal'
+export const APP_NAME = 'stepbro terminal'
 export const APP_ID = 'com.stepbro.terminal'
 
 /** Path of the app logo PNG used inside notifications. */

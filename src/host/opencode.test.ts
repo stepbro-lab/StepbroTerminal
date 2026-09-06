@@ -75,7 +75,7 @@ describe('OpenCode plugin', () => {
     delete process.env['STEP_HOOK_URL']
   })
 
-  it('does nothing outside StepbroTerminal', async () => {
+  it('does nothing outside stepbro terminal', async () => {
     const { hooks, posted } = await loadPlugin(undefined)
     expect(hooks).toEqual({})
     expect(posted).toEqual([])
