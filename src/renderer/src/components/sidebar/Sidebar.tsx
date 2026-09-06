@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { FolderPlus, Plus, Settings, Ungroup } from 'lucide-react'
 import gsap from 'gsap'
 import { Flip } from 'gsap/Flip'
@@ -165,6 +165,34 @@ export function Sidebar() {
 
   const ins = reorder.insert
   const mark = (row: SidebarSession): 'before' | 'after' | undefined => (ins?.id === row.id ? (ins.after ? 'after' : 'before') : undefined)
+  // Archived sessions sit dimmed under the live ones, a few at a time; a folder can show them all.
+  const [showAllArchived, setShowAllArchived] = useState<Set<string>>(() => new Set())
+  const archivedLimit = prefs?.archivedShown ?? 5
+  const archivedOf = (p: SidebarProject): React.ReactNode => {
+    if (p.archived.length === 0) return null
+    const all = showAllArchived.has(p.path)
+    const shown = all ? p.archived : p.archived.slice(0, archivedLimit)
+    const hidden = p.archived.length - shown.length
+    const toggle = (): void =>
+      setShowAllArchived((prev) => {
+        const next = new Set(prev)
+        if (next.has(p.path)) next.delete(p.path)
+        else next.add(p.path)
+        return next
+      })
+    return (
+      <>
+        {shown.map((row) => (
+          <SessionRow key={row.key} row={row} />
+        ))}
+        {(hidden > 0 || (all && p.archived.length > archivedLimit)) && (
+          <button className="row w-full pl-[22px] text-left text-[11.5px]" style={{ color: 'var(--text-faint)' }} onClick={toggle}>
+            {hidden > 0 ? t('{n} more archived', { n: hidden }) : t('Show fewer')}
+          </button>
+        )}
+      </>
+    )
+  }
   const rowsOf = (p: SidebarProject): React.ReactNode => {
     const sourceView = p.sessions.find((s) => s.id === draggingId)?.view ?? null
     return chunk(p.sessions).map((c) => {
@@ -212,6 +240,7 @@ export function Sidebar() {
           <div key={p.path} className="mb-1">
             <ProjectRow project={p} isActiveProject={activeProject?.toLowerCase() === p.path.toLowerCase()} />
             {!p.collapsed && rowsOf(p)}
+            {!p.collapsed && archivedOf(p)}
           </div>
         ))}
       </div>

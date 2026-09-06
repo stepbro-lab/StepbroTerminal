@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
-import { Pin } from 'lucide-react'
+import { Archive, Pin, RotateCcw, X } from 'lucide-react'
 import type { SidebarSession } from '@/lib/sidebarModel'
 import { useUi } from '@/stores/ui'
 import { DRAG_TYPE } from '../pane/TerminalPane'
 import { useData } from '@/stores/data'
-import { closeSession, renameSession, sessionMenu } from '@/lib/actions'
+import { archiveSession, closeSession, renameSession, restoreSession, sessionMenu } from '@/lib/actions'
 import { StatusGlyph } from './StatusGlyph'
 import { AgentLogo } from './AgentLogo'
+import { t } from '@/lib/i18n'
 
 interface Props {
   row: SidebarSession
@@ -27,21 +28,23 @@ export function SessionRow({ row, insert, onDragOver, onDrop }: Props) {
   const color = presets.find((p) => p.id === row.presetId)?.color ?? '#8a8a90'
   const active = activeId === row.id
   const renaming = renamingId === row.id
+  const archived = !!row.session.archived
   const busy = row.status === 'working' || row.status === 'starting' || row.status === 'attention' || row.status === 'done'
   const exited = row.status === 'exited'
 
-  // Text: active is bright, busy is one step down, idle is muted, exited is faint.
-  const titleColor = active ? 'var(--text)' : busy ? 'var(--text-secondary)' : exited ? 'var(--text-faint)' : 'var(--text-muted)'
+  // Text: active is bright, busy is one step down, idle is muted, exited and archived are faint.
+  const titleColor = active ? 'var(--text)' : busy ? 'var(--text-secondary)' : exited || archived ? 'var(--text-faint)' : 'var(--text-muted)'
   const logoColor = active ? 'var(--text)' : busy ? 'var(--text-secondary)' : 'var(--text-faint)'
+  const canResume = !!row.session.launch.resumeArgs && !!row.session.agent.sessionId
 
   return (
     <div
       data-session-row={row.id}
-      className="row grid-cols-[16px_minmax(0,1fr)_auto_16px] gap-2 pl-[22px]"
+      className="group row grid-cols-[16px_minmax(0,1fr)_auto_16px] gap-2 pl-[22px]"
       data-active={active}
       data-insert={insert}
       title={row.session.projectPath}
-      draggable
+      draggable={!archived}
       onDragStart={(e) => {
         e.dataTransfer.setData(DRAG_TYPE, row.id)
         e.dataTransfer.effectAllowed = 'move'
@@ -71,10 +74,45 @@ export function SessionRow({ row, insert, onDragOver, onDrop }: Props) {
         <span className="row-title">{row.title}</span>
       )}
       {row.pinned && <Pin size={11} strokeWidth={1.8} style={{ color: 'var(--text-muted)' }} />}
-      <span className="flex items-center justify-center" style={{ color: logoColor }}>
-        <AgentLogo presetId={row.presetId} size={13} />
+      {/* The agent's mark, and under the pointer the things you can do to the row in its place. */}
+      <span className="relative flex items-center justify-center" style={{ color: logoColor }}>
+        <span className="transition-opacity group-hover:opacity-0">
+          <AgentLogo presetId={row.presetId} size={13} />
+        </span>
+        <span className="absolute right-0 top-1/2 flex -translate-y-1/2 items-center gap-0.5 rounded-md pl-1 opacity-0 transition-opacity group-hover:opacity-100" style={{ background: active ? 'var(--bg-active)' : 'var(--bg-hover)' }}>
+          {archived ? (
+            <>
+              <RowAction title={t(canResume ? 'Restore and resume conversation' : 'Restore')} onClick={() => restoreSession(row.id)}>
+                <RotateCcw size={12} />
+              </RowAction>
+              <RowAction title={t('Delete')} onClick={() => void closeSession(row.id)}>
+                <X size={12} />
+              </RowAction>
+            </>
+          ) : (
+            <RowAction title={t('Archive')} onClick={() => void archiveSession(row.id)}>
+              <Archive size={12} />
+            </RowAction>
+          )}
+        </span>
       </span>
     </div>
+  )
+}
+
+function RowAction({ title, onClick, children }: { title: string; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      className="icon-btn h-5 w-5"
+      title={title}
+      onClick={(e) => {
+        e.stopPropagation()
+        onClick()
+      }}
+      onDoubleClick={(e) => e.stopPropagation()}
+    >
+      {children}
+    </button>
   )
 }
 
@@ -98,6 +136,7 @@ function RenameInput({ id, initial, placeholder }: { id: string; initial: string
       placeholder={placeholder}
       onChange={(e) => setValue(e.target.value)}
       onClick={(e) => e.stopPropagation()}
+      onDoubleClick={(e) => e.stopPropagation()}
       onBlur={commit}
       onKeyDown={(e) => {
         e.stopPropagation()

@@ -135,6 +135,9 @@ export function TerminalPage() {
         <Row label={t('Resume sessions on launch')}>
           <Toggle value={p.resumeOnLaunch} onChange={(resumeOnLaunch) => upd({ resumeOnLaunch })} />
         </Row>
+        <Row label={t('Archived sessions shown per folder')} hint={t('The rest wait behind a "more" row.')}>
+          <Slider value={p.archivedShown ?? 5} min={0} max={20} onChange={(archivedShown) => upd({ archivedShown })} />
+        </Row>
       </Section>
 
       <Footer>

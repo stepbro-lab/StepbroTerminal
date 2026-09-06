@@ -13,6 +13,8 @@ export type ClientMsg =
   | { t: 'restart'; id: string }
   | { t: 'rename'; id: string; title: string }
   | { t: 'pin'; id: string; pinned: boolean }
+  /** Put a session away (its process ends) or bring it back, exited and ready to restart. */
+  | { t: 'archive'; id: string; archived: boolean }
   /** The sessions of one project in the order the sidebar should show them. */
   | { t: 'reorder'; ids: string[] }
   | { t: 'viewed'; id: string }

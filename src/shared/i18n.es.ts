@@ -373,6 +373,15 @@ export const es: Record<string, string> = {
   'The folder does not exist any more.': 'La carpeta ya no existe.',
   'The program was not found.': 'No se encontró el programa.',
   'Windows did not allow it. Check the folder permissions or your antivirus.': 'Windows no lo permitió. Revisa los permisos de la carpeta o tu antivirus.',
+  // ---- archived sessions ----
+  'Archive': 'Archivar',
+  'Unarchive': 'Desarchivar',
+  'Restore and resume conversation': 'Restaurar y retomar la conversación',
+  'Archive anyway (something is still running)': 'Archivar de todos modos (algo sigue en marcha)',
+  '{n} more archived': '{n} archivadas más',
+  'Show fewer': 'Mostrar menos',
+  'Archived sessions shown per folder': 'Sesiones archivadas visibles por carpeta',
+  'The rest wait behind a "more" row.': 'El resto espera tras una fila de "más".',
   // ---- settings: advanced, resource use ----
   'New versions download in the background and install when you restart.': 'Las versiones nuevas se descargan en segundo plano y se instalan al reiniciar.',
   'New versions are announced here and in the title bar. The download page has the installer for your system.': 'Las versiones nuevas se anuncian aquí y en la barra de título. La página de descarga tiene el instalador para tu sistema.',

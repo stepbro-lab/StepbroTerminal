@@ -3,7 +3,7 @@ import { FileDiff, Globe, MoreHorizontal, Pin, Search, Ungroup, X } from 'lucide
 import type { Session } from '@shared/types'
 import { useData } from '@/stores/data'
 import { useUi } from '@/stores/ui'
-import { closeSession, copyText, killSession, openFolder, pinSession, renameSession, restartSession, splitWithNewShell, redrawSession } from '@/lib/actions'
+import { archiveSession, closeSession, copyText, killSession, openFolder, pinSession, renameSession, restartSession, splitWithNewShell, redrawSession } from '@/lib/actions'
 import { popup, sep } from '@/lib/menus'
 import { defaultTitle, rowPresetId } from '@/lib/sidebarModel'
 import { StatusGlyph } from '../sidebar/StatusGlyph'
@@ -45,6 +45,7 @@ export function CardHeader({ session, split = false, dim = false }: { session: S
         { id: 'redraw', label: t('Redraw screen') },
         { id: 'restart', label: t(canResume ? 'Restart and resume conversation' : 'Restart') },
         { id: 'kill', label: t('Kill process'), enabled: session.alive },
+        { id: 'archive', label: t('Archive') },
         sep,
         { id: 'folder', label: t('Open folder') },
         { id: 'copyPath', label: t('Copy path') },
@@ -84,6 +85,9 @@ export function CardHeader({ session, split = false, dim = false }: { session: S
         break
       case 'kill':
         killSession(session.id)
+        break
+      case 'archive':
+        await archiveSession(session.id)
         break
       case 'folder':
         openFolder(session.projectPath)

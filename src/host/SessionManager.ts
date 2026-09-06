@@ -290,6 +290,24 @@ export class SessionManager extends EventEmitter {
     }
   }
 
+  /**
+   * Puts a session away without losing it: the process ends, and the row moves under the folder's
+   * archived ones with its screen and its conversation kept, so it can be restored later and pick
+   * up where it was. Unarchiving brings it back exited; the client restarts it if it wants.
+   */
+  archive(id: string, archived: boolean): void {
+    const l = this.live.get(id)
+    if (!l || !!l.s.archived === archived) return
+    l.s.archived = archived
+    if (archived && l.pty) {
+      // The exit that follows carries the flag along, so the row lands in the right place at once.
+      this.kill(id)
+    } else {
+      this.emitSession(l)
+    }
+    this.persist()
+  }
+
   close(id: string): void {
     const l = this.live.get(id)
     if (!l) return

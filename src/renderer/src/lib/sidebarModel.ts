@@ -25,6 +25,8 @@ export interface SidebarProject {
   path: string
   name: string
   sessions: SidebarSession[]
+  /** Sessions put away, newest first; drawn dimmed under the live ones. */
+  archived: SidebarSession[]
   collapsed: boolean
   lastAt: number
 }
@@ -49,25 +51,26 @@ export function buildSidebar(projects: Project[], sessions: Session[], prefs: Pr
   for (const g of groups) for (const id of g.ids) viewOf.set(id, g.view)
   const out: SidebarProject[] = []
   for (const p of projects) {
-    const rows = orderRows(
-      sessions
-        .filter((s) => same(s.projectPath, p.path))
-        .map((s) => ({
-          key: s.id,
-          id: s.id,
-          title: s.title || defaultTitle(s),
-          status: s.status,
-          presetId: rowPresetId(s),
-          pinned: s.pinned,
-          lastAt: s.updatedAt,
-          view: viewOf.get(s.id) ?? null,
-          session: s
-        }))
-    )
+    const here = sessions
+      .filter((s) => same(s.projectPath, p.path))
+      .map((s) => ({
+        key: s.id,
+        id: s.id,
+        title: s.title || defaultTitle(s),
+        status: s.status,
+        presetId: rowPresetId(s),
+        pinned: s.pinned,
+        lastAt: s.updatedAt,
+        view: viewOf.get(s.id) ?? null,
+        session: s
+      }))
+    const rows = orderRows(here.filter((r) => !r.session.archived))
+    const archived = here.filter((r) => r.session.archived).sort((a, b) => b.lastAt - a.lastAt)
     out.push({
       path: p.path,
       name: p.name,
       sessions: rows,
+      archived,
       collapsed: collapsedSet.has(p.path.toLowerCase()),
       lastAt: rows.reduce((m, r) => Math.max(m, r.lastAt), 0)
     })

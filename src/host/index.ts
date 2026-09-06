@@ -87,7 +87,8 @@ async function main(): Promise<void> {
         notes,
         bus,
         session: (id) => sm.get(id),
-        sessions: () => sm.list(),
+        // Archived sessions are put away; agents neither see them nor hand them work.
+        sessions: () => sm.list().filter((s) => !s.archived),
         send: (from, to, text, submit, suffix) => sm.handoff(from, to, text, submit, { suffix }),
         screen: (id, lines) => sm.screenLines(id, lines),
         version

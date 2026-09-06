@@ -105,6 +105,37 @@ export function killSession(id: string): void {
   window.step.send('host:kill', id)
 }
 
+/**
+ * Puts a session away: its pane closes and its process ends, but the session, its screen and
+ * its conversation stay, dimmed under the folder, to be restored later or deleted.
+ */
+export async function archiveSession(id: string): Promise<void> {
+  const s = useData.getState().sessions[id]
+  if (!s) return
+  if (s.alive && (s.status === 'working' || s.status === 'attention')) {
+    const pick = await popup([{ id: 'archive', label: t('Archive anyway (something is still running)') }, { id: 'cancel', label: t('Keep it running') }])
+    if (pick !== 'archive') return
+  }
+  const ui = useUi.getState()
+  const wasFocused = ui.activeId === id
+  const alone = paneIds().length <= 1
+  ui.dropPane(id)
+  if (wasFocused && alone) ui.setActive(nextSessionId(id))
+  registry.dispose(id)
+  window.step.send('host:archive', id, true)
+}
+
+/** Brings an archived session back and starts it again, resuming its conversation when it can. */
+export function restoreSession(id: string): void {
+  const s = useData.getState().sessions[id]
+  if (!s) return
+  window.step.send('host:archive', id, false)
+  restartSession(id)
+  const ui = useUi.getState()
+  ui.setActiveProject(s.projectPath)
+  ui.setActive(id)
+}
+
 export function renameSession(id: string, title: string): void {
   window.step.send('host:rename', id, title)
 }
@@ -247,14 +278,15 @@ export async function sessionMenu(row: SidebarSession, pos: MenuPosition = {}): 
     { id: 'pin', label: t(s.pinned ? 'Unpin' : 'Pin') },
     sep,
     { id: 'detach', label: t('Move to its own view'), enabled: grouped },
-    { id: 'restart', label: t(canResume ? 'Restart and resume conversation' : 'Restart') },
+    s.archived ? { id: 'restore', label: t(canResume ? 'Restore and resume conversation' : 'Restore') } : { id: 'restart', label: t(canResume ? 'Restart and resume conversation' : 'Restart') },
     { id: 'kill', label: t('Kill process'), enabled: s.alive },
+    s.archived ? { id: 'unarchive', label: t('Unarchive') } : { id: 'archive', label: t('Archive') },
     sep,
     { id: 'folder', label: t('Open folder') },
     { id: 'copyPath', label: t('Copy path') },
     { id: 'copyId', label: t('Copy Claude session id'), enabled: !!s.agent.sessionId },
     sep,
-    { id: 'close', label: t('Close') }
+    { id: 'close', label: t(s.archived ? 'Delete' : 'Close') }
   ], pos)
   switch (pick) {
     case 'rename':
@@ -265,6 +297,15 @@ export async function sessionMenu(row: SidebarSession, pos: MenuPosition = {}): 
       break
     case 'detach':
       ui.detach(s.id)
+      break
+    case 'archive':
+      await archiveSession(s.id)
+      break
+    case 'unarchive':
+      window.step.send('host:archive', s.id, false)
+      break
+    case 'restore':
+      restoreSession(s.id)
       break
     case 'restart':
       restartSession(s.id)

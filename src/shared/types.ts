@@ -76,6 +76,8 @@ export interface Session {
   errorDetail?: string
   /** Set on restore when this session was still running as the host stopped; drives resume on launch. */
   leftRunning?: boolean
+  /** Put away: its process is gone and its row sits dimmed under the folder, ready to be restored or deleted. */
+  archived?: boolean
   cols: number
   rows: number
   pid?: number
@@ -178,6 +180,8 @@ export interface Prefs {
   /** DeepSeek serves an Anthropic-shaped API; with a key, Claude Code runs on its models as the DeepSeek preset. */
   deepseekApiKey?: string
   deepseekModel?: 'pro' | 'flash'
+  /** How many archived sessions a folder shows in the sidebar before "more"; 5 when unset. */
+  archivedShown?: number
   shell?: string
   presetUsage: Record<string, number>
   /** Ghost-text the permission-skipping flag when an agent is typed at a prompt. */
