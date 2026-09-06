@@ -279,7 +279,7 @@ export function CommandPalette() {
             lastGroup = it.group
             return (
               <div key={it.id}>
-                {header && <div className="px-4 pb-1 pt-2 text-[11px] font-medium uppercase tracking-wide text-muted">{header}</div>}
+                {header && <div className="px-4 pb-1 pt-2 text-[11.5px] font-medium uppercase tracking-wide text-muted">{header}</div>}
                 <button
                   data-i={i}
                   className="flex w-full items-center gap-2.5 px-4 py-1.5 text-left"

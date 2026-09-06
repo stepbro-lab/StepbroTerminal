@@ -160,7 +160,7 @@ function Metric({ value, label }: { value: string; label: string }) {
   return (
     <div className="w-16 text-right">
       <div className="text-[12.5px] tabular-nums text-fg">{value}</div>
-      <div className="text-[10.5px] text-muted">{label}</div>
+      <div className="text-[11.5px] text-muted">{label}</div>
     </div>
   )
 }

@@ -168,7 +168,7 @@ function MenuPanel({
               }}
             >
               <span className="flex-1 truncate">{it.label}</span>
-              {it.checked && <span className="text-[11px] text-muted">✓</span>}
+              {it.checked && <span className="text-[11.5px] text-muted">✓</span>}
               {hasSub && <ChevronRight size={13} className="text-muted" />}
             </button>
             {hasSub && openSub === i && (

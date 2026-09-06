@@ -88,7 +88,7 @@ export function ShortcutsPage() {
   return (
     <>
       <div className="mb-6 flex items-start gap-4">
-        <p className="max-w-[560px] text-[12px] leading-[1.5] text-muted">{t('Click a shortcut to change it, then press the new keys. Esc keeps the old one, Backspace removes it. A combination that is already in use moves to the shortcut you are editing.')}</p>
+        <p className="max-w-[560px] text-[12.5px] leading-[1.5] text-muted">{t('Click a shortcut to change it, then press the new keys. Esc keeps the old one, Backspace removes it. A combination that is already in use moves to the shortcut you are editing.')}</p>
         {changed && (
           <span className="ml-auto shrink-0">
             <SmallButton onClick={() => save({})}>{t('Reset all')}</SmallButton>
@@ -143,7 +143,7 @@ export function ShortcutsPage() {
         <Row label={t('Copy selection')}>
           <Keys chord={isMac ? 'Mod+C' : 'Mod+Shift+C'} />
           {!isMac && (
-            <span className="text-[12px] text-muted">
+            <span className="text-[12.5px] text-muted">
               {t('or')} <Keys chord="Mod+C" /> {t('with a selection')}</span>
           )}
         </Row>
@@ -151,10 +151,10 @@ export function ShortcutsPage() {
           <Keys chord="Mod+V" />
         </Row>
         <Row label={t('Arrange panes')}>
-          <span className="max-w-[340px] text-right text-[12px] text-muted">{t('Drag a session from the sidebar, or a card title, onto an edge of a pane.')}</span>
+          <span className="max-w-[340px] text-right text-[12.5px] text-muted">{t('Drag a session from the sidebar, or a card title, onto an edge of a pane.')}</span>
         </Row>
         <Row label={t('Drop files onto the terminal')}>
-          <span className="text-[12px] text-muted">{t('Inserts their paths.')}</span>
+          <span className="text-[12.5px] text-muted">{t('Inserts their paths.')}</span>
         </Row>
       </Section>
     </>

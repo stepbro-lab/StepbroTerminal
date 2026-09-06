@@ -8,7 +8,7 @@ export function Section({ title, description, action, children }: { title: strin
         <h3 className="text-[13px] font-semibold text-fg">{title}</h3>
         {action}
       </div>
-      {description && <p className="mt-1 max-w-[560px] text-[12px] leading-[1.5] text-muted">{description}</p>}
+      {description && <p className="mt-1 max-w-[560px] text-[12.5px] leading-[1.5] text-muted">{description}</p>}
       <div className="mt-3">{children}</div>
     </section>
   )
@@ -71,7 +71,7 @@ export function Slider({
         style={{ ['--fill' as string]: `${pct}%` }}
         onChange={(e) => onChange(Number(e.target.value))}
       />
-      <span className="w-14 whitespace-nowrap text-right text-[12px] tabular-nums text-muted">{format ? format(value) : value}</span>
+      <span className="w-14 whitespace-nowrap text-right text-[12.5px] tabular-nums text-muted">{format ? format(value) : value}</span>
     </>
   )
 }
@@ -116,7 +116,7 @@ export function TextField({
   return (
     <>
       <input
-        className={`field h-7 text-[12.5px] ${mono ? 'font-mono text-[12px]' : ''}`}
+        className={`field h-7 text-[12.5px] ${mono ? 'font-mono text-[12.5px]' : ''}`}
         style={{ width }}
         type={secret ? 'password' : 'text'}
         value={value}
@@ -139,7 +139,7 @@ export function TextField({
 export function SmallButton({ children, onClick, tone = 'secondary' }: { children: React.ReactNode; onClick: () => void; tone?: 'secondary' | 'danger' }) {
   return (
     <button
-      className="btn btn-secondary h-7 px-3 text-[12px]"
+      className="btn btn-secondary h-7 px-3 text-[12.5px]"
       style={tone === 'danger' ? { color: 'var(--danger)' } : undefined}
       onClick={onClick}
     >
@@ -155,7 +155,7 @@ export function Footer({ children }: { children: React.ReactNode }) {
 export function TextArea({ value, placeholder, mono, rows = 3, onChange }: { value: string; placeholder?: string; mono?: boolean; rows?: number; onChange: (v: string) => void }) {
   return (
     <textarea
-      className={`field w-full resize-y py-1.5 text-[12.5px] ${mono ? 'font-mono text-[12px]' : ''}`}
+      className={`field w-full resize-y py-1.5 text-[12.5px] ${mono ? 'font-mono text-[12.5px]' : ''}`}
       style={{ height: 'auto', minHeight: 0 }}
       rows={rows}
       value={value}

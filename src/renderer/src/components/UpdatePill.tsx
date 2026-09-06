@@ -27,7 +27,7 @@ export function UpdatePill() {
     >
       <span className="flex items-center gap-1.5">
         <span className="rounded-full" style={{ width: 7, height: 7, background: 'var(--accent)' }} />
-        <span className="text-[12px] font-medium tabular-nums">{label}</span>
+        <span className="text-[12.5px] font-medium tabular-nums">{label}</span>
       </span>
     </button>
   )

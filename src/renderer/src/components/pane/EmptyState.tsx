@@ -36,11 +36,11 @@ export function EmptyState() {
     <div {...drop.props} className="relative flex h-full flex-col items-center justify-center gap-5 p-8 text-center">
       <div>
         <div className="text-[15px] font-semibold tracking-[-0.01em]">{project.name}</div>
-        <div className="mt-1 max-w-[440px] truncate font-mono text-[11px] text-muted">{project.path}</div>
+        <div className="mt-1 max-w-[440px] truncate font-mono text-[11.5px] text-muted">{project.path}</div>
       </div>
       <button className="btn btn-primary" onClick={() => void newShell(project.path)}>
         <Terminal size={14} />{t('New shell')}</button>
-      <div className="mt-1 flex items-center gap-4 text-[12px] text-muted">
+      <div className="mt-1 flex items-center gap-4 text-[12.5px] text-muted">
         {shellKey && (
           <span>
             <Keys chord={shellKey} /> shell

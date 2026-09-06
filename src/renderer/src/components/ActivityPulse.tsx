@@ -61,7 +61,7 @@ export function ActivityPulse() {
         {needsYou ? (
           <span className="flex items-center gap-1.5">
             <span className="pulse-once rounded-full" style={{ width: 8, height: 8, background: 'var(--attention)' }} />
-            <span className="text-[12px] font-semibold tabular-nums" style={{ color: 'var(--attention)' }}>
+            <span className="text-[12.5px] font-semibold tabular-nums" style={{ color: 'var(--attention)' }}>
               {needsYou}
             </span>
           </span>
@@ -79,7 +79,7 @@ export function ActivityPulse() {
           className="fade-in absolute left-0 top-full z-40 mt-1 w-[320px] rounded-[10px] p-1"
           style={{ background: 'var(--bg-elevated)', boxShadow: '0 0 0 1px var(--border-strong) inset, var(--shadow-pop)' }}
         >
-          <div className="flex items-center px-2.5 pb-1 pt-1.5 text-[11px] font-medium text-muted">
+          <div className="flex items-center px-2.5 pb-1 pt-1.5 text-[11.5px] font-medium text-muted">
             <span>{t('Needs you')}</span>
             {nextKey && (
               <span className="ml-auto">
@@ -95,7 +95,7 @@ export function ActivityPulse() {
               <div key={s.id} className="flex h-8 items-center gap-2 rounded-[6px] px-2 hover:bg-hover" onClick={() => jump(s.id, s.projectPath)}>
                 <StatusGlyph status={s.status} color={color} size={14} />
                 <span className="min-w-0 flex-1 truncate text-[13px]">{s.title || defaultTitle(s)}</span>
-                <span className="text-[11px] text-muted">{t(waiting ? 'waiting' : s.status === 'error' ? 'error' : 'done')}</span>
+                <span className="text-[11.5px] text-muted">{t(waiting ? 'waiting' : s.status === 'error' ? 'error' : 'done')}</span>
                 <span style={{ color: 'var(--text-faint)' }}>
                   <AgentLogo presetId={presetId} size={12} />
                 </span>

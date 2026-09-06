@@ -33,12 +33,12 @@ export function SettingsView() {
             {p.label}
           </button>
         ))}
-        <div className="mt-auto pb-3 pl-2 text-[11px] text-muted">StepbroTerminal {window.step.version}</div>
+        <div className="mt-auto pb-3 pl-2 text-[11.5px] text-muted">StepbroTerminal {window.step.version}</div>
       </aside>
       <main className="min-w-0 flex-1 pb-2 pr-2">
         <div className="card scroll-thin h-full">
           <div className="mx-auto max-w-[680px] px-8 pb-10 pt-6">
-            <div className="text-[12px] text-muted">
+            <div className="text-[12.5px] text-muted">
               <span>{t('Settings')}</span>
               <span className="mx-1.5 text-faint">/</span>
               <span className="text-secondary">{current.label}</span>

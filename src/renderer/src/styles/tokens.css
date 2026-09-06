@@ -2,20 +2,20 @@
 :root,
 :root[data-theme='light'] {
   color-scheme: light;
-  --bg-sidebar-base: #f6f3f2;
+  --bg-sidebar-base: #f3f0ef;
   --bg-card-base: #ffffff;
   --bg-sidebar: color-mix(in srgb, var(--bg-sidebar-base) calc(100% - var(--wash-amount, 0%)), var(--wash, var(--bg-sidebar-base)));
   --bg-card: color-mix(in srgb, var(--bg-card-base) calc(100% - var(--wash-amount, 0%) / 2), var(--wash, var(--bg-card-base)));
-  --bg-hover: #efebea;
-  --bg-active: #e5e2e1;
+  --bg-hover: #ebe7e6;
+  --bg-active: #e1dedd;
   --bg-overlay: rgba(252, 248, 248, 0.94);
   --bg-input: #ffffff;
   --bg-elevated: #ffffff;
   --text: #1c1b1b;
   --text-secondary: #444748;
-  --text-muted: #747878;
-  --text-faint: #c4c7c8;
-  --border: rgba(28, 27, 27, 0.08);
+  --text-muted: #6b6f70;
+  --text-faint: #b9bcbd;
+  --border: rgba(28, 27, 27, 0.1);
   --border-strong: #c4c7c8;
   --accent: #5d5f5f;
   --accent-soft: rgba(93, 95, 95, 0.14);
@@ -23,7 +23,7 @@
   --attention: #e8a317;
   --danger: #ba1a1a;
   --success: #2f8f5b;
-  --shadow-card: 0 1px 1px rgba(0, 0, 0, 0.03), 0 8px 24px rgba(0, 0, 0, 0.05);
+  --shadow-card: 0 1px 2px rgba(28, 27, 27, 0.05), 0 10px 30px rgba(28, 27, 27, 0.08);
   --shadow-pop: 0 20px 60px rgba(0, 0, 0, 0.16), 0 2px 8px rgba(0, 0, 0, 0.06);
   --shadow-chip: 0 8px 22px rgba(0, 0, 0, 0.16), 0 1px 2px rgba(0, 0, 0, 0.08);
   --scrim: rgba(28, 27, 27, 0.22);

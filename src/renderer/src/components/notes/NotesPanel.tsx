@@ -63,7 +63,7 @@ function Panel() {
         <header className="flex items-center gap-2 px-4 pb-2 pt-3.5">
           <NotebookPen size={15} className="text-muted" />
           <span className="text-[13.5px] font-semibold">{t('Notes')}</span>
-          <span className="text-[12px] text-muted">
+          <span className="text-[12.5px] text-muted">
             {openCount(notes)} open{notes.length > openCount(notes) ? ` · ${notes.length - openCount(notes)} done` : ''}
           </span>
           <div className="ml-auto flex items-center gap-1">
@@ -96,7 +96,7 @@ function Panel() {
                 }
               }}
             />
-            <div className="mt-1 px-1 text-[11px]" style={{ color: 'var(--text-faint)' }}>{t('Enter saves · Shift+Enter for a new line · Esc cancels')}</div>
+            <div className="mt-1 px-1 text-[11.5px]" style={{ color: 'var(--text-faint)' }}>{t('Enter saves · Shift+Enter for a new line · Esc cancels')}</div>
           </div>
         )}
 
@@ -109,7 +109,7 @@ function Panel() {
           )}
         </div>
 
-        <footer className="border-t border-line px-4 py-2 text-[11px]" style={{ color: 'var(--text-faint)' }}>{t('Claude Code and Codex save here with their save_note tool, and can read, change or remove notes too.')}</footer>
+        <footer className="border-t border-line px-4 py-2 text-[11.5px]" style={{ color: 'var(--text-faint)' }}>{t('Claude Code and Codex save here with their save_note tool, and can read, change or remove notes too.')}</footer>
       </div>
     </div>
   )
@@ -179,7 +179,7 @@ function NoteRow({ note }: { note: Note }) {
             {note.text}
           </div>
         )}
-        <div className="mt-1 flex items-center gap-1.5 text-[11px]" style={{ color: 'var(--text-faint)' }}>
+        <div className="mt-1 flex items-center gap-1.5 text-[11.5px]" style={{ color: 'var(--text-faint)' }}>
           {agent && (
             <span className="flex items-center" style={{ color: preset?.color }}>
               <AgentLogo presetId={agent.presetId} size={11} />

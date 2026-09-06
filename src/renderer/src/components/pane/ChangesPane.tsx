@@ -84,7 +84,7 @@ export function ChangesPane({ sessionId }: { sessionId: string }) {
             {others.length > 0 && <Group title={t(mine.length ? 'Other changes' : 'Changes')} files={others} selected={selected} onSelect={setSelected} onRevert={revert} />}
           </div>
           <div className="scroll-thin min-w-0 flex-1 overflow-auto p-2">
-            {selected ? <Diff text={diff} /> : <div className="p-4 text-[12px] text-muted">{t('Pick a file')}</div>}
+            {selected ? <Diff text={diff} /> : <div className="p-4 text-[12.5px] text-muted">{t('Pick a file')}</div>}
           </div>
         </div>
       )}
@@ -109,16 +109,16 @@ function Group({
   const letter: Record<ChangedFile['status'], string> = { added: 'A', deleted: 'D', modified: 'M', renamed: 'R' }
   return (
     <div className="mb-1">
-      <div className="px-3 pb-0.5 pt-1.5 text-[11px] font-medium text-muted">{title}</div>
+      <div className="px-3 pb-0.5 pt-1.5 text-[11.5px] font-medium text-muted">{title}</div>
       {files.map((f) => (
         <div
           key={f.path}
-          className="group flex h-7 items-center gap-2 px-2 text-[12px]"
+          className="group flex h-7 items-center gap-2 px-2 text-[12.5px]"
           style={{ background: selected?.path === f.path ? 'var(--bg-active)' : undefined }}
           onClick={() => onSelect(f)}
           title={f.path}
         >
-          <span className="w-3 text-center font-mono text-[11px] font-semibold" style={{ color: color[f.status] }}>
+          <span className="w-3 text-center font-mono text-[11.5px] font-semibold" style={{ color: color[f.status] }}>
             {letter[f.status]}
           </span>
           <span className="min-w-0 flex-1 truncate" style={{ direction: 'rtl', textAlign: 'left' }}>
@@ -141,7 +141,7 @@ function Group({
 }
 
 function Diff({ text }: { text: string }) {
-  if (!text) return <div className="p-4 text-[12px] text-muted">{t('No differences.')}</div>
+  if (!text) return <div className="p-4 text-[12.5px] text-muted">{t('No differences.')}</div>
   return (
     <pre className="m-0 whitespace-pre font-mono text-[11.5px] leading-[1.5]" style={{ userSelect: 'text' }}>
       {text.split('\n').map((line, i) => {

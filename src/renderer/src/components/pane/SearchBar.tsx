@@ -75,7 +75,7 @@ export function SearchBar({ id, onClose }: { id: string; onClose: () => void }) 
           }}
         />
         {label && (
-          <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-[11px] tabular-nums text-muted">{label}</span>
+          <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-[11.5px] tabular-nums text-muted">{label}</span>
         )}
       </div>
       <button className="icon-btn h-6 w-6" onClick={() => find(q, 'prev')} title={t('Previous (Shift+Enter)')}>
