@@ -1,4 +1,4 @@
-import { Terminal, type IDecoration, type IDisposable, type IMarker } from '@xterm/xterm'
+import { Terminal, type IDecoration, type IDisposable, type IMarker, type ITheme } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import { SearchAddon } from '@xterm/addon-search'
 import { WebLinksAddon } from '@xterm/addon-web-links'
@@ -139,7 +139,7 @@ class TerminalRegistry {
       customGlyphs: true,
       rescaleOverlappingGlyphs: true,
       scrollback: p?.scrollback ?? 5000,
-      theme: this.dark ? darkTerminal : lightTerminal,
+      theme: themeFor(this.dark),
       macOptionIsMeta: true,
       minimumContrastRatio: 1,
       drawBoldTextInBrightColors: false,
@@ -338,7 +338,8 @@ class TerminalRegistry {
       this.prefs.fontSize !== prefs.fontSize ||
       this.prefs.lineHeight !== prefs.lineHeight ||
       this.prefs.ligatures !== prefs.ligatures
-    const themeChanged = this.dark !== dark
+    // The accent washes the card's colour, and the terminal paints the same colour, so it follows too.
+    const themeChanged = this.dark !== dark || !!this.prefs && this.prefs.accent !== prefs.accent
     const gpuChanged = !!this.prefs && this.prefs.gpuRendering !== prefs.gpuRendering
     this.prefs = prefs
     this.dark = dark
@@ -360,7 +361,7 @@ class TerminalRegistry {
       }
       e.term.options.cursorStyle = prefs.cursorStyle
       e.term.options.cursorBlink = prefs.cursorBlink
-      if (themeChanged) e.term.options.theme = dark ? darkTerminal : lightTerminal
+      if (themeChanged) e.term.options.theme = themeFor(dark)
       if (this.prefs && e.term.options.scrollback !== prefs.scrollback) e.term.options.scrollback = prefs.scrollback
       if ((fontChanged || themeChanged) && e.mounted) {
         if (e.webgl) {
@@ -597,6 +598,34 @@ function cellPadding(family: string, size: number): number {
   measure.font = `400 ${size}px ${family}`
   const advance = measure.measureText('W').width * window.devicePixelRatio
   return advance - Math.floor(advance) > 0.05 ? 1 : 0
+}
+
+/**
+ * The card's background as the browser actually paints it: the palette colour washed with the
+ * accent. The terminal paints its own background, and with the palette's plain colour it sat as
+ * a darker or lighter rectangle inside a tinted card. Resolved through a canvas, because the
+ * computed value of a colour-mix is a colour() the terminal cannot read.
+ */
+function cardBackground(): string | null {
+  const probe = document.createElement('div')
+  probe.style.cssText = 'position:absolute;width:0;height:0;visibility:hidden;pointer-events:none;background:var(--bg-card)'
+  document.body.appendChild(probe)
+  const css = getComputedStyle(probe).backgroundColor
+  probe.remove()
+  const ctx = document.createElement('canvas').getContext('2d')
+  if (!css || !ctx) return null
+  ctx.fillStyle = css
+  ctx.fillRect(0, 0, 1, 1)
+  const [r, g, b, a] = ctx.getImageData(0, 0, 1, 1).data
+  if (a === 0) return null
+  return '#' + [r, g, b].map((n) => n.toString(16).padStart(2, '0')).join('')
+}
+
+/** The palette for the mode, painted on the card's own colour. */
+function themeFor(dark: boolean): ITheme {
+  const base = dark ? darkTerminal : lightTerminal
+  const background = cardBackground()
+  return background ? { ...base, background, cursorAccent: background } : base
 }
 
 function fontStack(family: string | undefined): string {

@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
 import { useData } from '@/stores/data'
+import { usePrefs } from '@/stores/prefs'
 import { activeLayout, useUi, type DropZone, type LayoutNode } from '@/stores/ui'
 import { useTerminalMount } from '@/terminal/useTerminalMount'
 import { registry } from '@/terminal/TerminalRegistry'
@@ -22,10 +23,13 @@ export function TerminalPane() {
   const sessions = useData((s) => s.sessions)
   const connected = hostState.kind === 'connected'
   const live = leaves(layout).filter((id) => sessions[id])
+  // The sidebar keeps the cards off the left edge; when it is folded away, a little padding does.
+  const collapsed = usePrefs((s) => s.prefs?.sidebarCollapsed ?? false)
+  const edge = collapsed ? ' pl-2' : ''
 
   if (!layout || live.length === 0) {
     return (
-      <main className="min-w-0 flex-1 pb-2 pr-2">
+      <main className={`min-w-0 flex-1 pb-2 pr-2${edge}`}>
         <DropTarget className="card relative flex h-full flex-col">{connected ? <EmptyState /> : <HostBanner />}</DropTarget>
       </main>
     )
@@ -34,7 +38,7 @@ export function TerminalPane() {
   const sidePanel = side && sessions[side.sessionId] ? (side.kind === 'preview' ? <PreviewPane key={side.url} url={side.url} /> : <ChangesPane sessionId={side.sessionId} />) : null
 
   return (
-    <main className="flex min-w-0 flex-1 gap-2 pb-2 pr-2">
+    <main className={`flex min-w-0 flex-1 gap-2 pb-2 pr-2${edge}`}>
       <div className="flex min-w-0 flex-1">
         <LayoutView node={layout} path={[]} connected={connected} multi={live.length > 1} />
       </div>
