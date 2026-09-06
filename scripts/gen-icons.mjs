@@ -58,17 +58,17 @@ const trayLogo = (dot) => `
   ${dot ? `<circle cx="25" cy="25" r="7" fill="#1c1b1b"/><circle cx="25" cy="25" r="5" fill="${dot}"/>` : ''}
 </svg>`
 
-// macOS menu bar icons are monochrome template images, so the logo cannot go there as is: a
-// small chevron stands in, and the dot still reads as "something changed".
-const trayTemplate = (dot) => `
-<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
-  <path d="M9 8 L18 16 L9 24" fill="none" stroke="#000000" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>
-  ${dot ? `<circle cx="24" cy="9" r="4.5" fill="#000000"/>` : ''}
+// The macOS menu bar gets the same logo in color, at the 18 pt the bar draws its icons, with a
+// Retina copy beside it. (Not a template image: those are monochrome, and the logo is the point.)
+const trayMac = (dot) => `
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="36" height="36" viewBox="0 0 36 36">
+  <image x="0" y="0" width="36" height="36" xlink:href="${logo}"/>
+  ${dot ? `<circle cx="28" cy="28" r="7.5" fill="#1c1b1b"/><circle cx="28" cy="28" r="5.5" fill="${dot}"/>` : ''}
 </svg>`
 
 const moods = { idle: null, working: '#6e9cff', attention: '#f5b640' }
 for (const [mood, dot] of Object.entries(moods)) {
   render(trayLogo(dot), 32, path.join(iconsDir, `tray-${mood}.png`))
-  render(trayTemplate(dot), 32, path.join(iconsDir, `tray-${mood}Template@2x.png`))
-  render(trayTemplate(dot), 16, path.join(iconsDir, `tray-${mood}Template.png`))
+  render(trayMac(dot), 36, path.join(iconsDir, `tray-${mood}-mac@2x.png`))
+  render(trayMac(dot), 18, path.join(iconsDir, `tray-${mood}-mac.png`))
 }

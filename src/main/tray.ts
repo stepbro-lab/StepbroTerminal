@@ -28,16 +28,11 @@ function iconPath(name: string): string {
   return join(base, name)
 }
 
+/** The logo with a dot for the mood; on macOS the menu bar copy, drawn at the bar's size, and its @2x beside it. */
 function loadIcon(mood: TrayMood): Electron.NativeImage {
-  const mac = process.platform === 'darwin'
-  const file = mac ? `tray-${mood}Template.png` : `tray-${mood}.png`
+  const file = process.platform === 'darwin' ? `tray-${mood}-mac.png` : `tray-${mood}.png`
   const p = iconPath(file)
-  if (fs.existsSync(p)) {
-    const img = nativeImage.createFromPath(p)
-    if (mac) img.setTemplateImage(true)
-    return img
-  }
-  return nativeImage.createEmpty()
+  return fs.existsSync(p) ? nativeImage.createFromPath(p) : nativeImage.createEmpty()
 }
 
 export class StepTray {
