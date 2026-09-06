@@ -7,7 +7,9 @@ import { applyAgentWrap, writeAgentPlugins, writeOpencodeConfig } from './launch
 
 let tmp: string
 beforeEach(() => {
-  tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'step-opencode-'))
+  // The real path: on a Windows runner the temp folder is spelled RUNNER~1, and the test loader
+  // turns that tilde into %7E on the way to a file URL and then cannot find the file.
+  tmp = fs.mkdtempSync(path.join(fs.realpathSync.native(os.tmpdir()), 'step-opencode-'))
 })
 afterEach(() => {
   fs.rmSync(tmp, { recursive: true, force: true })
