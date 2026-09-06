@@ -1,7 +1,7 @@
 {
   "name": "step-terminal",
   "productName": "StepbroTerminal",
-  "version": "0.1.0-beta.15",
+  "version": "0.1.0-beta.16",
   "private": true,
   "description": "StepbroTerminal: a beautiful cross-platform terminal for always-on AI coding agents.",
   "author": {
