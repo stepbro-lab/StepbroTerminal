@@ -110,11 +110,13 @@ class TerminalRegistry {
     }
   }
 
-  /** Keeps the drawn size right for the font and the screen the terminal is on now (see fittedSize). */
+  /** Keeps the drawn size and weight right for the font and the screen the terminal is on now (see fittedSize). */
   private syncSpacing(e: Entry): void {
     const size = fittedSize(e.term.options.fontFamily ?? '', this.prefs?.fontSize ?? 13)
     if (e.term.options.fontSize !== size) e.term.options.fontSize = size
     if (e.term.options.letterSpacing !== 0) e.term.options.letterSpacing = 0
+    const weight = textWeight()
+    if (e.term.options.fontWeight !== weight) e.term.options.fontWeight = weight
   }
 
   get(id: string): Entry | undefined {
@@ -134,8 +136,7 @@ class TerminalRegistry {
       fontSize: fittedSize(fontStack(p?.fontFamily), p?.fontSize ?? 13),
       lineHeight: p?.lineHeight ?? 1,
       letterSpacing: 0,
-      // Regular weight everywhere: the medium face read heavy next to other terminals.
-      fontWeight: '400',
+      fontWeight: textWeight(),
       fontWeightBold: '700',
       customGlyphs: true,
       rescaleOverlappingGlyphs: true,
@@ -623,6 +624,15 @@ function windowsBuild(): number | undefined {
  * whole-pixel advance instead keeps the font's own spacing, at a size a fraction larger: 13 px
  * becomes 13.33 on a plain screen and stays 13 where the pixels are finer.
  */
+/**
+ * The weight for ordinary text. On a plain screen the terminal's greyscale antialiasing thins
+ * the strokes and the Regular face reads faint, so the Medium face carries the text there; on a
+ * fine screen Regular has all the ink it needs, and Medium would read heavy.
+ */
+function textWeight(): '400' | '500' {
+  return (window.devicePixelRatio || 1) < 1.5 ? '500' : '400'
+}
+
 function fittedSize(family: string, size: number): number {
   if (!measure) return size
   measure.font = `400 ${size}px ${family}`
