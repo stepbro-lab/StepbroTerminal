@@ -40,7 +40,8 @@ export function SessionRow({ row, insert, onDragOver, onDrop }: Props) {
   return (
     <div
       data-session-row={row.id}
-      className="group row grid-cols-[16px_minmax(0,1fr)_auto_16px] gap-2 pl-[22px]"
+      // The pin gets a column only when it is there; otherwise the logo would slide into its place and leave the edge empty.
+      className={`group row gap-2 pl-[22px] ${row.pinned ? 'grid-cols-[16px_minmax(0,1fr)_auto_16px]' : 'grid-cols-[16px_minmax(0,1fr)_16px]'}`}
       data-active={active}
       data-insert={insert}
       title={row.session.projectPath}
@@ -74,12 +75,13 @@ export function SessionRow({ row, insert, onDragOver, onDrop }: Props) {
         <span className="row-title">{row.title}</span>
       )}
       {row.pinned && <Pin size={11} strokeWidth={1.8} style={{ color: 'var(--text-muted)' }} />}
-      {/* The agent's mark, and under the pointer the things you can do to the row in its place. */}
+      {/* The agent's mark keeps the edge; under the pointer the row's actions slide in beside it, fading over the end of a long title. */}
       <span className="relative flex items-center justify-center" style={{ color: logoColor }}>
-        <span className="transition-opacity group-hover:opacity-0">
-          <AgentLogo presetId={row.presetId} size={13} />
-        </span>
-        <span className="absolute right-0 top-1/2 flex -translate-y-1/2 items-center gap-0.5 rounded-md pl-1 opacity-0 transition-opacity group-hover:opacity-100" style={{ background: active ? 'var(--bg-active)' : 'var(--bg-hover)' }}>
+        <AgentLogo presetId={row.presetId} size={13} />
+        <span
+          className="pointer-events-none absolute inset-y-0 right-full flex items-center gap-0.5 pl-3 pr-1 opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100"
+          style={{ background: `linear-gradient(to right, transparent, ${active ? 'var(--bg-active)' : 'var(--bg-hover)'} 12px)` }}
+        >
           {archived ? (
             <>
               <RowAction title={t(canResume ? 'Restore and resume conversation' : 'Restore')} onClick={() => restoreSession(row.id)}>

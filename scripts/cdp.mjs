@@ -70,6 +70,11 @@ if (arg === '--shot') {
   for (let i = 1; i <= 8; i++) await step('mouseMoved', x1 + ((x2 - x1) * i) / 8, y1 + ((y2 - y1) * i) / 8)
   await step('mouseReleased', x2, y2)
   console.log('dragged')
+} else if (arg === '--hover') {
+  // Moves the pointer there, no button held, so hover styles show in a following --shot: --hover x y
+  const [x, y] = [extra, ...rest].map(Number)
+  await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x, y, buttons: 0 })
+  console.log('hovering')
 } else {
   const r = await send('Runtime.evaluate', { expression: arg, awaitPromise: true, returnByValue: true })
   if (r.result?.exceptionDetails) console.error('EXC', JSON.stringify(r.result.exceptionDetails.exception?.description ?? r.result.exceptionDetails, null, 1))
