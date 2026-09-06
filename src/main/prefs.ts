@@ -8,7 +8,7 @@ export const defaultPrefs: Prefs = {
   accent: 'graphite',
   fontFamily: 'JetBrains Mono',
   fontSize: 13,
-  lineHeight: 1.1,
+  lineHeight: 1,
   ligatures: false,
   cursorStyle: 'bar',
   cursorBlink: true,
@@ -44,6 +44,8 @@ export function loadPrefs(): Prefs {
       raw.fontFamily = defaultPrefs.fontFamily
       if (raw.lineHeight === 1.2) raw.lineHeight = defaultPrefs.lineHeight
     }
+    // A short-lived default of 1.1 sat between the two; it moves on as well.
+    if (raw && raw.fontFamily === 'JetBrains Mono' && raw.lineHeight === 1.1) raw.lineHeight = defaultPrefs.lineHeight
     return { ...defaultPrefs, ...raw }
   } catch {
     return { ...defaultPrefs }

@@ -110,10 +110,11 @@ class TerminalRegistry {
     }
   }
 
-  /** Keeps the cell padding right for the font, size and screen the terminal is on now. */
+  /** Keeps the drawn size right for the font and the screen the terminal is on now (see fittedSize). */
   private syncSpacing(e: Entry): void {
-    const pad = cellPadding(e.term.options.fontFamily ?? '', e.term.options.fontSize ?? 13)
-    if (e.term.options.letterSpacing !== pad) e.term.options.letterSpacing = pad
+    const size = fittedSize(e.term.options.fontFamily ?? '', this.prefs?.fontSize ?? 13)
+    if (e.term.options.fontSize !== size) e.term.options.fontSize = size
+    if (e.term.options.letterSpacing !== 0) e.term.options.letterSpacing = 0
   }
 
   get(id: string): Entry | undefined {
@@ -130,9 +131,9 @@ class TerminalRegistry {
       cursorStyle: p?.cursorStyle ?? 'bar',
       cursorWidth: 2,
       fontFamily: fontStack(p?.fontFamily),
-      fontSize: p?.fontSize ?? 13,
-      lineHeight: p?.lineHeight ?? 1.2,
-      letterSpacing: cellPadding(fontStack(p?.fontFamily), p?.fontSize ?? 13),
+      fontSize: fittedSize(fontStack(p?.fontFamily), p?.fontSize ?? 13),
+      lineHeight: p?.lineHeight ?? 1,
+      letterSpacing: 0,
       // Regular weight everywhere: the medium face read heavy next to other terminals.
       fontWeight: '400',
       fontWeightBold: '700',
@@ -615,16 +616,22 @@ function windowsBuild(): number | undefined {
 }
 
 /**
- * Extra cell width, in device pixels, so glyphs are never squeezed. xterm floors the measured
- * advance of the font to whole device pixels, and the WebGL renderer then scales any glyph wider
- * than its cell down to fit: Geist Mono at 13 px advances 7.8 px, the cell became 7, and every
- * letter came out narrow and heavy. One pixel of spacing gives the glyph back the room it lost.
+ * The size to draw the font at so that a cell is a whole number of device pixels wide. xterm
+ * floors the measured advance to whole pixels and the WebGL renderer squeezes any glyph wider
+ * than its cell, so at 13 px JetBrains Mono (7.8 px advance) came out narrow and heavy; a pixel
+ * of letter spacing fixed that but spread the letters apart. Rounding the size up to the next
+ * whole-pixel advance instead keeps the font's own spacing, at a size a fraction larger: 13 px
+ * becomes 13.33 on a plain screen and stays 13 where the pixels are finer.
  */
-function cellPadding(family: string, size: number): number {
-  if (!measure) return 0
+function fittedSize(family: string, size: number): number {
+  if (!measure) return size
   measure.font = `400 ${size}px ${family}`
-  const advance = measure.measureText('W').width * window.devicePixelRatio
-  return advance - Math.floor(advance) > 0.05 ? 1 : 0
+  const advance = measure.measureText('W').width
+  if (!(advance > 0)) return size
+  const dpr = window.devicePixelRatio || 1
+  const cell = Math.ceil(advance * dpr - 0.02)
+  // A hair over the whole pixel: the browser measures 13.333 px as 7.998, which xterm floors to 7.
+  return Math.round(((cell + 0.03) / ((advance / size) * dpr)) * 1000) / 1000
 }
 
 /**

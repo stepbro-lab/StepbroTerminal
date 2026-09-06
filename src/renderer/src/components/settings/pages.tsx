@@ -81,7 +81,7 @@ export function AppearancePage() {
       </Section>
 
       <Footer>
-        <SmallButton onClick={() => upd({ theme: 'system', accent: 'graphite', fontFamily: 'JetBrains Mono', fontSize: 13, lineHeight: 1.1, sidebarWidth: 240 })}>{t('Revert to default')}</SmallButton>
+        <SmallButton onClick={() => upd({ theme: 'system', accent: 'graphite', fontFamily: 'JetBrains Mono', fontSize: 13, lineHeight: 1, sidebarWidth: 240 })}>{t('Revert to default')}</SmallButton>
       </Footer>
     </>
   )
