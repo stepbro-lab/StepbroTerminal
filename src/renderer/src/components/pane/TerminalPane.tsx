@@ -5,7 +5,7 @@ import { useData } from '@/stores/data'
 import { activeLayout, useUi, type DropZone, type LayoutNode } from '@/stores/ui'
 import { useTerminalMount } from '@/terminal/useTerminalMount'
 import { registry } from '@/terminal/TerminalRegistry'
-import { closeSession, restartSession } from '@/lib/actions'
+import { closeSession, restartSession, restoreSession } from '@/lib/actions'
 import { leaves, zoneFor } from '@/lib/layout'
 import { TopStrip } from '../Chrome'
 import { CardHeader } from './CardHeader'
@@ -199,9 +199,27 @@ function PaneCard({ id, connected, multi }: { id: string; connected: boolean; mu
         {session.status === 'error' && session.error && <ErrorBar session={session} />}
         {!session.alive && session.status === 'exited' && (
           <Bar>
-            <span className="text-muted">{session.exitCode !== undefined ? t('Process exited with code {code}.', { code: session.exitCode }) : t('Process exited.')}</span>
-            <button className="text-accent hover:underline" onClick={() => restartSession(session.id)}>{t('Restart')}</button>
-            <button className="text-muted hover:text-fg hover:underline" onClick={() => void closeSession(session.id)}>{t('Close')}</button>
+            <span className="min-w-0 flex-1 truncate text-muted">{session.exitCode !== undefined ? t('Process exited with code {code}.', { code: session.exitCode }) : t('Process exited.')}</span>
+            {/* Buttons with room around them; the words alone were a target too small to hit. */}
+            {session.archived ? (
+              <>
+                <button className="btn btn-secondary h-7 px-3 text-[12.5px]" onClick={() => restoreSession(session.id)}>
+                  {t(session.launch.resumeArgs && session.agent.sessionId ? 'Restore and resume conversation' : 'Restore')}
+                </button>
+                <button className="btn btn-secondary h-7 px-3 text-[12.5px]" onClick={() => void closeSession(session.id)}>
+                  {t('Delete')}
+                </button>
+              </>
+            ) : (
+              <>
+                <button className="btn btn-secondary h-7 px-3 text-[12.5px]" onClick={() => restartSession(session.id)}>
+                  {t(session.launch.resumeArgs && session.agent.sessionId ? 'Restart and resume conversation' : 'Restart')}
+                </button>
+                <button className="btn btn-secondary h-7 px-3 text-[12.5px]" onClick={() => void closeSession(session.id)}>
+                  {t('Close')}
+                </button>
+              </>
+            )}
           </Bar>
         )}
       </div>
