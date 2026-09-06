@@ -246,8 +246,8 @@ export function Sidebar() {
           </div>
         ))}
       </div>
-      {/* Two round raised buttons of the same size and weight, level with the bottom edge of the pane beside them. */}
-      <div className="mb-2 flex h-10 shrink-0 items-center justify-between px-2" style={{ width: 'var(--sidebar-w)' }}>
+      {/* Two round raised buttons of the same size and weight, lifted a little off the window's bottom edge. */}
+      <div className="mb-4 flex h-10 shrink-0 items-center justify-between px-2" style={{ width: 'var(--sidebar-w)' }}>
         <button className="fab" title={t('Add folder')} onClick={() => void addProject()}>
           <Plus size={20} strokeWidth={2.2} />
         </button>
