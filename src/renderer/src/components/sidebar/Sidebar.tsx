@@ -9,6 +9,7 @@ import { buildSidebar, type SidebarProject, type SidebarSession } from '@/lib/si
 import { leaves } from '@/lib/layout'
 import { addDroppedFolders, addProject, sidebarMenu } from '@/lib/actions'
 import { useFolderDrop } from '@/lib/folderDrop'
+import { registry } from '@/terminal/TerminalRegistry'
 import { ProjectRow } from './ProjectRow'
 import { SessionRow } from './SessionRow'
 import { useReorder } from './useReorder'
@@ -38,6 +39,12 @@ function chunk(rows: SidebarSession[]): Array<{ view: number | null; rows: Sideb
 
 const MIN_W = 200
 const MAX_W = 360
+/** The margin the cards keep on the left once the sidebar is gone; matches the other sides. */
+const EDGE_PX = 6.5
+/** While the sidebar is dragged, terminals refit this often rather than on every pixel. */
+const DRAG_FIT_MS = 160
+
+const reducedMotion = (): boolean => window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
 export function Sidebar() {
   const model = useSidebarModel()
@@ -69,22 +76,41 @@ export function Sidebar() {
     Flip.from(state, { duration: 0.32, ease: 'power3.out', simple: true })
   }, [model])
 
+  // Dragging the edge: the width follows the pointer once per frame, the terminals refit only a few
+  // times a second while it moves and once more when it stops, so the text stops shivering.
   const onDragStart = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault()
       dragging.current = true
       const startX = e.clientX
       const startW = width
+      const root = document.documentElement.style
+      let frame = 0
+      let latest = startW
+      let fitTimer = window.setInterval(() => {
+        registry.releaseFits()
+        registry.holdFits()
+      }, DRAG_FIT_MS)
+      registry.holdFits()
       const onMove = (ev: MouseEvent): void => {
-        const w = Math.min(MAX_W, Math.max(MIN_W, startW + ev.clientX - startX))
-        document.documentElement.style.setProperty('--sidebar-w', `${w}px`)
+        latest = Math.min(MAX_W, Math.max(MIN_W, startW + ev.clientX - startX))
+        if (!frame) {
+          frame = requestAnimationFrame(() => {
+            frame = 0
+            root.setProperty('--sidebar-w', `${latest}px`)
+          })
+        }
       }
-      const onUp = (ev: MouseEvent): void => {
+      const onUp = (): void => {
         dragging.current = false
         window.removeEventListener('mousemove', onMove)
         window.removeEventListener('mouseup', onUp)
-        const w = Math.min(MAX_W, Math.max(MIN_W, startW + ev.clientX - startX))
-        void setPrefs({ sidebarWidth: w })
+        if (frame) cancelAnimationFrame(frame)
+        window.clearInterval(fitTimer)
+        fitTimer = 0
+        root.setProperty('--sidebar-w', `${latest}px`)
+        registry.releaseFits()
+        void setPrefs({ sidebarWidth: latest })
       }
       window.addEventListener('mousemove', onMove)
       window.addEventListener('mouseup', onUp)
@@ -95,6 +121,47 @@ export function Sidebar() {
   useEffect(() => {
     document.documentElement.style.setProperty('--sidebar-w', `${width}px`)
   }, [width])
+
+  // Folding and unfolding: the sidebar slides with a tween rather than a CSS transition, the cards'
+  // left margin grows as it goes, and the terminals fit once at the end instead of on every frame.
+  const aside = useRef<HTMLElement>(null)
+  const firstLayout = useRef(true)
+  useLayoutEffect(() => {
+    const el = aside.current
+    if (!el) return
+    const root = document.documentElement.style
+    const settle = (): void => {
+      el.style.width = collapsed ? '0px' : 'var(--sidebar-w)'
+      root.setProperty('--pane-edge', collapsed ? `${EDGE_PX}px` : '0px')
+    }
+    if (firstLayout.current || reducedMotion()) {
+      firstLayout.current = false
+      settle()
+      return
+    }
+    gsap.killTweensOf(el)
+    const from = el.getBoundingClientRect().width
+    const to = collapsed ? 0 : width
+    const state = { w: from }
+    registry.holdFits()
+    gsap.to(state, {
+      w: to,
+      duration: 0.28,
+      ease: 'power3.out',
+      onUpdate: () => {
+        el.style.width = `${state.w}px`
+        root.setProperty('--pane-edge', `${(1 - state.w / Math.max(1, width)) * EDGE_PX}px`)
+      },
+      onComplete: () => {
+        settle()
+        registry.releaseFits()
+      }
+    })
+    return () => {
+      gsap.killTweensOf(state)
+      registry.releaseFits()
+    }
+  }, [collapsed])
 
   const ins = reorder.insert
   const mark = (row: SidebarSession): 'before' | 'after' | undefined => (ins?.id === row.id ? (ins.after ? 'after' : 'before') : undefined)
@@ -122,14 +189,7 @@ export function Sidebar() {
   }
 
   return (
-    <aside
-      {...drop.props}
-      className="relative flex h-full shrink-0 flex-col overflow-hidden"
-      style={{
-        width: collapsed ? 0 : 'var(--sidebar-w)',
-        transition: dragging.current ? undefined : 'width 200ms var(--ease)'
-      }}
-    >
+    <aside {...drop.props} ref={aside} className="relative flex h-full shrink-0 flex-col overflow-hidden">
       <div
         ref={list}
         className="scroll-thin flex-1 px-2 pt-1"

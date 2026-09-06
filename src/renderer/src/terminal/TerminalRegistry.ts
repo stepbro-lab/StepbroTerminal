@@ -273,7 +273,34 @@ class TerminalRegistry {
 
   fit(id: string): void {
     const e = this.entries.get(id)
-    if (e?.mounted) this.fitNow(e)
+    if (!e?.mounted) return
+    if (this.fitsHeld) {
+      this.fitLater.add(id)
+      return
+    }
+    this.fitNow(e)
+  }
+
+  // ---- holding fits while the layout is in motion ----
+
+  private fitsHeld = false
+  private fitLater = new Set<string>()
+
+  /**
+   * While the sidebar is dragged or slides shut, every frame changes the cards' width, and a
+   * terminal that refits on each one reflows its text and resizes the shell dozens of times a
+   * second. Held, the terminals keep their columns and the card simply clips them; released,
+   * whichever ones changed size fit once.
+   */
+  holdFits(): void {
+    this.fitsHeld = true
+  }
+
+  releaseFits(): void {
+    this.fitsHeld = false
+    const pending = [...this.fitLater]
+    this.fitLater.clear()
+    for (const id of pending) this.fit(id)
   }
 
   focus(id: string): void {
