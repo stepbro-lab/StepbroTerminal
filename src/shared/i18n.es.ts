@@ -350,6 +350,14 @@ export const es: Record<string, string> = {
   'Show StepbroTerminal': 'Mostrar StepbroTerminal',
   'Quit StepbroTerminal': 'Salir de StepbroTerminal',
 
+  // ---- settings: agents, DeepSeek ----
+  'Claude Code on DeepSeek models, through the Anthropic-shaped API DeepSeek serves: same hooks, notes and status. With a key, DeepSeek shows up next to the other agents.': 'Claude Code con los modelos de DeepSeek, a través de la API con forma de Anthropic que sirve DeepSeek: los mismos hooks, notas y estado. Con una clave, DeepSeek aparece junto a los demás agentes.',
+  'API key': 'Clave de API',
+  'Kept on this machine, in the app preferences.': 'Se guarda en este equipo, en las preferencias de la app.',
+  'Get a key': 'Conseguir una clave',
+  Model: 'Modelo',
+  'Pro thinks harder; Flash is faster and cheaper. Sub-agents always use Flash.': 'Pro piensa más; Flash es más rápido y barato. Los subagentes usan siempre Flash.',
+  'Needs an API key': 'Necesita una clave de API',
   // ---- settings: advanced, resource use ----
   'New versions download in the background and install when you restart.': 'Las versiones nuevas se descargan en segundo plano y se instalan al reiniciar.',
   'New versions are announced here and in the title bar. The download page has the installer for your system.': 'Las versiones nuevas se anuncian aquí y en la barra de título. La página de descarga tiene el instalador para tu sistema.',

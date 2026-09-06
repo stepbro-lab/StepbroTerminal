@@ -98,6 +98,7 @@ export function TextField({
   value,
   placeholder,
   mono,
+  secret,
   width = 260,
   list,
   onChange
@@ -105,6 +106,8 @@ export function TextField({
   value: string
   placeholder?: string
   mono?: boolean
+  /** Shown as dots: a key or a password. */
+  secret?: boolean
   width?: number
   list?: string[]
   onChange: (v: string) => void
@@ -115,6 +118,7 @@ export function TextField({
       <input
         className={`field h-7 text-[12.5px] ${mono ? 'font-mono text-[12px]' : ''}`}
         style={{ width }}
+        type={secret ? 'password' : 'text'}
         value={value}
         placeholder={placeholder}
         list={list ? id : undefined}

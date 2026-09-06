@@ -39,6 +39,13 @@ export function detectPresets(env: NodeJS.ProcessEnv, prefs: Prefs, platform: No
       out.push({ ...rest, binary: prefs.claudePath, installed: !!resolved, resolvedPath: resolved })
       continue
     }
+    if (b.id === 'deepseek') {
+      // Claude Code again, pointed at DeepSeek: it counts as installed once there is a key to point it with.
+      const binary = prefs.claudePath || b.binary
+      const resolved = findOnPath(binary, env, platform)
+      out.push({ ...rest, binary, installed: !!resolved && !!prefs.deepseekApiKey, resolvedPath: resolved })
+      continue
+    }
     let resolved: string | undefined
     let binary = b.binary
     for (const name of binaries) {

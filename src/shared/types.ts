@@ -175,6 +175,9 @@ export interface Prefs {
   hiddenProjects: string[]
   customPresets: CustomPreset[]
   claudePath?: string
+  /** DeepSeek serves an Anthropic-shaped API; with a key, Claude Code runs on its models as the DeepSeek preset. */
+  deepseekApiKey?: string
+  deepseekModel?: 'pro' | 'flash'
   shell?: string
   presetUsage: Record<string, number>
   /** Ghost-text the permission-skipping flag when an agent is typed at a prompt. */

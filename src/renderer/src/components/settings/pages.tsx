@@ -160,7 +160,9 @@ export function AgentsPage() {
               <span className="flex-1 text-[13px]" style={{ color: a.installed ? 'var(--text)' : 'var(--text-muted)' }}>
                 {a.name}
               </span>
-              <span className="max-w-[320px] truncate font-mono text-[11px] text-muted">{a.installed ? a.resolvedPath : t('Not installed')}</span>
+              <span className="max-w-[320px] truncate font-mono text-[11px] text-muted">
+                {a.installed ? a.resolvedPath : a.id === 'deepseek' && a.resolvedPath ? t('Needs an API key') : t('Not installed')}
+              </span>
             </div>
           ))}
         </div>
@@ -183,6 +185,26 @@ export function AgentsPage() {
             mono
             width={300}
             onChange={(v) => upd({ claudePath: v || undefined })}
+          />
+        </Row>
+      </Section>
+
+      <Section
+        title="DeepSeek"
+        description={t('Claude Code on DeepSeek models, through the Anthropic-shaped API DeepSeek serves: same hooks, notes and status. With a key, DeepSeek shows up next to the other agents.')}
+      >
+        <Row label={t('API key')} hint={t('Kept on this machine, in the app preferences.')}>
+          <TextField value={p.deepseekApiKey ?? ''} placeholder="sk-…" mono secret width={300} onChange={(v) => upd({ deepseekApiKey: v.trim() || undefined })} />
+          <SmallButton onClick={() => void window.step.invoke('app:openExternal', 'https://platform.deepseek.com/api_keys')}>{t('Get a key')}</SmallButton>
+        </Row>
+        <Row label={t('Model')} hint={t('Pro thinks harder; Flash is faster and cheaper. Sub-agents always use Flash.')}>
+          <Segmented
+            value={p.deepseekModel ?? 'pro'}
+            options={[
+              { value: 'pro', label: 'V4 Pro' },
+              { value: 'flash', label: 'V4 Flash' }
+            ]}
+            onChange={(deepseekModel) => upd({ deepseekModel })}
           />
         </Row>
       </Section>

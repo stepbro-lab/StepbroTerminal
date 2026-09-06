@@ -16,6 +16,18 @@ export const builtinPresets: BuiltinPreset[] = [
     hooks: true
   },
   {
+    // DeepSeek serves an Anthropic-shaped API, so Claude Code runs on its models unchanged, with
+    // the same hooks, notes and status. The key and the model come from Settings > Agents.
+    id: 'deepseek',
+    name: 'DeepSeek',
+    color: '#4d6bfe',
+    binary: 'claude',
+    binaries: ['claude'],
+    args: ['--session-id', '{sessionId}', '--settings', '{hooksSettings}', '--mcp-config', '{mcpConfig}'],
+    resumeArgs: ['--resume', '{sessionId}', '--settings', '{hooksSettings}', '--mcp-config', '{mcpConfig}'],
+    hooks: true
+  },
+  {
     id: 'codex',
     name: 'Codex',
     color: '#7aa2ff',
