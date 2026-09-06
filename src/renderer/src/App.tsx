@@ -8,7 +8,6 @@ import { terminalContextMenu } from '@/lib/terminalMenu'
 import { defaultTitle } from '@/lib/sidebarModel'
 import { pruneLayout, type LayoutNode } from '@/lib/layout'
 import { addDroppedFolders, openWorkspaceByKey } from '@/lib/actions'
-import { TitleBar } from '@/components/TitleBar'
 import { Sidebar, useSidebarModel } from '@/components/sidebar/Sidebar'
 import { TerminalPane } from '@/components/pane/TerminalPane'
 import { CommandPalette } from '@/components/CommandPalette'
@@ -185,7 +184,6 @@ export default function App() {
 
   return (
     <div className="relative flex h-full w-full flex-col overflow-hidden">
-      <TitleBar />
       {/* The workspace stays mounted behind Settings so terminals keep their state and size. */}
       <div className="flex min-h-0 flex-1" style={{ display: settingsOpen ? 'none' : undefined }}>
         <Sidebar />

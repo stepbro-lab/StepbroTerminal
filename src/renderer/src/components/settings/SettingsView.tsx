@@ -2,6 +2,7 @@ import { Bell, ChevronLeft, Cpu, Keyboard, LayoutGrid, Palette, Terminal, Wrench
 import { useUi, type SettingsPage } from '@/stores/ui'
 import { AppearancePage, TerminalPage, AgentsPage, WorkspacesPage, NotificationsPage, AdvancedPage } from './pages'
 import { ShortcutsPage } from './ShortcutsPage'
+import { TopStrip } from '../Chrome'
 import { t } from '@/lib/i18n'
 
 const pages = (): Array<{ id: SettingsPage; label: string; icon: React.ReactNode; title: string; blurb: string }> => [
@@ -24,7 +25,9 @@ export function SettingsView() {
 
   return (
     <div className="fade-in flex min-h-0 flex-1">
-      <aside className="flex w-[200px] shrink-0 flex-col px-2 pt-1">
+      <aside className="flex w-[200px] shrink-0 flex-col px-2">
+        {/* Where the window's top row sits: the traffic lights on a Mac, the drag strip elsewhere. */}
+        <div className="drag -mx-2 shrink-0" style={{ height: window.step.platform === 'darwin' ? 'var(--titlebar-h)' : 'var(--strip-h)' }} />
         <button className="nav-row mb-2 !text-muted hover:!text-fg" onClick={close}>
           <ChevronLeft size={14} />{t('Back')}</button>
         {PAGES.map((p) => (
@@ -35,8 +38,9 @@ export function SettingsView() {
         ))}
         <div className="mt-auto pb-3 pl-2 text-[11.5px] text-muted">StepbroTerminal {window.step.version}</div>
       </aside>
-      <main className="min-w-0 flex-1 pb-2 pr-2">
-        <div className="card scroll-thin h-full">
+      <main className="flex min-w-0 flex-1 flex-col">
+        <TopStrip chrome={false} />
+        <div className="card scroll-thin mb-2 mr-2 min-h-0 flex-1">
           <div className="mx-auto max-w-[680px] px-8 pb-10 pt-6">
             <div className="text-[12.5px] text-muted">
               <span>{t('Settings')}</span>

@@ -10,6 +10,7 @@ import { leaves } from '@/lib/layout'
 import { addDroppedFolders, addProject, sidebarMenu } from '@/lib/actions'
 import { useFolderDrop } from '@/lib/folderDrop'
 import { registry } from '@/terminal/TerminalRegistry'
+import { SidebarHeader } from '../Chrome'
 import { ProjectRow } from './ProjectRow'
 import { SessionRow } from './SessionRow'
 import { useReorder } from './useReorder'
@@ -218,6 +219,7 @@ export function Sidebar() {
 
   return (
     <aside {...drop.props} ref={aside} className="relative flex h-full shrink-0 flex-col overflow-hidden">
+      <SidebarHeader />
       <div
         ref={list}
         className="scroll-thin flex-1 px-2 pt-1"

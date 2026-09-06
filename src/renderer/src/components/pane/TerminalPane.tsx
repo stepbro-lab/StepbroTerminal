@@ -7,6 +7,7 @@ import { useTerminalMount } from '@/terminal/useTerminalMount'
 import { registry } from '@/terminal/TerminalRegistry'
 import { closeSession, restartSession } from '@/lib/actions'
 import { leaves, zoneFor } from '@/lib/layout'
+import { TopStrip } from '../Chrome'
 import { CardHeader } from './CardHeader'
 import { EmptyState } from './EmptyState'
 import { HostBanner } from './HostBanner'
@@ -30,8 +31,11 @@ export function TerminalPane() {
 
   if (!layout || live.length === 0) {
     return (
-      <main className="min-w-0 flex-1 pb-2 pr-2" style={edge}>
-        <DropTarget className="card relative flex h-full flex-col">{connected ? <EmptyState /> : <HostBanner />}</DropTarget>
+      <main className="flex min-w-0 flex-1 flex-col" style={edge}>
+        <TopStrip />
+        <div className="flex min-h-0 flex-1 pb-2 pr-2">
+          <DropTarget className="card relative flex h-full w-full flex-col">{connected ? <EmptyState /> : <HostBanner />}</DropTarget>
+        </div>
       </main>
     )
   }
@@ -39,11 +43,14 @@ export function TerminalPane() {
   const sidePanel = side && sessions[side.sessionId] ? (side.kind === 'preview' ? <PreviewPane key={side.url} url={side.url} /> : <ChangesPane sessionId={side.sessionId} />) : null
 
   return (
-    <main className="flex min-w-0 flex-1 gap-2 pb-2 pr-2" style={edge}>
-      <div className="flex min-w-0 flex-1">
-        <LayoutView node={layout} path={[]} connected={connected} multi={live.length > 1} />
+    <main className="flex min-w-0 flex-1 flex-col" style={edge}>
+      <TopStrip />
+      <div className="flex min-h-0 flex-1 gap-2 pb-2 pr-2">
+        <div className="flex min-w-0 flex-1">
+          <LayoutView node={layout} path={[]} connected={connected} multi={live.length > 1} />
+        </div>
+        {sidePanel && <div className="flex min-w-0 flex-[0_0_44%]">{sidePanel}</div>}
       </div>
-      {sidePanel && <div className="flex min-w-0 flex-[0_0_44%]">{sidePanel}</div>}
     </main>
   )
 }

@@ -65,6 +65,8 @@
   --radius-row: 7px;
   --radius-input: 8px;
   --titlebar-h: 40px;
+  /* The strip above the panes on Windows and Linux: just tall enough for its caption buttons. */
+  --strip-h: 28px;
   --row-h: 27px;
   --ease: cubic-bezier(0.2, 0, 0, 1);
 }
