@@ -75,5 +75,7 @@ linux:
     - deb
   icon: build/icon.png
   category: Development
+  # The package description. (package.json's is just the name: Windows shows it as the process name.)
+  description: A terminal for people who run coding agents all day.
   executableName: StepbroTerminal
   artifactName: StepbroTerminal-${version}-linux-${arch}.${ext}
