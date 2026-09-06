@@ -129,6 +129,7 @@ export function registerIpc(ctx: Ctx): void {
     return clipboard.readText() ? 'text' : 'none'
   })
   handle('clipboard:readText', () => clipboard.readText())
+  handle('clipboard:saveImage', () => savePastedImage())
   handle('prompts:list', () => ctx.prompts.list())
   handle('git:changes', (projectPath, since, touched) => gitChanges(projectPath, since, touched))
   handle('git:diff', (root, rel, untracked) => gitDiff(root, rel, untracked))
@@ -164,6 +165,33 @@ export function registerIpc(ctx: Ctx): void {
     }
     return { app: appBytes, host }
   })
+}
+
+const PASTE_KEEP_MS = 24 * 60 * 60 * 1000
+
+/**
+ * An image pasted into a program that cannot read the clipboard goes through a file. They live in
+ * the temp folder under the app's name; yesterday's are removed on the next paste, the agent has
+ * long since read them.
+ */
+function savePastedImage(): string | null {
+  const image = clipboard.readImage()
+  if (image.isEmpty()) return null
+  const dir = join(app.getPath('temp'), 'StepbroTerminal', 'pasted')
+  fs.mkdirSync(dir, { recursive: true })
+  const now = Date.now()
+  for (const name of fs.readdirSync(dir)) {
+    try {
+      const p = join(dir, name)
+      if (now - fs.statSync(p).mtimeMs > PASTE_KEEP_MS) fs.rmSync(p)
+    } catch {
+      /* someone else's file, or gone already */
+    }
+  }
+  const stamp = new Date(now).toISOString().slice(0, 19).replace(/[-:]/g, '').replace('T', '-')
+  const file = join(dir, `image-${stamp}-${(now % 1000).toString().padStart(3, '0')}.png`)
+  fs.writeFileSync(file, image.toPNG())
+  return file
 }
 
 async function createSession(ctx: Ctx, req: CreateRequest): Promise<Session> {

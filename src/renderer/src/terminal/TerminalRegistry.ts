@@ -6,7 +6,7 @@ import { Unicode11Addon } from '@xterm/addon-unicode11'
 import type { Prefs } from '@shared/types'
 import { darkTerminal, lightTerminal } from '@/theme/terminalThemes'
 import { InputLine, hintFor } from '@/lib/flagHints'
-import { newlineSequence } from '@/lib/agentKeys'
+import { imagePaste, imagePathText, newlineSequence } from '@/lib/agentKeys'
 
 interface Entry {
   id: string
@@ -481,15 +481,21 @@ class TerminalRegistry {
   }
 
   /**
-   * Text is pasted as usual. An image is handed to the program instead: agents such as Claude Code
-   * read the clipboard themselves and show it as an [Image #n] chip. Claude listens for Ctrl+V on
-   * macOS and Linux, and for Alt+V on Windows (where terminals usually swallow Ctrl+V).
+   * Text is pasted as usual. An image is handed to the program in front instead: Claude Code reads
+   * the clipboard itself on its paste key, and everything else gets the image saved as a file and
+   * its path pasted, which agents turn into an attachment and a shell can use as an argument.
    */
   private async paste(e: Entry): Promise<void> {
     const kind = await window.step.invoke('clipboard:kind')
     if (kind === 'image') {
-      const key = window.step.platform === 'win32' ? [0x1b, 0x76] : [0x16]
-      window.step.send('host:input', e.id, new Uint8Array(key))
+      const agent = this.agentResolver(e.id)
+      const how = imagePaste(agent, window.step.platform)
+      if (how.kind === 'key') {
+        window.step.send('host:input', e.id, new Uint8Array(how.bytes))
+        return
+      }
+      const file = await window.step.invoke('clipboard:saveImage')
+      if (file) e.term.paste(imagePathText(agent, file, window.step.platform))
       return
     }
     if (kind === 'text') {

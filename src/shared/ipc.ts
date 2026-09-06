@@ -54,6 +54,8 @@ export interface InvokeMap {
   /** What the system clipboard holds right now, so paste can be routed correctly. */
   'clipboard:kind': () => 'image' | 'text' | 'none'
   'clipboard:readText': () => string
+  /** Saves the image on the clipboard as a PNG in the app's temp folder and returns its path, or null without one. */
+  'clipboard:saveImage': () => string | null
   'prompts:list': () => PromptRecord[]
   'git:changes': (projectPath: string, since: number, touched: string[]) => GitChanges
   'git:diff': (root: string, rel: string, untracked: boolean) => string
