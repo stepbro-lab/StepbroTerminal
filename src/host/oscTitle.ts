@@ -60,9 +60,30 @@ export class OscTitleParser {
 
 const BORING = /^(windows powershell|powershell|pwsh|cmd|command prompt|bash|zsh|fish|sh|terminal|administrator: .*|.*: (bash|zsh|fish|sh))$/i
 
-/** Agents prefix their titles with a spinner glyph ("✳ Fix bug", "◑ Thinking"); the sidebar has its own status mark. */
+/**
+ * Agents prefix their titles with a spinner glyph ("✳ Fix bug", "◑ Thinking") or their initials
+ * ("OC | Fix bug"); the sidebar has its own status mark and shows the agent's logo.
+ */
 export function stripTitleGlyph(t: string): string {
-  return t.replace(/^[^\p{L}\p{N}\s]{1,2}\s+/u, '').trim()
+  return t
+    .replace(/^[^\p{L}\p{N}\s]{1,2}\s+/u, '')
+    .replace(/^OC \| /, '')
+    .trim()
+}
+
+const plain = (s: string): string => s.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '')
+
+/**
+ * An agent's title that only says who it is, or where: OpenCode titles its window "OpenCode",
+ * Codex names the folder. Neither tells two sessions apart, so the first prompt names the session instead.
+ */
+export function isOwnNameTitle(title: string, agent: string, folder: string): boolean {
+  const t = plain(title)
+  if (!t) return true
+  const a = plain(agent)
+  if (a && (t === a || t === `${a}code` || t === `${a}cli` || t === `${a}agent`)) return true
+  const f = plain(folder)
+  return !!f && t === f
 }
 
 /** Titles that shells emit by default and that would make a poor session name. */

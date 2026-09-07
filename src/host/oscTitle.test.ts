@@ -1,7 +1,27 @@
 import { describe, expect, it } from 'vitest'
-import { isBoringTitle, OscTitleParser, stripTitleGlyph } from './oscTitle'
+import { isBoringTitle, isOwnNameTitle, OscTitleParser, stripTitleGlyph } from './oscTitle'
 
 const b = (s: string) => Buffer.from(s)
+
+describe('isOwnNameTitle', () => {
+  it('sees through an agent naming itself, in any spelling', () => {
+    expect(isOwnNameTitle('OpenCode', 'opencode', 'StepTerminal')).toBe(true)
+    expect(isOwnNameTitle('open-code', 'opencode', 'StepTerminal')).toBe(true)
+    expect(isOwnNameTitle('Gemini CLI', 'gemini', 'x')).toBe(true)
+    expect(isOwnNameTitle('Claude Code', 'claude', 'x')).toBe(true)
+    expect(isOwnNameTitle('', 'codex', 'x')).toBe(true)
+  })
+
+  it('sees through the folder name Codex uses as its title', () => {
+    expect(isOwnNameTitle('StepTerminal', 'codex', 'StepTerminal')).toBe(true)
+    expect(isOwnNameTitle('step-terminal', 'codex', 'Step Terminal')).toBe(true)
+  })
+
+  it('keeps a title that says something', () => {
+    expect(isOwnNameTitle('Fix the login redirect', 'claude', 'StepTerminal')).toBe(false)
+    expect(isOwnNameTitle('Codex: reviewing tests', 'codex', 'StepTerminal')).toBe(false)
+  })
+})
 
 describe('OscTitleParser', () => {
   it('parses BEL and ST terminated titles', () => {
@@ -37,6 +57,7 @@ describe('stripTitleGlyph', () => {
   it('drops a leading spinner glyph but keeps real titles', () => {
     expect(stripTitleGlyph('✳ Claude Code')).toBe('Claude Code')
     expect(stripTitleGlyph('◑ Respuesta simple')).toBe('Respuesta simple')
+    expect(stripTitleGlyph('OC | Saludo de prueba')).toBe('Saludo de prueba')
     expect(stripTitleGlyph('npm run dev')).toBe('npm run dev')
     expect(stripTitleGlyph('C:\\dev')).toBe('C:\\dev')
   })

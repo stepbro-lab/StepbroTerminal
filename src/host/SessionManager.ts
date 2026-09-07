@@ -7,7 +7,8 @@ import { Terminal as HeadlessTerminal } from '@xterm/headless'
 import { SerializeAddon } from '@xterm/addon-serialize'
 import type { CreateSessionOpts, HostStats, LiveClaude, Session, SessionStats } from '@shared/types'
 import { TitleCapture, detectAgentFromCommand } from './titleCapture'
-import { OscTitleParser, isBoringTitle, stripTitleGlyph } from './oscTitle'
+import { OscTitleParser, isBoringTitle, isOwnNameTitle, stripTitleGlyph } from './oscTitle'
+import { projectName } from '@shared/paths'
 import { reduceStatus, type ReducerEvent } from './statusReducer'
 import {
   applyAgentWrap,
@@ -961,7 +962,7 @@ export class SessionManager extends EventEmitter {
     const s = l.s
     if (s.titleSource === 'user') return
     const t = stripTitleGlyph(title)
-    if (isBoringTitle(t)) return
+    if (isBoringTitle(t) || isOwnNameTitle(t, agentOf(s), projectName(s.projectPath))) return
     if (s.title === t && s.titleSource === 'osc') return
     s.title = t.slice(0, 120)
     s.titleSource = 'osc'
