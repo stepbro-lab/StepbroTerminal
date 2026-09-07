@@ -28,6 +28,8 @@ import { log } from './log'
 import { CpuMeter, readProcesses, subtree } from './procStats'
 import { waitingForApproval } from './screenPrompts'
 import { conptyReply, isControlOnly, stripProbeReplies } from './conptyReply'
+import { agentOf } from './handoff'
+import { pacePieces } from './pace'
 import { isOwnEndpoint, previewUrlIn } from './previewUrl'
 
 export interface SessionManagerOpts {
@@ -60,6 +62,8 @@ interface Live {
   altSeen?: boolean
   /** When the current burst of output started; reset after QUIET_MS of silence. */
   burstStart: number
+  /** When the program last printed anything: a spinner still turning means it is not ready to be typed into. */
+  lastOutputAt: number
   logFd?: number
   logBytes: number
   paused: boolean
@@ -67,6 +71,35 @@ interface Live {
   runOnStart?: string
   /** ConPTY is still probing the terminal (nothing printable yet); the host answers and views must not. */
   probing: boolean
+}
+
+/**
+ * A held hand-off goes in once the agent is free and its screen has been still for this long: after
+ * the Stop hook, Claude Code keeps a spinner turning while it runs its stop hooks, and what is
+ * typed under it loses its head. Past HELD_MAX_WAIT_MS of a screen that never settles it goes in anyway.
+ */
+const HELD_QUIET_MS = 1000
+// Stop hooks have been seen to take half a minute; the cap is for a screen that never settles.
+const HELD_MAX_WAIT_MS = 60000
+const HELD_POLL_MS = 250
+/**
+ * An agent gets a hand-off in pieces this big, this far apart. Claude Code reads its input a
+ * kilobyte at a time and keeps only the last read of a burst that comes in one write (measured:
+ * a 2.4 KB hand-off arrived as its final 332 bytes); pieces under a kilobyte, a beat apart, all
+ * arrive, and each still reads as a paste to the TUI.
+ */
+const PIECE_BYTES = 900
+const PIECE_GAP_MS = 150
+const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms))
+
+export type HandoffOutcome = 'typed' | 'held' | 'lost'
+
+interface HeldHandoff {
+  from: string
+  text: string
+  submit: boolean
+  suffix?: string
+  titled?: boolean
 }
 
 const QUIET_MS = 1500
@@ -81,6 +114,11 @@ const LOG_KEEP = 2 * 1024 * 1024
  */
 export class SessionManager extends EventEmitter {
   private live = new Map<string, Live>()
+  /** Hand-offs for agents that were busy when they arrived, typed once the agent is free. */
+  private heldHandoffs = new Map<string, HeldHandoff[]>()
+  private heldTimers = new Map<string, NodeJS.Timeout>()
+  /** Sessions a hand-off is being typed into right now, piece by piece. */
+  private typing = new Set<string>()
   private persistTimer?: NodeJS.Timeout
   private registryBusy = false
   private registryDirty: LiveClaude[] | null = null
@@ -334,6 +372,11 @@ export class SessionManager extends EventEmitter {
       /* ignore */
     }
     this.live.delete(id)
+    this.heldHandoffs.delete(id)
+    this.typing.delete(id)
+    const held = this.heldTimers.get(id)
+    if (held) clearTimeout(held)
+    this.heldTimers.delete(id)
     for (const f of [this.logPath(id), path.join(this.opts.hooksDir, `${id}.json`)]) {
       try {
         fs.rmSync(f, { force: true })
@@ -475,20 +518,92 @@ export class SessionManager extends EventEmitter {
    * can show it travelling. `suffix` is typed too but stays out of the title an untitled shell
    * takes from its first line: it is the request to report back, not the task.
    */
-  handoff(from: string, to: string, text: string, submit: boolean, opts: { suffix?: string; titled?: boolean } = {}): void {
+  handoff(from: string, to: string, text: string, submit: boolean, opts: { suffix?: string; titled?: boolean } = {}): HandoffOutcome {
     const l = this.live.get(to)
-    if (!l?.pty) return
-    const body = text.replace(/\r?\n/g, '\n')
+    if (!l?.pty) return 'lost'
+    const item: HeldHandoff = { from, text, submit, suffix: opts.suffix, titled: opts.titled }
+    // An agent in the middle of a turn loses the head of a paste (measured with Claude Code: from
+    // two hundred to two thousand characters never reach the conversation), one asking a person
+    // something would take the Enter as the answer, and one whose screen is still moving is not
+    // at its prompt yet. Their text waits until they are free and still.
+    if (agentOf(l.s) !== 'shell' && (this.typing.has(to) || !(this.freeToType(l) && this.still(l)))) {
+      const list = this.heldHandoffs.get(to) ?? []
+      list.push(item)
+      this.heldHandoffs.set(to, list)
+      this.flushHeld(l)
+      return 'held'
+    }
+    this.typeHandoff(l, [item])
+    return 'typed'
+  }
+
+  private freeToType(l: Live): boolean {
+    return l.s.status !== 'working' && l.s.status !== 'attention'
+  }
+
+  private still(l: Live): boolean {
+    return Date.now() - l.lastOutputAt >= HELD_QUIET_MS
+  }
+
+  /** Types hand-offs into a session, an agent's in paced pieces, then presses Enter once the burst is well over. */
+  private typeHandoff(l: Live, items: HeldHandoff[]): void {
+    const to = l.s.id
+    if (!l.pty) return
+    const body = items.map((it) => it.text.replace(/\r?\n/g, '\n') + (it.suffix ?? '')).join('\n\n')
+    const pieces = agentOf(l.s) === 'shell' ? [body] : pacePieces(body, PIECE_BYTES)
     // A task names an untitled session; a message passing through it does not.
-    if (opts.titled === false) l.pty.write(body)
-    else this.input(to, Buffer.from(body, 'utf8'))
-    if (opts.suffix) l.pty.write(opts.suffix)
-    // Agents' TUIs treat a burst of input as a paste and fold an Enter that arrives inside the
-    // burst into it, so the text never gets submitted (Codex showed "[Pasted Content]" and sat
-    // there). Enter comes once the burst is well over. Bracketed-paste markers are not an option:
-    // ConPTY hands them to the program as stray characters.
-    if (submit) setTimeout(() => this.input(to, Buffer.from('\r')), 900)
-    this.emit('handoff', { from, to, text })
+    const titled = !items.every((it) => it.titled === false)
+    this.typing.add(to)
+    for (const it of items) this.emit('handoff', { from: it.from, to, text: it.text })
+    void this.typePieces(to, pieces, titled, items.some((it) => it.submit))
+  }
+
+  private async typePieces(to: string, pieces: string[], titled: boolean, submit: boolean): Promise<void> {
+    try {
+      for (let i = 0; i < pieces.length; i++) {
+        if (i > 0) await sleep(PIECE_GAP_MS)
+        const l = this.live.get(to)
+        if (!l?.pty) return
+        if (i === 0 && titled) this.input(to, Buffer.from(pieces[i], 'utf8'))
+        else l.pty.write(pieces[i])
+      }
+      // Agents' TUIs treat a burst of input as a paste and fold an Enter that arrives inside the
+      // burst into it, so the text never gets submitted (Codex showed "[Pasted Content]" and sat
+      // there). Enter comes once the burst is well over. Bracketed-paste markers are not an option:
+      // ConPTY hands them to the program as stray characters.
+      if (submit) {
+        await sleep(900)
+        if (this.live.get(to)?.pty) this.input(to, Buffer.from('\r'))
+      }
+    } finally {
+      this.typing.delete(to)
+      const l = this.live.get(to)
+      if (l) this.flushHeld(l)
+    }
+  }
+
+  /**
+   * Once a session with held hand-offs is free, waits for its screen to settle and types them in
+   * together. Busy again before that: stops, and starts over when the status next changes.
+   */
+  private flushHeld(l: Live): void {
+    const id = l.s.id
+    if (!this.heldHandoffs.get(id)?.length || this.heldTimers.has(id) || !this.freeToType(l)) return
+    const since = Date.now()
+    const tick = (): void => {
+      this.heldTimers.delete(id)
+      const live = this.live.get(id)
+      const items = this.heldHandoffs.get(id) ?? []
+      if (!live?.pty || !items.length || !this.freeToType(live)) return
+      if (!this.still(live) && Date.now() - since < HELD_MAX_WAIT_MS) {
+        this.heldTimers.set(id, setTimeout(tick, HELD_POLL_MS))
+        return
+      }
+      this.heldHandoffs.delete(id)
+      log('handoff', id.slice(0, 8), `typing ${items.length} held after ${Date.now() - since}ms`, this.still(live) ? 'screen still' : 'screen still moving')
+      this.typeHandoff(live, items)
+    }
+    this.heldTimers.set(id, setTimeout(tick, HELD_POLL_MS))
   }
 
   /** The last `max` lines on a session's screen, scrollback included, without the blank tail. */
@@ -619,6 +734,7 @@ export class SessionManager extends EventEmitter {
       lines: new TitleCapture(60),
       osc: new OscTitleParser(),
       burstStart: 0,
+      lastOutputAt: 0,
       logBytes: 0,
       paused: false,
       probing: false
@@ -743,6 +859,7 @@ export class SessionManager extends EventEmitter {
     for (const t of l.osc.feed(bytes)) this.onOscTitle(l, t)
     this.spotPreviewUrl(l, data)
     const now = Date.now()
+    l.lastOutputAt = now
     if (!l.burstStart) l.burstStart = now
     if (now - l.burstStart >= BUSY_AFTER_MS) this.apply(l, { kind: 'output' })
     if (l.quietTimer) clearTimeout(l.quietTimer)
@@ -880,6 +997,7 @@ export class SessionManager extends EventEmitter {
     l.s.updatedAt = Date.now()
     this.emit('session', l.s)
     this.persist()
+    if (this.heldHandoffs.has(l.s.id)) this.flushHeld(l)
   }
 
   // ---- raw output log on disk (used to rebuild the screen after a host restart) ----

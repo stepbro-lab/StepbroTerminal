@@ -13,7 +13,8 @@ export interface McpDeps {
   session: (id: string) => Session | undefined
   sessions: () => Session[]
   /** Types text into another session on behalf of the caller; `suffix` is typed too but kept out of the session's title. */
-  send: (from: string, to: string, text: string, submit: boolean, suffix?: string) => void
+  /** Types into the session now, or holds the text until the agent there is free. */
+  send: (from: string, to: string, text: string, submit: boolean, suffix?: string) => 'typed' | 'held' | 'lost'
   /** The last lines on a session's screen, scrollback included. */
   screen: (id: string, lines: number) => Promise<string[]>
   version: string
@@ -192,8 +193,12 @@ function buildServer(deps: McpDeps, sessionId: string): McpServer {
       if (!target.alive) return text(`Session "${label(target)}" has exited; nothing is listening there.`)
       const suffix = expect_reply === false ? '' : ` — when you are done, call the stepbro tool "report" with to: "${short(sessionId)}".`
       deps.bus.noteSend(sessionId, target.id)
-      deps.send(sessionId, target.id, body, submit !== false, suffix)
-      return text(`Sent to "${label(target)}" (${agentOf(target)}). Their answer will arrive in your conversation as a message, so you can end your turn now; read_screen shows what they are doing meanwhile.`)
+      const outcome = deps.send(sessionId, target.id, body, submit !== false, suffix)
+      if (outcome === 'lost') return text(`Session "${label(target)}" is not accepting input right now.`)
+      const tail = 'Their answer will arrive in your conversation as a message, so you can end your turn now; read_screen shows what they are doing meanwhile.'
+      if (outcome === 'held')
+        return text(`"${label(target)}" (${agentOf(target)}) is ${target.status === 'attention' ? 'waiting on a person' : 'in the middle of a turn'}; your text is held and goes in the moment they are free. ${tail}`)
+      return text(`Sent to "${label(target)}" (${agentOf(target)}). ${tail}`)
     }
   )
 
