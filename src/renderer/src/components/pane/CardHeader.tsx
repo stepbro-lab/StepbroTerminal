@@ -142,9 +142,9 @@ export function CardHeader({ session, split = false, dim = false }: { session: S
             {changedCount > 0 && (
               <HeaderPill
                 icon={<FileDiff size={12} />}
-                label={String(changedCount)}
+                label={t(changedCount === 1 ? '{n} file' : '{n} files', { n: changedCount })}
                 on={changesOpen}
-                title={t('Changes in this folder')}
+                title={t(changedCount === 1 ? '{n} file edited by this session. Changes in this folder' : '{n} files edited by this session. Changes in this folder', { n: changedCount })}
                 onClick={() => setSide(changesOpen ? null : { kind: 'changes', sessionId: session.id })}
               />
             )}

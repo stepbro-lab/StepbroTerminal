@@ -31,11 +31,21 @@ export interface ChangedFile {
   /** Edited by this session (hook evidence) or modified after it started. */
   bySession: boolean
   mtime: number
+  /** Lines added and removed, when git can count them; a binary file has neither. */
+  added?: number
+  removed?: number
+  binary?: boolean
 }
 
 export interface GitChanges {
   root: string | null
   files: ChangedFile[]
+}
+
+/** One file's diff ready to draw: a unified diff, or the reason there is none to show. */
+export interface FileDiff {
+  kind: 'text' | 'binary' | 'large' | 'empty' | 'error'
+  text: string
 }
 
 /** A prompt the user sent to an agent, kept for the history palette. */
