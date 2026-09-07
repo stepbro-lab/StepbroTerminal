@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { AlertTriangle } from 'lucide-react'
 import type { Session } from '@shared/types'
 import { useData } from '@/stores/data'
@@ -7,6 +7,7 @@ import { useTerminalMount } from '@/terminal/useTerminalMount'
 import { registry } from '@/terminal/TerminalRegistry'
 import { closeSession, restartSession, restoreSession } from '@/lib/actions'
 import { leaves, zoneFor } from '@/lib/layout'
+import { movePanes, rememberPanes, shapeOf } from '@/lib/paneMotion'
 import { TopStrip } from '../Chrome'
 import { CardHeader } from './CardHeader'
 import { EmptyState } from './EmptyState'
@@ -28,6 +29,19 @@ export function TerminalPane() {
   const live = leaves(layout).filter((id) => sessions[id])
   // The sidebar keeps the cards off the left edge; as it folds away, --pane-edge (set by the sidebar) takes over.
   const edge = { paddingLeft: 'var(--pane-edge, 0px)' }
+
+  // Panes travel when the arrangement changes shape: remembered just before React re-lays them
+  // out (the store tells us first), moved right after it has. A gutter drag only changes proportions.
+  useEffect(
+    () =>
+      useUi.subscribe((s, prev) => {
+        if (shapeOf(activeLayout(s)) !== shapeOf(activeLayout(prev))) rememberPanes()
+      }),
+    []
+  )
+  useLayoutEffect(() => {
+    movePanes()
+  })
 
   if (!layout || live.length === 0) {
     return (
@@ -180,6 +194,8 @@ function PaneCard({ id, connected, multi }: { id: string; connected: boolean; mu
   }
   return (
     <div
+      data-pane
+      data-flip-id={id}
       className="card relative flex min-h-0 min-w-0 flex-1 flex-col"
       style={multi && focused ? { boxShadow: '0 0 0 1px var(--accent-soft), var(--shadow-card)' } : undefined}
       onMouseDownCapture={focusMe}
