@@ -242,7 +242,7 @@ export function CommandPalette() {
   return (
     <div className="absolute inset-0 z-40 flex items-start justify-center pt-[12vh]" style={{ background: 'var(--scrim)' }} onMouseDown={close}>
       <div
-        className="fade-in w-[560px] max-w-[92vw] overflow-hidden rounded-xl border border-line bg-card"
+        className="fade-in w-[560px] max-w-[92vw] overflow-hidden rounded-[18px] border border-line bg-card"
         style={{ boxShadow: 'var(--shadow-pop)' }}
         onMouseDown={(e) => e.stopPropagation()}
       >

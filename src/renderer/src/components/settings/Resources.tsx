@@ -132,7 +132,7 @@ function TerminalRow({
   return (
     <div className="setting-row">
       <div className="flex min-w-0 flex-1 items-center gap-3">
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-line" style={{ color }}>
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-line" style={{ color }}>
           <AgentLogo presetId={presetId} size={14} />
         </span>
         <div className="min-w-0">

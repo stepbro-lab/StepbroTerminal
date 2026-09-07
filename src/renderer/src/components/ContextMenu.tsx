@@ -133,7 +133,7 @@ function MenuPanel({
   return (
     <div
       ref={ref}
-      className="fade-in absolute min-w-[188px] rounded-[10px] p-1"
+      className="fade-in absolute min-w-[188px] rounded-[var(--radius-pop)] p-1"
       style={{
         left: xy?.left ?? -9999,
         top: xy?.top ?? -9999,

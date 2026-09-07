@@ -95,7 +95,7 @@ export function ActivityPulse() {
         createPortal(
           <div
             ref={pop}
-            className="fade-in fixed z-40 rounded-[10px] p-1"
+            className="fade-in fixed z-40 rounded-[var(--radius-pop)] p-1"
             style={{ left: at.left, top: at.top, width: WIDTH, background: 'var(--bg-elevated)', boxShadow: '0 0 0 1px var(--border-strong) inset, var(--shadow-pop)' }}
           >
             <div className="flex items-center px-2.5 pb-1 pt-1.5 text-[11.5px] font-medium text-muted">

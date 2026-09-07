@@ -56,7 +56,7 @@ function Panel() {
     <div className="absolute inset-0 z-40 flex items-start justify-center pt-[9vh]" style={{ background: 'var(--scrim)' }} onMouseDown={() => setOpen(false)}>
       <div
         ref={root}
-        className="flex w-[580px] max-w-[92vw] flex-col overflow-hidden rounded-xl border border-line bg-card"
+        className="flex w-[580px] max-w-[92vw] flex-col overflow-hidden rounded-[18px] border border-line bg-card"
         style={{ boxShadow: 'var(--shadow-pop)', maxHeight: '74vh' }}
         onMouseDown={(e) => e.stopPropagation()}
       >
@@ -82,7 +82,7 @@ function Panel() {
               value={draft}
               placeholder={t('Write it down…')}
               rows={Math.min(6, Math.max(2, draft.split('\n').length))}
-              className="w-full resize-none rounded-[10px] px-3 py-2 text-[13px] leading-[1.45] outline-none"
+              className="w-full resize-none rounded-[12px] px-3 py-2 text-[13px] leading-[1.45] outline-none"
               style={{ background: 'var(--bg-hover)', color: 'var(--text)' }}
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => {
@@ -136,7 +136,7 @@ function NoteRow({ note }: { note: Note }) {
   }
 
   return (
-    <div data-note={note.id} className="note-row group flex items-start gap-3 rounded-[10px] px-3 py-2.5" style={{ opacity: note.done ? 0.55 : 1 }}>
+    <div data-note={note.id} className="note-row group flex items-start gap-3 rounded-[12px] px-3 py-2.5" style={{ opacity: note.done ? 0.55 : 1 }}>
       <button
         className="mt-[3px] flex h-4 w-4 shrink-0 items-center justify-center rounded-[5px]"
         style={{
