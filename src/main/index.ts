@@ -314,10 +314,21 @@ ${s.errorDetail}`)
   })
   client.on('handoff', (h: Handoff) => ctx.emit('ui:handoff', h))
   // An agent's request for the preview pane: done here, where the <webview>'s contents are reachable, and answered over the socket.
-  ctx.previews = new PreviewBridge(
-    (id, url) => ctx.emit('ui:openPreview', id, url),
-    (id) => ctx.emit('ui:closePreview', id)
-  )
+  ctx.previews = new PreviewBridge({
+    show: (id, url) => ctx.emit('ui:openPreview', id, url),
+    hide: (id) => ctx.emit('ui:closePreview', id),
+    // The cursor on the page wears the agent's name and color, the same ones the sidebar uses.
+    whoIs: (id) => {
+      const s = ctx.sessions.get(id)
+      const presetId = s?.agent.detectedPreset ?? s?.presetId ?? 'agent'
+      const preset = ctx.presets.find((p) => p.id === presetId)
+      return { name: preset?.name ?? presetId, color: preset?.color ?? '#8a8a90' }
+    },
+    activity: (id) => {
+      const s = ctx.sessions.get(id)
+      ctx.emit('ui:previewActivity', id, s?.agent.detectedPreset ?? s?.presetId ?? 'agent')
+    }
+  })
   client.on('browser', (reqId: string, sessionId: string, op: BrowserOp) => {
     ctx.previews.handle(sessionId, op).then(
       (result) => client.send({ t: 'browser:result', reqId, ok: true, result }),

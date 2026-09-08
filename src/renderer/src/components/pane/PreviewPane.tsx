@@ -1,7 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { ArrowLeft, ExternalLink, RotateCw, X } from 'lucide-react'
+import { useData } from '@/stores/data'
 import { useUi } from '@/stores/ui'
+import { AgentLogo } from '../sidebar/AgentLogo'
 import { t } from '@/lib/i18n'
+
+/** How long the pane keeps saying an agent is at work after its last move. */
+const USING_MS = 4000
 
 interface WebviewEl extends HTMLElement {
   src: string
@@ -23,6 +28,26 @@ export function PreviewPane({ url, sessionId }: { url: string; sessionId: string
   const [current, setCurrent] = useState(url)
   const [loading, setLoading] = useState(true)
   const [failed, setFailed] = useState<string | null>(null)
+  // The agent at work on the page, while it is: the pane says so and takes its color.
+  const [using, setUsing] = useState<string | null>(null)
+  const presets = useData((s) => s.presets)
+  const agent = using ? presets.find((p) => p.id === using) : undefined
+  const agentName = agent?.name ?? using ?? ''
+  const agentColor = agent?.color ?? '#8a8a90'
+
+  useEffect(() => {
+    let timer = 0
+    const off = window.step.on('ui:previewActivity', (sid, presetId) => {
+      if (sid !== sessionId) return
+      setUsing(presetId)
+      window.clearTimeout(timer)
+      timer = window.setTimeout(() => setUsing(null), USING_MS)
+    })
+    return () => {
+      off()
+      window.clearTimeout(timer)
+    }
+  }, [sessionId])
 
   useEffect(() => {
     const el = ref.current
@@ -86,7 +111,14 @@ export function PreviewPane({ url, sessionId }: { url: string; sessionId: string
           <X size={15} />
         </button>
       </div>
-      <div className="relative min-h-0 flex-1" style={{ background: '#fff' }}>
+      {using && (
+        <div className="fade-in flex h-7 shrink-0 items-center gap-2 px-3 text-[12px] font-medium" style={{ background: `color-mix(in srgb, ${agentColor} 14%, transparent)`, color: agentColor }}>
+          <AgentLogo presetId={using} size={13} />
+          <span className="min-w-0 flex-1 truncate">{t('{agent} is using this page', { agent: agentName })}</span>
+          <span className="pulse-once rounded-full" style={{ width: 7, height: 7, background: agentColor }} />
+        </div>
+      )}
+      <div className="relative min-h-0 flex-1" style={{ background: '#fff', boxShadow: using ? `inset 0 0 0 2px ${agentColor}` : undefined, transition: 'box-shadow 200ms' }}>
         {/* @ts-expect-error webview is an Electron element, not a React intrinsic */}
         <webview ref={ref} src={url} style={{ width: '100%', height: '100%' }} allowpopups="false" />
         {failed && (

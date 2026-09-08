@@ -77,6 +77,7 @@ export const es: Record<string, string> = {
   'Drop to add folder': 'Suelta para añadir la carpeta',
   'No folders yet.': 'Aún no hay carpetas.',
   'Open folder': 'Abrir carpeta',
+  '{agent} is using this page': '{agent} está usando esta página',
   'Copy path': 'Copiar ruta',
   'Path copied': 'Ruta copiada',
   'Collapse all projects': 'Contraer todos los proyectos',

@@ -132,6 +132,8 @@ export interface EventMap {
   /** An agent asked for a page in the preview pane beside its session, or for that pane to go. */
   'ui:openPreview': (sessionId: string, url: string) => void
   'ui:closePreview': (sessionId: string) => void
+  /** The agent in a session is doing something with its preview pane right now. */
+  'ui:previewActivity': (sessionId: string, presetId: string) => void
   /** Play the notification sound; the renderer owns the audio file. */
   'ui:sound': () => void
   'ui:update': (state: UpdateState) => void

@@ -1,11 +1,21 @@
 import { webContents, type WebContents } from 'electron'
 import type { BrowserOp, BrowserResult } from '@shared/types'
-import { clickScript, evalScript, focusScript, readScript, scrollScript } from './previewScripts'
+import { arriveScript, clickScript, evalScript, focusScript, hidePresenceScript, readScript, scrollScript, showPresenceScript, type Who } from './previewScripts'
 
 interface Pane {
   wcId: number
   console: Array<{ at: number; level: string; text: string }>
   off: () => void
+}
+
+export interface PreviewDeps {
+  /** Opens the pane beside the session on the given address, and closes it. */
+  show: (sessionId: string, url: string) => void
+  hide: (sessionId: string) => void
+  /** The agent in the session, as its cursor on the page should present it. */
+  whoIs: (sessionId: string) => Who
+  /** The agent is doing something with the pane right now; the window shows it. */
+  activity: (sessionId: string) => void
 }
 
 const CONSOLE_KEEP = 200
@@ -16,16 +26,15 @@ const SHOT_WIDTH = 1200
 /**
  * The preview pane, driven from the main process on an agent's behalf. The renderer owns the
  * <webview> and tells us its webContents when it is up; from there the page is ours to load,
- * read, scroll, click, type into, run script in and photograph. One pane per session.
+ * read, scroll, click, type into, run script in and photograph. One pane per session. Whatever
+ * the agent does, the person sees: its cursor moves to the spot first, and the pane says who is
+ * at work.
  */
 export class PreviewBridge {
   private panes = new Map<string, Pane>()
   private waiting = new Map<string, Array<(p: Pane) => void>>()
 
-  constructor(
-    private readonly show: (sessionId: string, url: string) => void,
-    private readonly hide: (sessionId: string) => void
-  ) {}
+  constructor(private readonly deps: PreviewDeps) {}
 
   /** The renderer's <webview> for a session is up. */
   attached(sessionId: string, wcId: number): void {
@@ -40,7 +49,7 @@ export class PreviewBridge {
       const d = args[0] as { message?: string; level?: string | number }
       const fromDetails = typeof d?.message === 'string'
       const text = fromDetails ? d.message! : String(args[2] ?? '')
-      const level = fromDetails ? String(d.level) : LEVELS[Number(args[1])] ?? 'log'
+      const level = fromDetails ? String(d.level) : (LEVELS[Number(args[1])] ?? 'log')
       pane.console.push({ at: Date.now(), level, text })
       if (pane.console.length > CONSOLE_KEEP) pane.console.splice(0, pane.console.length - CONSOLE_KEEP)
     }
@@ -61,16 +70,21 @@ export class PreviewBridge {
   }
 
   async handle(sessionId: string, op: BrowserOp): Promise<BrowserResult> {
-    if (op.kind === 'open') return this.open(sessionId, op.url)
     if (op.kind === 'close') {
-      this.hide(sessionId)
+      this.deps.hide(sessionId)
       return { url: '', title: '' }
     }
+    this.deps.activity(sessionId)
+    const who = this.deps.whoIs(sessionId)
+    if (op.kind === 'open') return this.open(sessionId, op.url, who)
     const wc = this.contents(sessionId)
     const at = (): BrowserResult => ({ url: wc.getURL(), title: wc.getTitle() })
     switch (op.kind) {
       case 'screenshot': {
+        // The picture is of the page alone; the cursor and ring come back with a flash, the way a camera would.
+        await wc.executeJavaScript(hidePresenceScript, true).catch(() => undefined)
         const image = await wc.capturePage()
+        await wc.executeJavaScript(showPresenceScript, true).catch(() => undefined)
         const { width } = image.getSize()
         const png = (width > SHOT_WIDTH ? image.resize({ width: SHOT_WIDTH }) : image).toPNG().toString('base64')
         return { ...at(), png }
@@ -78,14 +92,14 @@ export class PreviewBridge {
       case 'read':
         return { ...at(), text: String(await wc.executeJavaScript(readScript(op.what, op.target), true)) }
       case 'scroll':
-        return { ...at(), text: String(await wc.executeJavaScript(scrollScript(op.to, op.target), true)) }
+        return { ...at(), text: String(await wc.executeJavaScript(scrollScript(op.to, op.target, who), true)) }
       case 'click': {
-        const text = String(await wc.executeJavaScript(clickScript(op.target), true))
+        const text = String(await wc.executeJavaScript(clickScript(op.target, who), true))
         await settled(wc, 1500)
         return { ...at(), text }
       }
       case 'type': {
-        const field = String(await wc.executeJavaScript(focusScript(op.target), true))
+        const field = String(await wc.executeJavaScript(focusScript(op.target, who), true))
         await wc.insertText(op.text)
         if (op.submit) {
           wc.sendInputEvent({ type: 'keyDown', keyCode: 'Return' })
@@ -113,7 +127,7 @@ export class PreviewBridge {
     return wc
   }
 
-  private async open(sessionId: string, url: string): Promise<BrowserResult> {
+  private async open(sessionId: string, url: string, who: Who): Promise<BrowserResult> {
     const pane = this.panes.get(sessionId)
     const existing = pane && webContents.fromId(pane.wcId)
     let wc: WebContents
@@ -126,11 +140,12 @@ export class PreviewBridge {
         if (!/ERR_ABORTED/.test(String((e as Error)?.message ?? e))) throw new Error(`Could not load ${url}: ${String((e as Error)?.message ?? e)}`)
       }
     } else {
-      this.show(sessionId, url)
+      this.deps.show(sessionId, url)
       const fresh = await this.waitAttached(sessionId)
       wc = webContents.fromId(fresh.wcId)!
     }
     await settled(wc, LOAD_MS)
+    await wc.executeJavaScript(arriveScript(who), true).catch(() => undefined)
     return { url: wc.getURL(), title: wc.getTitle() }
   }
 
