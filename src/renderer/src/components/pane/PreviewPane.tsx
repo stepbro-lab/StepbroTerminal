@@ -15,6 +15,7 @@ interface WebviewEl extends HTMLElement {
   canGoBack: () => boolean
   getURL: () => string
   getWebContentsId: () => number
+  executeJavaScript?: (code: string) => Promise<unknown>
 }
 
 /**
@@ -28,8 +29,13 @@ export function PreviewPane({ url, sessionId }: { url: string; sessionId: string
   const [current, setCurrent] = useState(url)
   const [loading, setLoading] = useState(true)
   const [failed, setFailed] = useState<string | null>(null)
-  // The agent at work on the page, while it is: the pane says so and takes its color.
-  const [using, setUsing] = useState<string | null>(null)
+  // The agent at work on the page: the pane says so, in its color, for as long as its turn lasts
+  // (it thinks between one move and the next) and a moment past its last move.
+  const [usedBy, setUsedBy] = useState<string | null>(null)
+  const [recent, setRecent] = useState(false)
+  const status = useData((s) => s.sessions[sessionId]?.status)
+  const working = status === 'working' || status === 'starting'
+  const using = usedBy && (working || recent) ? usedBy : null
   const presets = useData((s) => s.presets)
   const agent = using ? presets.find((p) => p.id === using) : undefined
   const agentName = agent?.name ?? using ?? ''
@@ -39,15 +45,31 @@ export function PreviewPane({ url, sessionId }: { url: string; sessionId: string
     let timer = 0
     const off = window.step.on('ui:previewActivity', (sid, presetId) => {
       if (sid !== sessionId) return
-      setUsing(presetId)
+      setUsedBy(presetId)
+      setRecent(true)
       window.clearTimeout(timer)
-      timer = window.setTimeout(() => setUsing(null), USING_MS)
+      timer = window.setTimeout(() => setRecent(false), USING_MS)
     })
     return () => {
       off()
       window.clearTimeout(timer)
     }
   }, [sessionId])
+
+  // The cursor on the page follows the turn too: kept awake while it lasts, even between moves,
+  // and let fade once it is over. The next move brings it back.
+  useEffect(() => {
+    const run = (code: string): void => void ref.current?.executeJavaScript?.(code).catch(() => undefined)
+    if (!usedBy) return
+    if (!using) {
+      run(`(() => { const a = window.__stepAgent; if (a && a.root) a.root.style.opacity = '0'; return true })()`)
+      return
+    }
+    const wake = (): void => run(`(() => { const a = window.__stepAgent; if (a) a.wake(); return true })()`)
+    wake()
+    const timer = window.setInterval(wake, 4000)
+    return () => window.clearInterval(timer)
+  }, [usedBy, using])
 
   useEffect(() => {
     const el = ref.current

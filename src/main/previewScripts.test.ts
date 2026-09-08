@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { arriveScript, clickScript, evalScript, focusScript, hidePresenceScript, readScript, scrollScript, showPresenceScript } from './previewScripts'
+import { arriveScript, clickScript, evalScript, focusScript, hasPresenceScript, hidePresenceScript, readScript, scrollScript, showPresenceScript, typedScript } from './previewScripts'
 
 const who = { name: 'Codex', color: '#10a37f' }
 
@@ -23,6 +23,15 @@ describe('preview scripts', () => {
     expect(parses(evalScript('document.title'))).toBe(true)
     expect(parses(hidePresenceScript)).toBe(true)
     expect(parses(showPresenceScript)).toBe(true)
+    expect(parses(typedScript)).toBe(true)
+    expect(parses(hasPresenceScript)).toBe(true)
+  })
+
+  it('moves like a hand: an arc on the way, a pause on arrival, a press on the click', () => {
+    const js = clickScript('text=Buy', who)
+    expect(js).toContain('cur.animate(')
+    expect(js).toContain('await agent.press()')
+    expect(js).toContain('sessionStorage')
   })
 
   it('quotes a target or a name that tries to break out of the script', () => {
@@ -34,7 +43,7 @@ describe('preview scripts', () => {
 
   it('puts the agent on the page before it clicks or types, by name and color', () => {
     expect(clickScript('text=Go', who)).toContain('agent.moveTo(el)')
-    expect(focusScript('#q', who)).toContain('agent.ring(el)')
+    expect(focusScript('#q', who)).toContain('agent.ring(el')
     expect(arriveScript(who)).toContain('"Codex"')
     expect(arriveScript(who)).toContain('#10a37f')
   })

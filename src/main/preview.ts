@@ -1,6 +1,6 @@
 import { webContents, type WebContents } from 'electron'
 import type { BrowserOp, BrowserResult } from '@shared/types'
-import { arriveScript, clickScript, evalScript, focusScript, hidePresenceScript, readScript, scrollScript, showPresenceScript, type Who } from './previewScripts'
+import { arriveScript, clickScript, evalScript, focusScript, hasPresenceScript, hidePresenceScript, readScript, scrollScript, showPresenceScript, typedScript, type Who } from './previewScripts'
 
 interface Pane {
   wcId: number
@@ -96,16 +96,20 @@ export class PreviewBridge {
       case 'click': {
         const text = String(await wc.executeJavaScript(clickScript(op.target, who), true))
         await settled(wc, 1500)
+        await this.stay(wc, who)
         return { ...at(), text }
       }
       case 'type': {
         const field = String(await wc.executeJavaScript(focusScript(op.target, who), true))
-        await wc.insertText(op.text)
+        await typeLikeAPerson(wc, op.text)
+        await wc.executeJavaScript(typedScript, true).catch(() => undefined)
         if (op.submit) {
+          await sleep(200)
           wc.sendInputEvent({ type: 'keyDown', keyCode: 'Return' })
           wc.sendInputEvent({ type: 'char', keyCode: 'Return' })
           wc.sendInputEvent({ type: 'keyUp', keyCode: 'Return' })
           await settled(wc, 1500)
+          await this.stay(wc, who)
         }
         return { ...at(), text: `Typed ${op.text.length} characters into ${field}${op.submit ? ' and pressed Enter' : ''}.` }
       }
@@ -118,6 +122,12 @@ export class PreviewBridge {
         return { ...at(), text: clip(lines.join('\n'), 30_000) }
       }
     }
+  }
+
+  /** After a click or a submit the page may be a new one; the cursor comes back where it was. */
+  private async stay(wc: WebContents, who: Who): Promise<void> {
+    const there = await wc.executeJavaScript(hasPresenceScript, true).catch(() => true)
+    if (!there) await wc.executeJavaScript(arriveScript(who), true).catch(() => undefined)
   }
 
   private contents(sessionId: string): WebContents {
@@ -169,6 +179,22 @@ export class PreviewBridge {
 const LEVELS: Record<number, string> = { 0: 'debug', 1: 'log', 2: 'warning', 3: 'error' }
 
 const clip = (s: string, n: number): string => (s.length > n ? `${s.slice(0, n)}\n…[${s.length - n} more characters not shown]` : s)
+const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms))
+
+/**
+ * Text goes in a character at a time, at a typing pace, so the person sees it being written:
+ * the first stretch letter by letter, the rest of a long text in one go so it does not drag on.
+ */
+async function typeLikeAPerson(wc: WebContents, text: string): Promise<void> {
+  const chars = Array.from(text)
+  const oneByOne = chars.slice(0, 60)
+  const delay = Math.max(18, Math.min(55, Math.round(1400 / Math.max(1, oneByOne.length))))
+  for (const ch of oneByOne) {
+    await wc.insertText(ch)
+    await sleep(delay + Math.round(Math.random() * 20))
+  }
+  if (chars.length > oneByOne.length) await wc.insertText(chars.slice(oneByOne.length).join(''))
+}
 
 /** Resolves once the page stops loading, or after `ms` if it never does. */
 function settled(wc: WebContents, ms: number): Promise<void> {
