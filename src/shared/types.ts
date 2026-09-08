@@ -185,6 +185,8 @@ export interface Prefs {
   collapsedProjects: string[]
   addedProjects: string[]
   hiddenProjects: string[]
+  /** Folder paths in the order the sidebar shows them; folders not listed follow, in the order they appeared. */
+  projectOrder?: string[]
   customPresets: CustomPreset[]
   claudePath?: string
   /** DeepSeek serves an Anthropic-shaped API; with a key, Claude Code runs on its models as the DeepSeek preset. */

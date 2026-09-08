@@ -7,11 +7,12 @@ import { usePrefs } from '@/stores/prefs'
 import { useUi } from '@/stores/ui'
 import { buildSidebar, type SidebarProject, type SidebarSession } from '@/lib/sidebarModel'
 import { leaves } from '@/lib/layout'
-import { addDroppedFolders, addProject, sidebarMenu } from '@/lib/actions'
+import { addDroppedFolders, addProject, reorderProjects, sidebarMenu } from '@/lib/actions'
 import { useFolderDrop } from '@/lib/folderDrop'
+import { movedIds } from '@/lib/reorder'
 import { registry } from '@/terminal/TerminalRegistry'
 import { SidebarHeader } from '../Chrome'
-import { ProjectRow } from './ProjectRow'
+import { PROJECT_DRAG_TYPE, ProjectRow } from './ProjectRow'
 import { SessionRow } from './SessionRow'
 import { useReorder } from './useReorder'
 import { t } from '@/lib/i18n'
@@ -65,11 +66,44 @@ export function Sidebar() {
 
   // Rows slide to their new places after a drop: remember where they were just before.
   const before = useRef<ReturnType<typeof Flip.getState> | null>(null)
-  const remember = useCallback(() => {
+  const remember = useCallback((selector = '[data-session-row]') => {
     if (!list.current || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
-    before.current = Flip.getState(list.current.querySelectorAll('[data-session-row]'))
+    before.current = Flip.getState(list.current.querySelectorAll(selector))
   }, [])
   const reorder = useReorder(model, remember)
+
+  // A folder dragged up or down the list: a line shows where it would land, then the blocks slide.
+  const [dragProject, setDragProject] = useState<string | null>(null)
+  const [projectInsert, setProjectInsert] = useState<{ path: string; after: boolean } | null>(null)
+  const projectPlan = (target: SidebarProject, e: React.DragEvent): { after: boolean; paths: string[] | null } | null => {
+    const from = dragProject ?? e.dataTransfer.getData(PROJECT_DRAG_TYPE)
+    if (!from || !model.some((p) => p.path === from)) return null
+    const r = e.currentTarget.getBoundingClientRect()
+    const after = e.clientY > r.top + r.height / 2
+    const rows = model.map((p) => ({ id: p.path, pinned: false }))
+    return { after, paths: movedIds(rows, from, target.path, after) }
+  }
+  const onProjectDragOver = (target: SidebarProject, e: React.DragEvent): void => {
+    if (!e.dataTransfer.types.includes(PROJECT_DRAG_TYPE)) return
+    const plan = projectPlan(target, e)
+    if (!plan) return
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    const next = plan.paths ? { path: target.path, after: plan.after } : null
+    setProjectInsert((prev) => (prev?.path === next?.path && prev?.after === next?.after ? prev : next))
+  }
+  const onProjectDrop = (target: SidebarProject, e: React.DragEvent): void => {
+    if (!e.dataTransfer.types.includes(PROJECT_DRAG_TYPE)) return
+    const plan = projectPlan(target, e)
+    if (!plan) return
+    e.preventDefault()
+    e.stopPropagation()
+    setProjectInsert(null)
+    setDragProject(null)
+    if (!plan.paths) return
+    remember('[data-project-block]')
+    void reorderProjects(plan.paths)
+  }
   useLayoutEffect(() => {
     if (!before.current) return
     const state = before.current
@@ -239,8 +273,19 @@ export function Sidebar() {
           </div>
         )}
         {model.map((p) => (
-          <div key={p.path} className="mb-1">
-            <ProjectRow project={p} isActiveProject={activeProject?.toLowerCase() === p.path.toLowerCase()} />
+          <div key={p.path} data-project-block className="mb-1" style={{ opacity: dragProject === p.path ? 0.4 : undefined }}>
+            <ProjectRow
+              project={p}
+              isActiveProject={activeProject?.toLowerCase() === p.path.toLowerCase()}
+              insert={projectInsert?.path === p.path ? (projectInsert.after ? 'after' : 'before') : undefined}
+              onDragStart={(project) => setDragProject(project.path)}
+              onDragEnd={() => {
+                setDragProject(null)
+                setProjectInsert(null)
+              }}
+              onDragOver={onProjectDragOver}
+              onDrop={onProjectDrop}
+            />
             {!p.collapsed && rowsOf(p)}
             {!p.collapsed && archivedOf(p)}
           </div>

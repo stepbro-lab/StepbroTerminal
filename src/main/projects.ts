@@ -16,7 +16,17 @@ export function computeProjects(prefs: Prefs, sessions: Session[]): Project[] {
   }
   for (const p of prefs.addedProjects) add(p, 'added')
   for (const s of sessions) add(s.projectPath, 'live')
-  return out.filter((p) => !prefs.hiddenProjects.some((h) => sameProject(h, p.path)) && (p.sources.includes('live') || dirExists(p.path)))
+  const shown = out.filter((p) => !prefs.hiddenProjects.some((h) => sameProject(h, p.path)) && (p.sources.includes('live') || dirExists(p.path)))
+  return inOrder(shown, prefs.projectOrder ?? [])
+}
+
+/** The folders in the order the person put them; ones they never moved keep their place at the end. */
+export function inOrder(projects: Project[], order: string[]): Project[] {
+  const rank = (p: Project): number => {
+    const i = order.findIndex((o) => sameProject(o, p.path))
+    return i < 0 ? order.length : i
+  }
+  return projects.map((p, i) => ({ p, i })).sort((a, b) => rank(a.p) - rank(b.p) || a.i - b.i).map((x) => x.p)
 }
 
 const dirCache = new Map<string, { ok: boolean; at: number }>()

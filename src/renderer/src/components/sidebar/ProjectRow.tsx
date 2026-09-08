@@ -5,12 +5,21 @@ import { newShell, projectMenu, toggleProjectCollapsed } from '@/lib/actions'
 import { FolderIcon } from './DotSpinner'
 import { t } from '@/lib/i18n'
 
+/** The drag type of a folder row on its way to a new place in the sidebar. */
+export const PROJECT_DRAG_TYPE = 'application/x-step-project'
+
 interface Props {
   project: SidebarProject
   isActiveProject: boolean
+  /** A dragged folder would land above or below this one. */
+  insert?: 'before' | 'after'
+  onDragStart?: (project: SidebarProject) => void
+  onDragEnd?: () => void
+  onDragOver?: (project: SidebarProject, e: React.DragEvent) => void
+  onDrop?: (project: SidebarProject, e: React.DragEvent) => void
 }
 
-export function ProjectRow({ project, isActiveProject }: Props) {
+export function ProjectRow({ project, isActiveProject, insert, onDragStart, onDragEnd, onDragOver, onDrop }: Props) {
   const setActiveProject = useUi((s) => s.setActiveProject)
   const open = !project.collapsed
 
@@ -19,6 +28,16 @@ export function ProjectRow({ project, isActiveProject }: Props) {
       <div
         className="row grid-cols-[16px_minmax(0,1fr)_auto] gap-2"
         data-tone="fg"
+        data-insert={insert}
+        draggable={!!onDragStart}
+        onDragStart={(e) => {
+          e.dataTransfer.setData(PROJECT_DRAG_TYPE, project.path)
+          e.dataTransfer.effectAllowed = 'move'
+          onDragStart?.(project)
+        }}
+        onDragEnd={onDragEnd}
+        onDragOver={onDragOver && ((e) => onDragOver(project, e))}
+        onDrop={onDrop && ((e) => onDrop(project, e))}
         onClick={() => {
           setActiveProject(project.path)
           toggleProjectCollapsed(project.path)

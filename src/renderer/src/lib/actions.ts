@@ -154,6 +154,15 @@ export function reorderSessions(ids: string[]): void {
   window.step.send('host:reorder', ids)
 }
 
+/** Folders in a new order: shown at once, then kept by the main process with the preferences. */
+export async function reorderProjects(paths: string[]): Promise<void> {
+  const { projects } = useData.getState()
+  const rank = new Map(paths.map((p, i) => [p.toLowerCase(), i]))
+  const sorted = projects.map((p, i) => ({ p, i })).sort((a, b) => (rank.get(a.p.path.toLowerCase()) ?? paths.length) - (rank.get(b.p.path.toLowerCase()) ?? paths.length) || a.i - b.i).map((x) => x.p)
+  useData.setState({ projects: sorted })
+  useData.setState({ projects: await window.step.invoke('projects:reorder', paths) })
+}
+
 export function openFolder(path: string): void {
   void window.step.invoke('projects:openFolder', path)
 }

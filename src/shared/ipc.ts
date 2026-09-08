@@ -40,6 +40,7 @@ export interface InvokeMap {
   'projects:pickFolder': () => string | null
   'projects:add': (path: string) => Project[]
   'projects:hide': (path: string) => Project[]
+  'projects:reorder': (paths: string[]) => Project[]
   'projects:openFolder': (path: string) => void
   'history:list': () => HistorySession[]
   'history:details': (projectPath: string, sessionId: string) => TranscriptDetails

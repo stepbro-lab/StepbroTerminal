@@ -88,6 +88,12 @@ export function registerIpc(ctx: Ctx): void {
     })
     return ctx.projects()
   })
+  handle('projects:reorder', (paths) => {
+    ctx.setPrefs({ projectOrder: paths.map((p) => normalizeProjectPath(p)) })
+    const projects = ctx.projects()
+    ctx.emitProjects()
+    return projects
+  })
   handle('projects:openFolder', (p) => {
     void shell.openPath(p)
   })
