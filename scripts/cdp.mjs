@@ -70,6 +70,15 @@ if (arg === '--shot') {
   for (let i = 1; i <= 8; i++) await step('mouseMoved', x1 + ((x2 - x1) * i) / 8, y1 + ((y2 - y1) * i) / 8)
   await step('mouseReleased', x2, y2)
   console.log('dragged')
+} else if (arg === '--key') {
+  // A real key press through Chromium: --key <key> [ctrl] [shift] [alt] [meta]  (e.g. --key c ctrl)
+  const key = extra
+  const modifiers = (rest.includes('alt') ? 1 : 0) | (rest.includes('ctrl') ? 2 : 0) | (rest.includes('meta') ? 4 : 0) | (rest.includes('shift') ? 8 : 0)
+  const code = key.length === 1 ? `Key${key.toUpperCase()}` : key
+  const base = { key, code, modifiers, windowsVirtualKeyCode: key.length === 1 ? key.toUpperCase().charCodeAt(0) : undefined }
+  await send('Input.dispatchKeyEvent', { type: 'keyDown', ...base })
+  await send('Input.dispatchKeyEvent', { type: 'keyUp', ...base })
+  console.log('pressed', key, rest.join('+'))
 } else if (arg === '--hover') {
   // Moves the pointer there, no button held, so hover styles show in a following --shot: --hover x y
   const [x, y] = [extra, ...rest].map(Number)

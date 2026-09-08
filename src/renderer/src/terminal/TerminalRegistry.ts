@@ -30,10 +30,39 @@ interface Entry {
   hintDirty: boolean
   /** Escape hides hints until the next line. */
   hintMuted: boolean
+  /** The selection on screen, kept so it can go back when a program's mouse mode wipes it. */
+  kept: { x: number; y: number; length: number } | null
+  /** When a key or mouse button was last pressed here, and whether a button is still down: a selection that goes right after a press is the person's own doing. */
+  gesture: { at: number; down: boolean }
 }
 
 const ACK_EVERY = 64 * 1024
 const encoder = new TextEncoder()
+/** Pressed on their own these change nothing on screen, so they are not the gesture that clears a selection. */
+const MODIFIER_KEYS = new Set(['Control', 'Shift', 'Alt', 'Meta', 'AltGraph', 'CapsLock', 'NumLock'])
+
+/**
+ * OpenCode, Codex and Gemini send their mouse-mode sequences again on every redraw, and xterm
+ * answers each one by disabling its selection service, which clears whatever is selected and stops
+ * a drag in progress (the drag's mouse listeners go with the selection). So no selection survived
+ * a redraw, and Ctrl+C, finding nothing to copy, interrupted the program instead. Disabling what is
+ * already disabled changes nothing, so the repeat is ignored. Reaches into xterm's core: if that
+ * ever moves, the terminal simply behaves as before.
+ */
+function keepSelectionAcrossRedraws(term: Terminal): void {
+  const ss = (term as unknown as { _core?: { _selectionService?: { disable?: () => void; _enabled?: boolean } } })._core?._selectionService
+  if (!ss || typeof ss.disable !== 'function' || typeof ss._enabled !== 'boolean') return
+  const disable = ss.disable.bind(ss)
+  ss.disable = () => {
+    if (ss._enabled !== false) disable()
+  }
+}
+
+/** A window listener that goes away with the terminal it serves. */
+function onWindow<K extends keyof WindowEventMap>(type: K, fn: (ev: WindowEventMap[K]) => void): IDisposable {
+  window.addEventListener(type, fn, true)
+  return { dispose: () => window.removeEventListener(type, fn, true) }
+}
 const measure = document.createElement('canvas').getContext('2d')
 
 type AppKeyHandler = (ev: KeyboardEvent) => boolean
@@ -164,12 +193,17 @@ class TerminalRegistry {
       ev.preventDefault()
       this.contextMenuHandler(id, ev.clientX, ev.clientY)
     })
+    const gesture = { at: 0, down: false }
     // Dragging selects text even while a program owns the mouse (Claude Code takes it for
     // scrolling). xterm only allows that with Shift held, so the press is replayed as if it were;
     // the wheel still reaches the program.
     container.addEventListener(
       'mousedown',
       (ev) => {
+        if (ev.isTrusted) {
+          gesture.at = performance.now()
+          gesture.down = true
+        }
         if (ev.button !== 0 || ev.shiftKey || term.modes.mouseTrackingMode === 'none') return
         if (window.step.platform === 'darwin' && ev.altKey) return
         ev.stopPropagation()
@@ -226,9 +260,37 @@ class TerminalRegistry {
       line: new InputLine(),
       hint: null,
       hintDirty: false,
-      hintMuted: false
+      hintMuted: false,
+      kept: null,
+      gesture
     }
     entry.disposables.push(
+      // OpenCode, Codex and Gemini send their mouse-mode sequences again as they redraw, and each
+      // time xterm drops the selection along with them: Ctrl+C then found nothing to copy and
+      // interrupted the program instead. A selection that vanishes with no key or click behind it
+      // goes straight back.
+      term.onSelectionChange(() => {
+        if (term.hasSelection()) {
+          const p = term.getSelectionPosition()
+          entry.kept = p ? { x: p.start.x, y: p.start.y, length: (p.end.y - p.start.y) * term.cols + (p.end.x - p.start.x) } : null
+          return
+        }
+        // Gone within a beat of a click or a key: the person cleared it. Gone mid-drag: xterm is
+        // still drawing the drag, and the mouseup below puts it back if it is still missing then.
+        if (performance.now() - gesture.at < 50 || term.modes.mouseTrackingMode === 'none') {
+          entry.kept = null
+          return
+        }
+        if (gesture.down) return
+        this.restoreSelection(entry)
+      }),
+      term.buffer.onBufferChange(() => {
+        entry.kept = null
+      }),
+      onWindow('mouseup', () => {
+        gesture.down = false
+        if (!term.hasSelection() && term.modes.mouseTrackingMode !== 'none') this.restoreSelection(entry)
+      }),
       term.onData((data) => {
         if (entry.replaying) return
         window.step.send('host:input', id, encoder.encode(data))
@@ -244,7 +306,10 @@ class TerminalRegistry {
         for (let i = 0; i < data.length; i++) bytes[i] = data.charCodeAt(i) & 0xff
         window.step.send('host:input', id, bytes)
       }),
-      term.onResize(({ cols, rows }) => window.step.send('host:resize', id, cols, rows))
+      term.onResize(({ cols, rows }) => {
+        entry.kept = null
+        window.step.send('host:resize', id, cols, rows)
+      })
     )
     term.attachCustomKeyEventHandler((ev) => this.handleKey(entry, ev))
     this.entries.set(id, entry)
@@ -254,7 +319,11 @@ class TerminalRegistry {
   mount(id: string, parent: HTMLElement): Entry {
     const e = this.ensure(id)
     if (e.container.parentElement !== parent) parent.appendChild(e.container)
-    if (!e.term.element) e.term.open(e.container)
+    if (!e.term.element) {
+      e.term.open(e.container)
+      // xterm builds its selection service in open(), so this is the first moment it can be reached.
+      keepSelectionAcrossRedraws(e.term)
+    }
     e.mounted = true
     this.loadWebgl(e)
     this.fitNow(e)
@@ -460,6 +529,7 @@ class TerminalRegistry {
 
   private handleKey(e: Entry, ev: KeyboardEvent): boolean {
     if (ev.type !== 'keydown') return true
+    if (!MODIFIER_KEYS.has(ev.key)) e.gesture.at = performance.now()
     if (this.appKeyHandler(ev)) return false
     if (e.hint) {
       const plain = !ev.ctrlKey && !ev.altKey && !ev.metaKey && !ev.shiftKey
@@ -607,6 +677,14 @@ class TerminalRegistry {
   private copySelection(e: Entry): void {
     const text = e.term.getSelection()
     if (text) window.step.send('clipboard:write', text)
+  }
+
+  /** Puts back the selection a program's redraw wiped: same cells, so Ctrl+C still finds it. */
+  private restoreSelection(e: Entry): void {
+    const kept = e.kept
+    e.kept = null
+    if (!kept || kept.length <= 0) return
+    e.term.select(kept.x, kept.y, kept.length)
   }
 }
 
