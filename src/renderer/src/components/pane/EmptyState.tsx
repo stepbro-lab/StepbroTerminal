@@ -5,6 +5,7 @@ import { addDroppedFolders, addProject, newShell } from '@/lib/actions'
 import { useFolderDrop } from '@/lib/folderDrop'
 import { useBinding } from '@/lib/shortcuts'
 import { Keys } from '../Keys'
+import { LogoMark } from '../LogoMark'
 import { t } from '@/lib/i18n'
 
 export function EmptyState() {
@@ -25,6 +26,7 @@ export function EmptyState() {
   if (!project) {
     return (
       <div {...drop.props} className="relative flex h-full flex-col items-center justify-center gap-4 p-8 text-center">
+        <LogoMark size={72} />
         <div className="text-[14px] text-secondary">{t('Pick a folder, or drag one in, and stepbro terminal opens a shell in it.')}</div>
         <button className="btn btn-primary" onClick={() => void addProject()}>{t('Choose folder')}</button>
         {hint}
@@ -34,6 +36,7 @@ export function EmptyState() {
 
   return (
     <div {...drop.props} className="relative flex h-full flex-col items-center justify-center gap-5 p-8 text-center">
+      <LogoMark size={72} />
       <div>
         <div className="text-[15px] font-semibold tracking-[-0.01em]">{project.name}</div>
         <div className="mt-1 max-w-[440px] truncate font-mono text-[11.5px] text-muted">{project.path}</div>

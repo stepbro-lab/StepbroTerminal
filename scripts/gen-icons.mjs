@@ -46,8 +46,9 @@ console.log('wrote build/icon.ico')
 // as its neighbours.
 render(logoSvg(1024, 0.1), 1024, path.join(buildDir, 'icon-mac.png'))
 
-// The logo inside notifications.
+// The logo inside notifications, and the copy the window itself shows (an empty pane).
 render(logoSvg(256), 256, path.join(iconsDir, 'app-256.png'))
+render(logoSvg(256), 256, path.join(root, 'src', 'renderer', 'src', 'assets', 'logo.png'))
 
 // Tray icons. Windows and Linux show the logo itself, with a dot in the corner for the aggregate
 // state (blue while agents work, amber when one needs a person). The dot sits on a dark ring so it
