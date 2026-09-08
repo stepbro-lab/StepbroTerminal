@@ -3,7 +3,7 @@ import { join, resolve } from 'node:path'
 import fs from 'node:fs'
 import { claudeDir, hostLogPath } from '@shared/paths'
 import type { EventMap, EventName } from '@shared/ipc'
-import type { HostState, Prefs, Session, Note, Handoff } from '@shared/types'
+import type { BrowserOp, HostState, Prefs, Session, Note, Handoff } from '@shared/types'
 import { HostClient } from './host/HostClient'
 import { ensureHost, requestHostShutdown } from './host/launcher'
 import { loadPrefs, savePrefs } from './prefs'
@@ -15,6 +15,7 @@ import { computeProjects } from './projects'
 import { applyWindowTheme, createWindow } from './window'
 import { Notifier } from './notifications'
 import { StepTray } from './tray'
+import { PreviewBridge } from './preview'
 import { PromptLog } from './prompts'
 import { registerIpc } from './ipc'
 import { buildAppMenu } from './menu'
@@ -141,6 +142,7 @@ async function boot(): Promise<void> {
     activeId: null,
     notifier: null as unknown as Notifier,
     tray: null as unknown as StepTray,
+    previews: null as unknown as PreviewBridge,
     prompts: new PromptLog(),
     updates: null as unknown as Updates,
     notes: [],
@@ -311,6 +313,17 @@ ${s.errorDetail}`)
     ctx.emit('notes:update', notes, added)
   })
   client.on('handoff', (h: Handoff) => ctx.emit('ui:handoff', h))
+  // An agent's request for the preview pane: done here, where the <webview>'s contents are reachable, and answered over the socket.
+  ctx.previews = new PreviewBridge(
+    (id, url) => ctx.emit('ui:openPreview', id, url),
+    (id) => ctx.emit('ui:closePreview', id)
+  )
+  client.on('browser', (reqId: string, sessionId: string, op: BrowserOp) => {
+    ctx.previews.handle(sessionId, op).then(
+      (result) => client.send({ t: 'browser:result', reqId, ok: true, result }),
+      (e: unknown) => client.send({ t: 'browser:result', reqId, ok: false, error: String((e as Error)?.message ?? e) })
+    )
+  })
   client.on('error', (m: string) => ctx.log('host error:', m))
   client.on('disconnected', () => {
     ctx.log('host disconnected, reconnecting')

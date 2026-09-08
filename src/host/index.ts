@@ -91,6 +91,8 @@ async function main(): Promise<void> {
         sessions: () => sm.list().filter((s) => !s.archived),
         send: (from, to, text, submit, suffix) => sm.handoff(from, to, text, submit, { suffix }),
         screen: (id, lines) => sm.screenLines(id, lines),
+        // The preview pane lives in the app; the request travels over the socket and back.
+        browser: (id, op, timeoutMs) => server.browser(id, op, timeoutMs),
         version
       },
       sessionId,

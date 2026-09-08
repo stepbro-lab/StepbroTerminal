@@ -1,4 +1,4 @@
-import type { CreateSessionOpts, PromptRecord, Session, Note, Handoff, HostStats } from './types'
+import type { BrowserOp, BrowserResult, CreateSessionOpts, PromptRecord, Session, Note, Handoff, HostStats } from './types'
 
 export type ClientMsg =
   | { t: 'hello'; version: string }
@@ -25,6 +25,8 @@ export type ClientMsg =
   | { t: 'notes:delete'; id: string }
   /** What the host and its sessions use right now; answered with `stats` carrying the same reqId. */
   | { t: 'stats'; reqId: string }
+  /** The app's answer to a `browser` request: what the preview pane did, or why it could not. */
+  | { t: 'browser:result'; reqId: string; ok: boolean; result?: BrowserResult; error?: string }
   | { t: 'shutdown' }
 
 export type HostMsg =
@@ -43,6 +45,8 @@ export type HostMsg =
   /** One agent typed text into another session. */
   | { t: 'handoff'; handoff: Handoff }
   | { t: 'stats'; reqId: string; stats: HostStats }
+  /** An agent asks, through the MCP server, for something to happen in the preview pane beside its session. */
+  | { t: 'browser'; reqId: string; sessionId: string; op: BrowserOp }
   | { t: 'error'; message: string; id?: string; reqId?: string }
 
 const HEADER = 8

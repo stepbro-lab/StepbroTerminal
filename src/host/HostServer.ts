@@ -1,9 +1,10 @@
 import net from 'node:net'
 import fs from 'node:fs'
+import { randomUUID } from 'node:crypto'
 import { encodeFrame, FrameParser, type ClientMsg, type HostMsg } from '@shared/protocol'
 import type { SessionManager } from './SessionManager'
 import type { NoteStore } from './NoteStore'
-import type { Handoff, Note } from '@shared/types'
+import type { BrowserOp, BrowserResult, Handoff, Note } from '@shared/types'
 import { SizeOwners } from './sizeOwners'
 import { log } from './log'
 
@@ -25,6 +26,8 @@ export class HostServer {
   private server: net.Server
   private clients = new Set<Client>()
   private owners = new SizeOwners<Client>()
+  /** Preview requests out to the app, waiting for its answer. */
+  private browserPending = new Map<string, { resolve: (r: BrowserResult) => void; reject: (e: Error) => void; timer: NodeJS.Timeout }>()
   onClientsChange: () => void = () => {}
   onShutdown: () => void = () => {}
 
@@ -205,10 +208,37 @@ export class HostServer {
       case 'notes:delete':
         this.notes.remove(msg.id)
         break
+      case 'browser:result': {
+        const p = this.browserPending.get(msg.reqId)
+        if (!p) break
+        this.browserPending.delete(msg.reqId)
+        clearTimeout(p.timer)
+        if (msg.ok && msg.result) p.resolve(msg.result)
+        else p.reject(new Error(msg.error ?? 'The preview pane could not do that.'))
+        break
+      }
       case 'shutdown':
         this.onShutdown()
         break
     }
+  }
+
+  /**
+   * Asks the app to do something with the preview pane beside a session and waits for what came
+   * of it. The app is the client that owns the window; with none connected there is no pane.
+   */
+  browser(sessionId: string, op: BrowserOp, timeoutMs = 30_000): Promise<BrowserResult> {
+    const c = [...this.clients][0]
+    if (!c) return Promise.reject(new Error('The terminal window is not connected.'))
+    const reqId = randomUUID()
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        this.browserPending.delete(reqId)
+        reject(new Error('The preview pane did not answer in time.'))
+      }, timeoutMs)
+      this.browserPending.set(reqId, { resolve, reject, timer })
+      this.send(c, { t: 'browser', reqId, sessionId, op })
+    })
   }
 
   /** `c` stopped looking at `id`; whoever inherits the session gets the size they asked for. */

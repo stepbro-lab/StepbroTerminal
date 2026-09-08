@@ -54,7 +54,7 @@ export function TerminalPane() {
     )
   }
 
-  const sidePanel = side && sessions[side.sessionId] ? (side.kind === 'preview' ? <PreviewPane key={side.url} url={side.url} /> : <ChangesPane sessionId={side.sessionId} />) : null
+  const sidePanel = side && sessions[side.sessionId] ? (side.kind === 'preview' ? <PreviewPane key={side.url} url={side.url} sessionId={side.sessionId} /> : <ChangesPane sessionId={side.sessionId} />) : null
 
   return (
     <main className="flex min-w-0 flex-1 flex-col" style={edge}>

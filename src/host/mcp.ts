@@ -2,7 +2,7 @@ import type http from 'node:http'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js'
 import { z } from 'zod'
-import type { Note, NoteSource, Session } from '@shared/types'
+import type { BrowserOp, BrowserResult, Note, NoteSource, Session } from '@shared/types'
 import type { NoteStore } from './NoteStore'
 import type { AgentBus } from './AgentBus'
 import { agentOf, pickSession } from './handoff'
@@ -17,6 +17,8 @@ export interface McpDeps {
   send: (from: string, to: string, text: string, submit: boolean, suffix?: string) => 'typed' | 'held' | 'lost'
   /** The last lines on a session's screen, scrollback included. */
   screen: (id: string, lines: number) => Promise<string[]>
+  /** Something for the preview pane beside a session: the app does it and reports back. */
+  browser: (sessionId: string, op: BrowserOp, timeoutMs?: number) => Promise<BrowserResult>
   version: string
 }
 
@@ -30,7 +32,8 @@ const SETTLE_MS = 5000
 const INSTRUCTIONS = `You are running inside stepbro terminal, next to other sessions, and this server lets you work with them. Two layers:
 - Sessions are terminals. list_sessions shows them, read_screen shows what is on one, send_to_session types into one as if the user had.
 - Agents talk to each other with report. A message you send with report shows up in the other agent's conversation as soon as it is free, the same way a message from another agent arrives in yours as a new turn.
-To delegate: send_to_session the task, then end your turn. Do not sit waiting: the answer arrives in your conversation as a message, and you continue from there. Keep the conversation going: answer questions, ask for what you need, and say when you are done. When someone hands you work, report back to them when you finish. wait exists for the rare case where you must block, for example to watch a session finish; it is not needed to receive messages.`
+To delegate: send_to_session the task, then end your turn. Do not sit waiting: the answer arrives in your conversation as a message, and you continue from there. Keep the conversation going: answer questions, ask for what you need, and say when you are done. When someone hands you work, report back to them when you finish. wait exists for the rare case where you must block, for example to watch a session finish; it is not needed to receive messages.
+- The preview pane is a browser beside your session. open_preview shows a page there (the dev server you started, a site the user names); then preview_screenshot shows you what it looks like, preview_read gives its text or an outline of its headings, links, buttons and fields, and preview_scroll, preview_click, preview_type, preview_eval and preview_console let you work the page and watch its console. Open it when the user asks to see something, and when you need to check what a page shows.`
 
 /**
  * The MCP endpoint agents get per session (`claude --mcp-config`, `codex -c mcp_servers…`).
@@ -291,6 +294,180 @@ function buildServer(deps: McpDeps, sessionId: string): McpServer {
           }
           await deps.bus.waitFor(watched ? [sessionId, watched.id] : [sessionId], Math.min(left, 2000))
         }
+      }
+    }
+  )
+
+  // ---- the preview pane: a browser beside the session ----
+
+  const preview = (op: BrowserOp, timeoutMs?: number): Promise<BrowserResult> => deps.browser(sessionId, op, timeoutMs)
+  const where = (r: BrowserResult): string => `${r.title || '(no title)'} — ${r.url}`
+  const failed = (e: unknown) => text(`Preview: ${String((e as Error)?.message ?? e)}`)
+  const TARGET = 'A CSS selector, or text=… for the visible text of a link, button or other element (a partial match will do).'
+
+  server.registerTool(
+    'open_preview',
+    {
+      title: 'Open a page in the preview pane',
+      description:
+        'Shows a web page in the preview pane beside your session, inside the terminal window, and waits for it to load. Use it when the user asks to see or open a page, and when you want to check what your dev server is serving. Without a url it opens the address this session\'s program printed (a dev server, for example). Then preview_screenshot shows the page, preview_read its text or an outline.',
+      inputSchema: { url: z.string().optional().describe('http:// or https:// address. Leave it out to open the address the program in this session printed.') }
+    },
+    async ({ url }) => {
+      const s = deps.session(sessionId)
+      const target = url?.trim() || s?.previewUrl
+      if (!target) return text('No address given, and nothing in this session has printed one. Pass the url to open.')
+      if (!/^https?:\/\//i.test(target)) return text(`Only http:// and https:// addresses open in the preview; "${target}" is neither.`)
+      try {
+        const r = await preview({ kind: 'open', url: target }, 45_000)
+        return text(`Opened ${where(r)} in the preview pane. preview_screenshot shows it; preview_read gives its text or an outline of what is on it.`)
+      } catch (e) {
+        return failed(e)
+      }
+    }
+  )
+
+  server.registerTool(
+    'preview_screenshot',
+    {
+      title: 'See the preview pane',
+      description: 'A picture of the page in the preview pane, as it looks right now. Scroll first to see further down.',
+      inputSchema: {}
+    },
+    async () => {
+      try {
+        const r = await preview({ kind: 'screenshot' })
+        if (!r.png) return text(`Nothing to show for ${where(r)}.`)
+        return { content: [{ type: 'image' as const, data: r.png, mimeType: 'image/png' }, { type: 'text' as const, text: where(r) }] }
+      } catch (e) {
+        return failed(e)
+      }
+    }
+  )
+
+  server.registerTool(
+    'preview_read',
+    {
+      title: 'Read the page in the preview pane',
+      description:
+        'What the page in the preview pane says. "outline" lists its title, headings, links, buttons and form fields, each in a form you can pass as a target to preview_click and preview_type; "text" is everything readable on it; "html" is its markup. A target narrows any of them to one element.',
+      inputSchema: {
+        what: z.enum(['outline', 'text', 'html']).optional().describe('outline by default'),
+        target: z.string().optional().describe(TARGET)
+      }
+    },
+    async ({ what, target }) => {
+      try {
+        const r = await preview({ kind: 'read', what: what ?? 'outline', target })
+        return text(`${where(r)}\n\n${r.text ?? ''}`)
+      } catch (e) {
+        return failed(e)
+      }
+    }
+  )
+
+  server.registerTool(
+    'preview_scroll',
+    {
+      title: 'Scroll the preview pane',
+      description: 'Scrolls the page: a screen down or up, to the top or bottom, by a number of pixels, or to bring a target into view.',
+      inputSchema: {
+        to: z.union([z.enum(['down', 'up', 'top', 'bottom']), z.number()]).optional().describe('down by default; a number scrolls by that many pixels (negative goes up)'),
+        target: z.string().optional().describe(TARGET)
+      }
+    },
+    async ({ to, target }) => {
+      try {
+        const r = await preview({ kind: 'scroll', to: to ?? 'down', target })
+        return text(r.text ?? 'Scrolled.')
+      } catch (e) {
+        return failed(e)
+      }
+    }
+  )
+
+  server.registerTool(
+    'preview_click',
+    {
+      title: 'Click something in the preview pane',
+      description: 'Clicks a link, button or other element on the page, then reports where the page is.',
+      inputSchema: { target: z.string().describe(TARGET) }
+    },
+    async ({ target }) => {
+      try {
+        const r = await preview({ kind: 'click', target })
+        return text(`${r.text ?? 'Clicked.'}\nNow at ${where(r)}.`)
+      } catch (e) {
+        return failed(e)
+      }
+    }
+  )
+
+  server.registerTool(
+    'preview_type',
+    {
+      title: 'Type into a field in the preview pane',
+      description: 'Puts text into an input, textarea or editable element, replacing what was there; with submit, presses Enter afterwards.',
+      inputSchema: {
+        target: z.string().describe(TARGET),
+        text: z.string().max(20000),
+        submit: z.boolean().optional().describe('Press Enter after typing.')
+      }
+    },
+    async ({ target, text: body, submit }) => {
+      try {
+        const r = await preview({ kind: 'type', target, text: body, submit })
+        return text(`${r.text ?? 'Typed.'}\nNow at ${where(r)}.`)
+      } catch (e) {
+        return failed(e)
+      }
+    }
+  )
+
+  server.registerTool(
+    'preview_eval',
+    {
+      title: 'Run JavaScript in the preview pane',
+      description:
+        'Runs JavaScript in the page and returns the value of the last expression (as JSON when it is not a string). For anything the other preview tools do not cover: reading a specific element, checking state, calling into the app under test.',
+      inputSchema: { js: z.string().min(1).max(20000) }
+    },
+    async ({ js }) => {
+      try {
+        const r = await preview({ kind: 'eval', js })
+        return text(r.text ?? '(no value)')
+      } catch (e) {
+        return failed(e)
+      }
+    }
+  )
+
+  server.registerTool(
+    'preview_console',
+    {
+      title: 'Read the console of the preview pane',
+      description: 'What the page logged to its console since the preview opened: errors, warnings and logs, newest last. Clear it to read only what comes next.',
+      inputSchema: { clear: z.boolean().optional().describe('Empty the log after reading it.') }
+    },
+    async ({ clear }) => {
+      try {
+        const r = await preview({ kind: 'console', clear })
+        return text(r.text || 'The console is empty.')
+      } catch (e) {
+        return failed(e)
+      }
+    }
+  )
+
+  server.registerTool(
+    'close_preview',
+    { title: 'Close the preview pane', description: 'Closes the preview pane beside your session.', inputSchema: {} },
+    async () => {
+      try {
+        await preview({ kind: 'close' })
+        return text('The preview pane is closed.')
+      } catch (e) {
+        return failed(e)
       }
     }
   )

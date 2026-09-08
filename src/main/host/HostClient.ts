@@ -131,6 +131,9 @@ export class HostClient extends EventEmitter {
         }
         break
       }
+      case 'browser':
+        this.emit('browser', msg.reqId, msg.sessionId, msg.op)
+        break
       case 'error': {
         const p = msg.reqId ? this.pending.get(msg.reqId) : undefined
         if (p && msg.reqId) {

@@ -321,6 +321,27 @@ export type HostState =
   | { kind: 'connected'; info: HostInfo }
   | { kind: 'error'; message: string; logPath: string }
 
+/** What an agent can do with the preview pane beside its session, through the stepbro MCP server. */
+export type BrowserOp =
+  | { kind: 'open'; url: string }
+  | { kind: 'close' }
+  | { kind: 'screenshot' }
+  | { kind: 'read'; what: 'text' | 'outline' | 'html'; target?: string }
+  | { kind: 'scroll'; to: 'top' | 'bottom' | 'up' | 'down' | number; target?: string }
+  | { kind: 'click'; target: string }
+  | { kind: 'type'; target: string; text: string; submit?: boolean }
+  | { kind: 'eval'; js: string }
+  | { kind: 'console'; clear?: boolean }
+
+export interface BrowserResult {
+  url: string
+  title: string
+  /** What the operation produced: page text, an outline, a value, console lines. */
+  text?: string
+  /** A PNG of the pane, base64. */
+  png?: string
+}
+
 export interface MenuItemSpec {
   id?: string
   label?: string

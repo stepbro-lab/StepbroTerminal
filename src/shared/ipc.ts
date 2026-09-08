@@ -105,6 +105,9 @@ export interface SendMap {
   'win:captionPing': () => void
   'clipboard:write': (text: string) => void
   'workspace:set': (state: WorkspaceState) => void
+  /** The preview pane beside a session has its browser view up, with this webContents id; and it is gone. */
+  'preview:attached': (sessionId: string, webContentsId: number) => void
+  'preview:detached': (sessionId: string) => void
   'notes:add': (text: string) => void
   'notes:update': (id: string, patch: { text?: string; done?: boolean }) => void
   'notes:delete': (id: string) => void
@@ -126,6 +129,9 @@ export interface EventMap {
   'projects:update': (projects: Project[]) => void
   'ui:focusSession': (id: string) => void
   'ui:command': (name: string) => void
+  /** An agent asked for a page in the preview pane beside its session, or for that pane to go. */
+  'ui:openPreview': (sessionId: string, url: string) => void
+  'ui:closePreview': (sessionId: string) => void
   /** Play the notification sound; the renderer owns the audio file. */
   'ui:sound': () => void
   'ui:update': (state: UpdateState) => void

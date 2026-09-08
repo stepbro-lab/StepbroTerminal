@@ -150,6 +150,9 @@ export function registerIpc(ctx: Ctx): void {
   handle('updates:check', () => ctx.updates.check())
   handle('updates:install', () => ctx.updates.install())
   on('workspace:set', (state) => saveWorkspace(state))
+  // The preview pane reports its browser view, so agents can be given the page through it.
+  on('preview:attached', (sessionId, wcId) => ctx.previews.attached(sessionId, wcId))
+  on('preview:detached', (sessionId) => ctx.previews.detached(sessionId))
 
   handle('menu:popup', (items: MenuItemSpec[]) => popupMenu(ctx, items))
   handle('app:openExternal', (url) => {

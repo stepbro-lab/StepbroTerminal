@@ -8,6 +8,7 @@ import type { Notifier } from './notifications'
 import type { StepTray } from './tray'
 import type { PromptLog } from './prompts'
 import type { Updates } from './updates'
+import type { PreviewBridge } from './preview'
 
 /** Everything the main process keeps in memory, shared between index.ts and ipc.ts. */
 export interface Ctx {
@@ -26,6 +27,8 @@ export interface Ctx {
   tray: StepTray
   prompts: PromptLog
   updates: Updates
+  /** The preview pane, driven for agents through the stepbro MCP server. */
+  previews: PreviewBridge
   /** Latest list from the host, so the renderer can ask for it on boot. */
   notes: Note[]
   /** Folders dropped on the app icon or named on the command line, waiting for the renderer. */

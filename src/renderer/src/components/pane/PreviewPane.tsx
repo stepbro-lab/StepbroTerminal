@@ -9,10 +9,15 @@ interface WebviewEl extends HTMLElement {
   goBack: () => void
   canGoBack: () => boolean
   getURL: () => string
+  getWebContentsId: () => number
 }
 
-/** A browser beside the terminal for whatever the dev server printed. Runs in Electron's <webview>. */
-export function PreviewPane({ url }: { url: string }) {
+/**
+ * A browser beside the terminal for whatever the dev server printed, or whatever an agent asked
+ * to see. Runs in Electron's <webview>; once it is up, the main process is told which one, so an
+ * agent can be given the page through the stepbro MCP server.
+ */
+export function PreviewPane({ url, sessionId }: { url: string; sessionId: string }) {
   const setSide = useUi((s) => s.setSide)
   const ref = useRef<WebviewEl | null>(null)
   const [current, setCurrent] = useState(url)
@@ -35,19 +40,32 @@ export function PreviewPane({ url }: { url: string }) {
       setLoading(false)
       setFailed(e.errorDescription ?? t('Could not load'))
     }
+    const onReady = (): void => {
+      try {
+        window.step.send('preview:attached', sessionId, el.getWebContentsId())
+      } catch {
+        /* not attached yet; the next dom-ready will do */
+      }
+    }
     el.addEventListener('did-start-loading', onStart)
     el.addEventListener('did-stop-loading', onStop)
     el.addEventListener('did-navigate', onNav)
     el.addEventListener('did-navigate-in-page', onNav)
     el.addEventListener('did-fail-load', onFail)
+    // As early as the view exists, so the page's first console lines are caught too; dom-ready again in case.
+    el.addEventListener('did-attach', onReady)
+    el.addEventListener('dom-ready', onReady)
     return () => {
       el.removeEventListener('did-start-loading', onStart)
       el.removeEventListener('did-stop-loading', onStop)
       el.removeEventListener('did-navigate', onNav)
       el.removeEventListener('did-navigate-in-page', onNav)
       el.removeEventListener('did-fail-load', onFail)
+      el.removeEventListener('did-attach', onReady)
+      el.removeEventListener('dom-ready', onReady)
+      window.step.send('preview:detached', sessionId)
     }
-  }, [])
+  }, [sessionId])
 
   return (
     <div className="card relative flex min-h-0 min-w-0 flex-1 flex-col">
