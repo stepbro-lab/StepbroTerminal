@@ -76,6 +76,10 @@ for (const [id, logo] of Object.entries(logos)) {
   // The logo inside notifications and on the window (Windows and Linux) and the Dock, and the copy the empty pane shows.
   render(logoSvg(logo, 256), 256, path.join(iconsDir, `app-256-${id}.png`))
   render(logoSvg(logo, 256), 256, path.join(assetsDir, `logo-${id}.png`))
+  // An .ico of each look for the Windows shortcuts (Start Menu, desktop, pinned taskbar), which carry their own icon.
+  const ico = await pngToIco([16, 24, 32, 48, 64, 128, 256].map((s) => new Resvg(logoSvg(logo, s), { fitTo: { mode: 'width', value: s } }).render().asPng()))
+  fs.writeFileSync(path.join(iconsDir, `app-${id}.ico`), ico)
+  console.log('wrote', path.relative(root, path.join(iconsDir, `app-${id}.ico`)))
   for (const [mood, dot] of Object.entries(moods)) {
     render(trayLogo(logo, dot), 32, path.join(iconsDir, `tray-${mood}-${id}.png`))
     render(trayMac(logo, dot), 36, path.join(iconsDir, `tray-${mood}-mac-${id}@2x.png`))

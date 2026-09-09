@@ -20,7 +20,7 @@ import { PromptLog } from './prompts'
 import { registerIpc } from './ipc'
 import { buildAppMenu } from './menu'
 import { setLanguage } from './i18n'
-import { APP_ID, ensureWindowsShortcut, migrateUserData } from './branding'
+import { APP_ID, applyShortcutIcons, ensureWindowsShortcut, migrateUserData } from './branding'
 import { Updates } from './updates'
 import { folderArgs, onlyFolders } from './openFolders'
 import { workspaceKeyFromUrl } from './stepUrl'
@@ -165,9 +165,11 @@ async function boot(): Promise<void> {
       if (partial.addedProjects || partial.hiddenProjects) ctx.emitProjects()
       if (partial.keybindings) buildAppMenu(ctx)
       if (partial.logo !== undefined) {
-        // The other logo, everywhere the app can change it while it runs: window or Dock, and the tray.
+        // The other logo, everywhere the app can change it while it runs: window or Dock, the tray,
+        // and on Windows the shortcuts, so it holds when the app is closed or pinned.
         if (ctx.win) applyAppIcon(ctx.win, ctx.prefs)
         ctx.tray.refresh()
+        applyShortcutIcons(ctx.prefs.logo ?? 'mono')
       }
       if (partial.language !== undefined) {
         setLanguage(ctx.prefs.language)
@@ -240,6 +242,8 @@ async function boot(): Promise<void> {
     ctx.win = null
   })
   ctx.tray.create()
+  // An update rewrites the Windows shortcuts with the default icon; a chosen color logo goes back on them.
+  if (ctx.prefs.logo && ctx.prefs.logo !== 'mono') applyShortcutIcons(ctx.prefs.logo)
 
   ctxRef = ctx
   // Folders given at launch: dropped on the app icon, or named on the command line.

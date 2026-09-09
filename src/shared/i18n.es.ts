@@ -250,7 +250,7 @@ export const es: Record<string, string> = {
   Advanced: 'Avanzado',
   'How stepbro terminal looks. Auto follows your system appearance.': 'Cómo se ve stepbro terminal. Automático sigue la apariencia del sistema.',
   Logo: 'Logo',
-  'The mark the app shows on its window, in the tray, in notifications and on an empty pane. The installer keeps the black and white one.': 'La marca que la app muestra en su ventana, en la bandeja, en las notificaciones y en un panel vacío. El instalador conserva la de blanco y negro.',
+  'The mark the app shows on its window, in the tray, in notifications and on an empty pane. On Windows the Start Menu, desktop and taskbar shortcuts take it too; on macOS the Dock does while the app runs.': 'La marca que la app muestra en su ventana, en la bandeja, en las notificaciones y en un panel vacío. En Windows la toman también los accesos directos del menú Inicio, el escritorio y la barra de tareas; en macOS, el Dock mientras la app está abierta.',
   'Black and white': 'Blanco y negro',
   Color: 'Color',
   'The shell stepbro terminal opens and how text is drawn inside it.': 'La shell que abre stepbro terminal y cómo se dibuja el texto dentro.',

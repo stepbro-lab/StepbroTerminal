@@ -49,7 +49,7 @@ export function AppearancePage() {
         </Row>
       </Section>
 
-      <Section title={t('Logo')} description={t('The mark the app shows on its window, in the tray, in notifications and on an empty pane. The installer keeps the black and white one.')}>
+      <Section title={t('Logo')} description={t('The mark the app shows on its window, in the tray, in notifications and on an empty pane. On Windows the Start Menu, desktop and taskbar shortcuts take it too; on macOS the Dock does while the app runs.')}>
         <div className="flex items-center gap-3 py-1">
           {(Object.keys(LOGOS) as LogoId[]).map((id) => (
             <button
