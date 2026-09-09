@@ -2,7 +2,8 @@ import { app, BrowserWindow, Menu, nativeImage, Tray } from 'electron'
 import fs from 'node:fs'
 import { join } from 'node:path'
 import { projectName } from '@shared/paths'
-import type { Session } from '@shared/types'
+import type { LogoId, Prefs, Session } from '@shared/types'
+import { iconsDir } from './branding'
 import { t } from './i18n'
 
 export type TrayMood = 'idle' | 'working' | 'attention'
@@ -11,6 +12,7 @@ export interface TrayDeps {
   getSessions: () => Session[]
   getWindow: () => BrowserWindow | null
   focusSession: (id: string) => void
+  getPrefs: () => Prefs
 }
 
 const GLYPH: Record<string, string> = {
@@ -23,28 +25,29 @@ const GLYPH: Record<string, string> = {
   starting: '◌'
 }
 
-function iconPath(name: string): string {
-  const base = app.isPackaged ? join(process.resourcesPath, 'icons') : join(app.getAppPath(), 'resources', 'icons')
-  return join(base, name)
-}
-
-/** The logo with a dot for the mood; on macOS the menu bar copy, drawn at the bar's size, and its @2x beside it. */
-function loadIcon(mood: TrayMood): Electron.NativeImage {
-  const file = process.platform === 'darwin' ? `tray-${mood}-mac.png` : `tray-${mood}.png`
-  const p = iconPath(file)
+/** The chosen logo with a dot for the mood; on macOS the menu bar copy, drawn at the bar's size, and its @2x beside it. */
+function loadIcon(mood: TrayMood, logo: LogoId): Electron.NativeImage {
+  const file = process.platform === 'darwin' ? `tray-${mood}-mac-${logo}.png` : `tray-${mood}-${logo}.png`
+  const p = join(iconsDir(), file)
   return fs.existsSync(p) ? nativeImage.createFromPath(p) : nativeImage.createEmpty()
 }
 
 export class StepTray {
   private tray: Tray | null = null
   private mood: TrayMood = 'idle'
+  /** Which picture is up: the mood and the logo it was drawn with. */
+  private shown = ''
+
+  private logo(): LogoId {
+    return this.deps.getPrefs().logo ?? 'mono'
+  }
   private timer: NodeJS.Timeout | null = null
 
   constructor(private readonly deps: TrayDeps) {}
 
   create(): void {
     try {
-      this.tray = new Tray(loadIcon('idle'))
+      this.tray = new Tray(loadIcon('idle', this.logo()))
     } catch {
       this.tray = null
       return
@@ -83,9 +86,11 @@ export class StepTray {
     const working = sessions.filter((s) => s.status === 'working' || s.status === 'starting').length
     const attention = sessions.filter((s) => s.status === 'attention' || s.status === 'error').length
     const mood: TrayMood = attention ? 'attention' : working ? 'working' : 'idle'
-    if (mood !== this.mood) {
+    const shown = `${mood}/${this.logo()}`
+    if (shown !== this.shown) {
+      this.shown = shown
       this.mood = mood
-      this.tray.setImage(loadIcon(mood))
+      this.tray.setImage(loadIcon(mood, this.logo()))
     }
     const parts = ['stepbro terminal']
     if (working) parts.push(t('{n} working', { n: working }))

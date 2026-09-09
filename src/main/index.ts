@@ -12,7 +12,7 @@ import { detectPresets } from './presets/detect'
 import { HistoryIndex } from './claude/history'
 import { LiveClaudeWatcher } from './claude/liveSessions'
 import { computeProjects } from './projects'
-import { applyWindowTheme, createWindow } from './window'
+import { applyAppIcon, applyWindowTheme, createWindow } from './window'
 import { Notifier } from './notifications'
 import { StepTray } from './tray'
 import { PreviewBridge } from './preview'
@@ -164,6 +164,11 @@ async function boot(): Promise<void> {
       if (shellChanged) ctx.refreshPresets()
       if (partial.addedProjects || partial.hiddenProjects) ctx.emitProjects()
       if (partial.keybindings) buildAppMenu(ctx)
+      if (partial.logo !== undefined) {
+        // The other logo, everywhere the app can change it while it runs: window or Dock, and the tray.
+        if (ctx.win) applyAppIcon(ctx.win, ctx.prefs)
+        ctx.tray.refresh()
+      }
       if (partial.language !== undefined) {
         setLanguage(ctx.prefs.language)
         buildAppMenu(ctx)
@@ -206,7 +211,8 @@ async function boot(): Promise<void> {
   ctx.tray = new StepTray({
     getSessions: () => [...ctx.sessions.values()],
     getWindow: () => ctx.win,
-    focusSession: (id) => ctx.emit('ui:focusSession', id)
+    focusSession: (id) => ctx.emit('ui:focusSession', id),
+    getPrefs: () => ctx.prefs
   })
 
   ctx.prompts.load()

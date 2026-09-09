@@ -444,6 +444,34 @@ kbd {
     0 1px 3px rgba(0, 0, 0, 0.35);
 }
 
+/* ---- the two logos to pick from: a tile with the picture and its name under it ---- */
+.logo-pick {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px 6px;
+  border-radius: 12px;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  transition:
+    background-color 120ms var(--ease),
+    color 120ms var(--ease);
+}
+.logo-pick img {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: block;
+}
+.logo-pick:hover {
+  background: var(--bg-hover);
+}
+.logo-pick[data-on='true'] {
+  color: var(--text);
+  box-shadow: 0 0 0 1.5px var(--text) inset;
+}
+
 .swatch {
   width: 18px;
   height: 18px;

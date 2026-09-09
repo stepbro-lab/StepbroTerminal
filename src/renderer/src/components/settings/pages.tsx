@@ -7,6 +7,8 @@ import { useUi } from '@/stores/ui'
 import { launchWorkspace } from '@/lib/actions'
 import { blankPane, newLaunchConfig, workspaceUrl } from '@/lib/launchConfigs'
 import { ACCENTS } from '@/theme/accents'
+import { DEFAULT_LOGO, LOGOS } from '@/lib/logos'
+import type { LogoId } from '@shared/types'
 import { LANGUAGES } from '@shared/i18n'
 import { AgentLogo } from '../sidebar/AgentLogo'
 import { Footer, Row, Section, Segmented, Slider, SmallButton, TextArea, TextField, Toggle } from './controls'
@@ -47,6 +49,23 @@ export function AppearancePage() {
         </Row>
       </Section>
 
+      <Section title={t('Logo')} description={t('The mark the app shows on its window, in the tray, in notifications and on an empty pane. The installer keeps the black and white one.')}>
+        <div className="flex items-center gap-3 py-1">
+          {(Object.keys(LOGOS) as LogoId[]).map((id) => (
+            <button
+              key={id}
+              className="logo-pick"
+              data-on={(p.logo ?? DEFAULT_LOGO) === id}
+              title={t(LOGOS[id].name)}
+              onClick={() => upd({ logo: id })}
+            >
+              <img src={LOGOS[id].src} alt="" draggable={false} />
+              <span>{t(LOGOS[id].name)}</span>
+            </button>
+          ))}
+        </div>
+      </Section>
+
       <Section title={t('App color')} description={t('Tints selections, buttons and the activity marks, and washes the window chrome very slightly.')}>
         <div className="flex items-center gap-3 py-1">
           {ACCENTS.map((a) => (
@@ -81,7 +100,7 @@ export function AppearancePage() {
       </Section>
 
       <Footer>
-        <SmallButton onClick={() => upd({ theme: 'system', accent: 'graphite', fontFamily: 'JetBrains Mono', fontSize: 13, lineHeight: 1, sidebarWidth: 240 })}>{t('Revert to default')}</SmallButton>
+        <SmallButton onClick={() => upd({ theme: 'system', accent: 'graphite', logo: DEFAULT_LOGO, fontFamily: 'JetBrains Mono', fontSize: 13, lineHeight: 1, sidebarWidth: 240 })}>{t('Revert to default')}</SmallButton>
       </Footer>
     </>
   )

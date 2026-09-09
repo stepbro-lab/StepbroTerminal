@@ -1,14 +1,19 @@
 import { app, shell } from 'electron'
 import fs from 'node:fs'
 import path from 'node:path'
+import type { LogoId } from '@shared/types'
 
 export const APP_NAME = 'stepbro terminal'
 export const APP_ID = 'com.stepbro.terminal'
 
-/** Path of the app logo PNG used inside notifications. */
-export function appLogoPath(): string {
-  const base = app.isPackaged ? path.join(process.resourcesPath, 'icons') : path.join(app.getAppPath(), 'resources', 'icons')
-  return path.join(base, 'app-256.png')
+/** The folder with the rendered icons, next to the app when packaged and in the repo in development. */
+export function iconsDir(): string {
+  return app.isPackaged ? path.join(process.resourcesPath, 'icons') : path.join(app.getAppPath(), 'resources', 'icons')
+}
+
+/** Path of the logo PNG in the chosen look: shown inside notifications, on the window and on the Dock. */
+export function appLogoPath(logo: LogoId = 'mono'): string {
+  return path.join(iconsDir(), `app-256-${logo}.png`)
 }
 
 /**

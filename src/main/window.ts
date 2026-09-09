@@ -1,4 +1,5 @@
 import { app, BrowserWindow, nativeImage, nativeTheme, screen, shell } from 'electron'
+import { appLogoPath } from './branding'
 import { join } from 'node:path'
 import type { Prefs } from '@shared/types'
 
@@ -11,12 +12,19 @@ export function isDark(prefs: Prefs): boolean {
   return prefs.theme === 'system' ? nativeTheme.shouldUseDarkColors : prefs.theme === 'dark'
 }
 
+/**
+ * The chosen logo on the window and taskbar (Windows, Linux) or the Dock (macOS). The installers
+ * carry the default look; this is what lets the person pick the other one in Settings.
+ */
+export function applyAppIcon(win: BrowserWindow, prefs: Prefs): void {
+  const image = nativeImage.createFromPath(appLogoPath(prefs.logo ?? 'mono'))
+  if (image.isEmpty()) return
+  if (process.platform === 'darwin') app.dock?.setIcon(image)
+  else win.setIcon(image)
+}
+
 export function createWindow(prefs: Prefs): BrowserWindow {
   const platform = process.platform
-  // A packaged app draws its icon from the bundle; in development set it by hand so the window,
-  // the taskbar and the macOS dock show the real logo instead of Electron's default.
-  const devIcon = app.isPackaged ? undefined : nativeImage.createFromPath(join(app.getAppPath(), 'build', 'icon.png'))
-  if (devIcon && !devIcon.isEmpty() && platform === 'darwin' && app.dock) app.dock.setIcon(devIcon)
   const win = new BrowserWindow({
     width: 1200,
     height: 760,
@@ -25,7 +33,6 @@ export function createWindow(prefs: Prefs): BrowserWindow {
     show: false,
     title: 'stepbro terminal',
     backgroundColor: isDark(prefs) ? BG.dark : BG.light,
-    ...(devIcon && !devIcon.isEmpty() ? { icon: devIcon } : {}),
     // macOS keeps its traffic lights in our bar, centred on its height, with the sidebar toggle and
     // the rest of the bar's buttons following them on the same line. Windows and Linux draw no
     // frame at all: the bar is ours, and the caption buttons are ours too (on Windows they show
@@ -40,6 +47,7 @@ export function createWindow(prefs: Prefs): BrowserWindow {
       webviewTag: true
     }
   })
+  applyAppIcon(win, prefs)
   win.once('ready-to-show', () => win.show())
   win.webContents.setWindowOpenHandler(({ url }) => {
     void shell.openExternal(url)
