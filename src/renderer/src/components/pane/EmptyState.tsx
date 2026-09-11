@@ -1,14 +1,17 @@
-import { FolderPlus, Terminal } from 'lucide-react'
+import { useState } from 'react'
+import { FolderPlus } from 'lucide-react'
 import { useData } from '@/stores/data'
 import { useUi } from '@/stores/ui'
-import { addDroppedFolders, addProject, newShell } from '@/lib/actions'
+import { addDroppedFolders, addProject } from '@/lib/actions'
 import { useFolderDrop } from '@/lib/folderDrop'
 import { useBinding } from '@/lib/shortcuts'
 import { Keys } from '../Keys'
 import { LogoMark } from '../LogoMark'
+import { NewSessionCluster } from './NewSessionCluster'
 import { t } from '@/lib/i18n'
 
 export function EmptyState() {
+  const [browsing, setBrowsing] = useState(false)
   const shellKey = useBinding('new-shell')
   const paletteKey = useBinding('palette')
   const projects = useData((s) => s.projects)
@@ -36,13 +39,15 @@ export function EmptyState() {
 
   return (
     <div {...drop.props} className="relative flex h-full flex-col items-center justify-center gap-5 p-8 text-center">
-      <LogoMark size={72} />
-      <div>
+      {/* The agents bloom into this space, so the mark and the folder's name step aside while they are out. */}
+      <div className="transition-opacity duration-200" style={{ opacity: browsing ? 0 : 1 }}>
+        <LogoMark size={72} />
+      </div>
+      <div className="transition-opacity duration-200" style={{ opacity: browsing ? 0 : 1 }}>
         <div className="text-[15px] font-semibold tracking-[-0.01em]">{project.name}</div>
         <div className="mt-1 max-w-[440px] truncate font-mono text-[11.5px] text-muted">{project.path}</div>
       </div>
-      <button className="btn btn-primary" onClick={() => void newShell(project.path)}>
-        <Terminal size={14} />{t('New shell')}</button>
+      <NewSessionCluster projectPath={project.path} onOpen={setBrowsing} />
       <div className="mt-1 flex items-center gap-4 text-[12.5px] text-muted">
         {shellKey && (
           <span>
