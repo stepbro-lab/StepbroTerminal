@@ -67,14 +67,20 @@ describe('detectPresets', () => {
     expect(buildLaunchSpec(found, prefs(), {}, 'win32').command).toBe(exe)
   })
 
-  it('finds Clyra in ~/.local/bin, and keeps the plain name when PATH has it', () => {
+  it('finds Clyra in ~/.local/bin', () => {
     const bin = path.join(tmp, '.local', 'bin')
     fs.mkdirSync(bin, { recursive: true })
     fs.writeFileSync(path.join(bin, 'clyra'), '')
     const off = detectPresets({ PATH: '', HOME: tmp }, prefs(), 'linux').find((p) => p.id === 'clyra')!
     expect(off.binary).toBe(path.join(bin, 'clyra'))
-    const onPath = detectPresets({ PATH: bin, HOME: tmp }, prefs(), 'linux').find((p) => p.id === 'clyra')!
-    expect(onPath.binary).toBe('clyra')
+  })
+
+  // Windows paths, so that the folder the test writes into survives being put on PATH whatever
+  // machine runs it: a POSIX PATH splits on the colon in "C:\…".
+  it('keeps the plain name when PATH already has the binary', () => {
+    fs.writeFileSync(path.join(tmp, 'clyra.exe'), '')
+    const found = detectPresets({ PATH: tmp, LOCALAPPDATA: tmp }, prefs(), 'win32').find((p) => p.id === 'clyra')!
+    expect(found.binary).toBe('clyra')
   })
 
   it('resumes Clyra the way its OpenCode roots do', () => {
