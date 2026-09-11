@@ -12,9 +12,14 @@ export function iconsDir(): string {
   return app.isPackaged ? path.join(process.resourcesPath, 'icons') : path.join(app.getAppPath(), 'resources', 'icons')
 }
 
-/** Path of the logo PNG in the chosen look: shown inside notifications, on the window and on the Dock. */
+/** Path of the logo PNG in the chosen look: shown inside notifications and on the window. */
 export function appLogoPath(logo: LogoId = 'mono'): string {
   return path.join(iconsDir(), `app-256-${logo}.png`)
+}
+
+/** The Dock copy, with the room around it macOS expects; the window's would sit too large there. */
+export function dockLogoPath(logo: LogoId = 'mono'): string {
+  return path.join(iconsDir(), `dock-${logo}.png`)
 }
 
 /**

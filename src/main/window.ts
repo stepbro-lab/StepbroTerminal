@@ -1,5 +1,5 @@
 import { app, BrowserWindow, nativeImage, nativeTheme, screen, shell } from 'electron'
-import { appLogoPath } from './branding'
+import { appLogoPath, dockLogoPath } from './branding'
 import { join } from 'node:path'
 import type { Prefs } from '@shared/types'
 
@@ -17,9 +17,11 @@ export function isDark(prefs: Prefs): boolean {
  * carry the default look; this is what lets the person pick the other one in Settings.
  */
 export function applyAppIcon(win: BrowserWindow, prefs: Prefs): void {
-  const image = nativeImage.createFromPath(appLogoPath(prefs.logo ?? 'mono'))
+  const logo = prefs.logo ?? 'mono'
+  const mac = process.platform === 'darwin'
+  const image = nativeImage.createFromPath(mac ? dockLogoPath(logo) : appLogoPath(logo))
   if (image.isEmpty()) return
-  if (process.platform === 'darwin') app.dock?.setIcon(image)
+  if (mac) app.dock?.setIcon(image)
   else win.setIcon(image)
 }
 

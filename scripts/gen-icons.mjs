@@ -73,8 +73,11 @@ const trayMac = (logo, dot) => `
 
 const moods = { idle: null, working: '#6e9cff', attention: '#f5b640' }
 for (const [id, logo] of Object.entries(logos)) {
-  // The logo inside notifications and on the window (Windows and Linux) and the Dock, and the copy the empty pane shows.
+  // The logo inside notifications and on the window (Windows and Linux), and the copy the empty pane shows.
   render(logoSvg(logo, 256), 256, path.join(iconsDir, `app-256-${id}.png`))
+  // The Dock copy: macOS does not mask app icons and expects room around the artwork, so it keeps
+  // the same inset as the bundle's icon. Edge to edge, it sat visibly larger than its neighbours.
+  render(logoSvg(logo, 512, 0.1), 512, path.join(iconsDir, `dock-${id}.png`))
   render(logoSvg(logo, 256), 256, path.join(assetsDir, `logo-${id}.png`))
   // An .ico of each look for the Windows shortcuts (Start Menu, desktop, pinned taskbar), which carry their own icon.
   const ico = await pngToIco([16, 24, 32, 48, 64, 128, 256].map((s) => new Resvg(logoSvg(logo, s), { fitTo: { mode: 'width', value: s } }).render().asPng()))
