@@ -13,8 +13,8 @@ export function newlineSequence(agent: string | null | undefined): string | null
  * How an image on the clipboard reaches the program in front. Claude Code reads the clipboard
  * itself when it sees its paste key: Alt+V on Windows, where terminals swallow Ctrl+V, and
  * Ctrl+V elsewhere. Every other program gets the image as a file, the way a dropped file
- * arrives: Gemini CLI wants the path after an @, Codex and OpenCode turn a bare path to an
- * image into an attachment, and a shell can hand the path to any command.
+ * arrives: Gemini CLI wants the path after an @, Codex, OpenCode and Clyra turn a bare path to
+ * an image into an attachment, and a shell can hand the path to any command.
  */
 export function imagePaste(agent: string | null | undefined, platform: string): { kind: 'key'; bytes: number[] } | { kind: 'path' } {
   if (agent === 'claude') return { kind: 'key', bytes: platform === 'win32' ? [0x1b, 0x76] : [0x16] }

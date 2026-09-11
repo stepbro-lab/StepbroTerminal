@@ -86,6 +86,7 @@ describe('hintFor', () => {
     expect(hintFor('codex')).toBe(' --dangerously-bypass-approvals-and-sandbox')
     expect(hintFor('gemini ')).toBe('--yolo')
     expect(hintFor('opencode')).toBe(' --auto')
+    expect(hintFor('clyra')).toBe(' --auto')
     expect(hintFor('codewhale')).toBe(' --yolo')
   })
 })

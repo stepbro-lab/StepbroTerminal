@@ -7,6 +7,7 @@ export const FLAG_HINTS: Record<string, string> = {
   codex: '--dangerously-bypass-approvals-and-sandbox',
   gemini: '--yolo',
   opencode: '--auto',
+  clyra: '--auto',
   codewhale: '--yolo'
 }
 

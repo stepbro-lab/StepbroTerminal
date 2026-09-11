@@ -70,14 +70,17 @@ export const builtinPresets: BuiltinPreset[] = [
     hooks: false
   },
   {
-    // Its own installer puts clyra outside PATH on a fresh install, so detect.ts also looks where
-    // that installer leaves it. Nothing else is passed: it takes the conversation from inside.
+    // Clyra grew out of OpenCode and kept its configuration: it reads the same OPENCODE_CONFIG the
+    // session already sets, so the notes server and the status plugin reach it with no arguments,
+    // typed or launched. Its own installer puts the binary outside PATH on a fresh install, which
+    // is why detect.ts also looks where that installer leaves it.
     id: 'clyra',
     name: 'Clyra',
     color: '#a78bfa',
     binary: 'clyra',
     binaries: ['clyra'],
     args: [],
+    resumeArgs: ['--continue'],
     hooks: false
   },
   { id: 'kimi', name: 'Kimi Code', color: '#9b8cff', binary: 'kimi', binaries: ['kimi'], args: [], hooks: false },

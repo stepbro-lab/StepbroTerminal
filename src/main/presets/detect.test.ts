@@ -77,6 +77,13 @@ describe('detectPresets', () => {
     expect(onPath.binary).toBe('clyra')
   })
 
+  it('resumes Clyra the way its OpenCode roots do', () => {
+    fs.writeFileSync(path.join(tmp, 'clyra'), '')
+    const clyra = detectPresets({ PATH: tmp }, prefs(), 'linux').find((p) => p.id === 'clyra')!
+    const spec = buildLaunchSpec(clyra, prefs(), { PATH: tmp }, 'linux')
+    expect(spec).toEqual({ command: 'clyra', args: [], resumeArgs: ['--continue'], env: undefined, hooks: false })
+  })
+
   it('leaves an agent missing when it is neither on PATH nor where its installer puts it', () => {
     const list = detectPresets({ PATH: tmp, HOME: tmp, LOCALAPPDATA: tmp }, prefs(), 'win32')
     expect(list.find((p) => p.id === 'clyra')?.installed).toBe(false)
