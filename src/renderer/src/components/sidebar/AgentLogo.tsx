@@ -87,6 +87,24 @@ export function AgentLogo({ presetId, size = 14, className, style, brand = false
         </svg>
       )
     }
+    case 'clyra': {
+      // Clyra's mark: the prompt cut out of a rounded tile, in its violet-to-indigo gradient.
+      const c = brand ? 'url(#step-clyra)' : 'currentColor'
+      const cut = brand ? '#0b0b0f' : 'var(--bg-sidebar, #fff)'
+      return (
+        <svg {...box} viewBox="0 0 16 16" aria-label="Clyra">
+          <defs>
+            <linearGradient id="step-clyra" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stopColor="#a78bfa" />
+              <stop offset="1" stopColor="#6366f1" />
+            </linearGradient>
+          </defs>
+          <rect x="1" y="1" width="14" height="14" rx="3.6" fill={c} />
+          <path d="M4.5 5.4 L7 8 L4.5 10.6" fill="none" stroke={cut} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          <rect x="8.1" y="9.9" width="3.7" height="1.4" rx="0.7" fill={cut} />
+        </svg>
+      )
+    }
     case 'kimi': {
       // Kimi: the Moonshot "K" with a crescent cut.
       const c = brand ? '#111' : 'currentColor'

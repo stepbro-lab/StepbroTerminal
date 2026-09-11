@@ -55,6 +55,33 @@ describe('detectPresets', () => {
     expect(list.find((p) => p.id === 'claude')?.installed).toBe(false)
   })
 
+  it('finds Clyra where its installer leaves it when PATH does not have it yet', () => {
+    const dir = path.join(tmp, 'AppData', 'Local', 'Clyra')
+    fs.mkdirSync(dir, { recursive: true })
+    const exe = path.join(dir, 'clyra.exe')
+    fs.writeFileSync(exe, '')
+    const found = detectPresets({ PATH: '', USERPROFILE: tmp }, prefs(), 'win32').find((p) => p.id === 'clyra')!
+    expect(found.installed).toBe(true)
+    // Off PATH, so the session has to spawn the full path.
+    expect(found.binary).toBe(exe)
+    expect(buildLaunchSpec(found, prefs(), {}, 'win32').command).toBe(exe)
+  })
+
+  it('finds Clyra in ~/.local/bin, and keeps the plain name when PATH has it', () => {
+    const bin = path.join(tmp, '.local', 'bin')
+    fs.mkdirSync(bin, { recursive: true })
+    fs.writeFileSync(path.join(bin, 'clyra'), '')
+    const off = detectPresets({ PATH: '', HOME: tmp }, prefs(), 'linux').find((p) => p.id === 'clyra')!
+    expect(off.binary).toBe(path.join(bin, 'clyra'))
+    const onPath = detectPresets({ PATH: bin, HOME: tmp }, prefs(), 'linux').find((p) => p.id === 'clyra')!
+    expect(onPath.binary).toBe('clyra')
+  })
+
+  it('leaves an agent missing when it is neither on PATH nor where its installer puts it', () => {
+    const list = detectPresets({ PATH: tmp, HOME: tmp, LOCALAPPDATA: tmp }, prefs(), 'win32')
+    expect(list.find((p) => p.id === 'clyra')?.installed).toBe(false)
+  })
+
   it('honours a claude path override and custom presets', () => {
     const claude = path.join(tmp, 'my-claude.exe')
     fs.writeFileSync(claude, '')

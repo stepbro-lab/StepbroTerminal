@@ -34,6 +34,8 @@ describe('detectAgentFromCommand', () => {
     expect(detectAgentFromCommand('codex')).toBe('codex')
     expect(detectAgentFromCommand('C:\\bin\\gemini.exe -p hi')).toBe('gemini')
     expect(detectAgentFromCommand('cursor-agent')).toBe('cursor')
+    expect(detectAgentFromCommand('clyra')).toBe('clyra')
+    expect(detectAgentFromCommand('clyra analyze')).toBe('clyra')
     expect(detectAgentFromCommand('npm run dev')).toBeNull()
     expect(detectAgentFromCommand('')).toBeNull()
   })

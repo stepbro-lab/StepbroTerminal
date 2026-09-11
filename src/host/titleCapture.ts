@@ -64,6 +64,7 @@ const AGENT_BINARIES: Record<string, string> = {
   'cursor-agent': 'cursor',
   agent: 'cursor',
   opencode: 'opencode',
+  clyra: 'clyra',
   kimi: 'kimi',
   deepcode: 'deepcode',
   codewhale: 'codewhale',

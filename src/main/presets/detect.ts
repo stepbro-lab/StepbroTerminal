@@ -1,6 +1,34 @@
+import path from 'node:path'
 import { findOnPath } from '@shared/resolveCommand'
 import type { Preset, Prefs } from '@shared/types'
 import { builtinPresets } from './registry'
+
+/**
+ * Where an agent's own installer leaves its binary. PATH is read once, when the app starts, so a
+ * CLI installed after that (or one whose installer never touched PATH) would look missing; these
+ * folders are searched when PATH comes up empty, and the absolute path is what gets launched.
+ */
+const INSTALL_DIRS: Record<string, (env: NodeJS.ProcessEnv, platform: NodeJS.Platform) => string[]> = {
+  clyra: (env, platform) => {
+    const home = env['HOME'] || env['USERPROFILE'] || ''
+    if (platform === 'win32') {
+      const local = env['LOCALAPPDATA'] || (home ? path.join(home, 'AppData', 'Local') : '')
+      return local ? [path.join(local, 'Clyra'), path.join(local, 'Clyra', 'bin')] : []
+    }
+    return home ? [path.join(home, '.local', 'bin'), path.join(home, '.local', 'share', 'clyra')] : []
+  }
+}
+
+/** The binary on PATH, or where its installer is known to put it; undefined when it is neither. */
+function findInstalled(name: string, env: NodeJS.ProcessEnv, platform: NodeJS.Platform): string | undefined {
+  const onPath = findOnPath(name, env, platform)
+  if (onPath) return onPath
+  for (const dir of INSTALL_DIRS[name]?.(env, platform) ?? []) {
+    const there = findOnPath(path.join(dir, name), env, platform)
+    if (there) return there
+  }
+  return undefined
+}
 
 export interface ShellSpec {
   command: string
@@ -49,9 +77,10 @@ export function detectPresets(env: NodeJS.ProcessEnv, prefs: Prefs, platform: No
     let resolved: string | undefined
     let binary = b.binary
     for (const name of binaries) {
-      resolved = findOnPath(name, env, platform)
+      resolved = findInstalled(name, env, platform)
       if (resolved) {
-        binary = name
+        // Found off PATH: the full path is what the session has to spawn.
+        binary = findOnPath(name, env, platform) ? name : resolved
         break
       }
     }

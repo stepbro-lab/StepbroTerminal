@@ -69,6 +69,17 @@ export const builtinPresets: BuiltinPreset[] = [
     resumeArgs: ['--continue'],
     hooks: false
   },
+  {
+    // Its own installer puts clyra outside PATH on a fresh install, so detect.ts also looks where
+    // that installer leaves it. Nothing else is passed: it takes the conversation from inside.
+    id: 'clyra',
+    name: 'Clyra',
+    color: '#a78bfa',
+    binary: 'clyra',
+    binaries: ['clyra'],
+    args: [],
+    hooks: false
+  },
   { id: 'kimi', name: 'Kimi Code', color: '#9b8cff', binary: 'kimi', binaries: ['kimi'], args: [], hooks: false },
   // The two terminal agents DeepSeek itself lists for its models. Deep Code keeps its own settings
   // file and picks conversations back up with /resume inside; Codewhale grew out of DeepSeek-TUI.
