@@ -39,6 +39,23 @@ describe('DeepSeek through Claude Code', () => {
     expect(env['ANTHROPIC_DEFAULT_SONNET_MODEL']).toBe('deepseek-v4-pro')
   })
 
+  it('runs on a model id of the person\'s choosing, while sub-agents stay on Flash', () => {
+    const env = deepseekEnv(prefs({ deepseekApiKey: 'k', deepseekModel: 'custom', deepseekModelId: '  deepseek-v5-preview ' }))
+    expect(env['ANTHROPIC_MODEL']).toBe('deepseek-v5-preview')
+    expect(env['ANTHROPIC_DEFAULT_OPUS_MODEL']).toBe('deepseek-v5-preview')
+    expect(env['ANTHROPIC_DEFAULT_SONNET_MODEL']).toBe('deepseek-v5-preview')
+    expect(env['CLAUDE_CODE_SUBAGENT_MODEL']).toBe('deepseek-v4-flash')
+  })
+
+  it('falls back to Pro when "other" is picked but no id was typed', () => {
+    expect(deepseekEnv(prefs({ deepseekApiKey: 'k', deepseekModel: 'custom' }))['ANTHROPIC_MODEL']).toBe('deepseek-v4-pro')
+    expect(deepseekEnv(prefs({ deepseekApiKey: 'k', deepseekModel: 'custom', deepseekModelId: '   ' }))['ANTHROPIC_MODEL']).toBe('deepseek-v4-pro')
+  })
+
+  it('ignores a typed id once a named model is picked again', () => {
+    expect(deepseekEnv(prefs({ deepseekApiKey: 'k', deepseekModel: 'flash', deepseekModelId: 'deepseek-v5-preview' }))['ANTHROPIC_MODEL']).toBe('deepseek-v4-flash')
+  })
+
   it('leaves other presets without an environment of their own', () => {
     const claude: Preset = { ...deepseek, id: 'claude', name: 'Claude Code' }
     expect(buildLaunchSpec(claude, prefs(), {}, 'linux').env).toBeUndefined()

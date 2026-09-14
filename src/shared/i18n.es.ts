@@ -379,6 +379,9 @@ export const es: Record<string, string> = {
   'Get a key': 'Conseguir una clave',
   Model: 'Modelo',
   'Pro thinks harder; Flash is faster and cheaper. Sub-agents always use Flash.': 'Pro piensa más; Flash es más rápido y barato. Los subagentes usan siempre Flash.',
+  Other: 'Otro',
+  'Model id': 'ID del modelo',
+  'The id as DeepSeek lists it. Empty, sessions use V4 Pro. New sessions and restarts pick it up.': 'El ID tal como lo da DeepSeek. Vacío, las sesiones usan V4 Pro. Se aplica a las sesiones nuevas y al reiniciar.',
   'Needs an API key': 'Necesita una clave de API',
   // ---- pane errors, title bar and stray strings ----
   'Connected to host {version}': 'Conectado al host {version}',

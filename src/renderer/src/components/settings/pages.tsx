@@ -224,11 +224,24 @@ export function AgentsPage() {
             value={p.deepseekModel ?? 'pro'}
             options={[
               { value: 'pro', label: 'V4 Pro' },
-              { value: 'flash', label: 'V4 Flash' }
+              { value: 'flash', label: 'V4 Flash' },
+              { value: 'custom', label: t('Other') }
             ]}
             onChange={(deepseekModel) => upd({ deepseekModel })}
           />
         </Row>
+        {p.deepseekModel === 'custom' && (
+          <Row label={t('Model id')} hint={t('The id as DeepSeek lists it. Empty, sessions use V4 Pro. New sessions and restarts pick it up.')}>
+            <TextField
+              value={p.deepseekModelId ?? ''}
+              placeholder="deepseek-…"
+              mono
+              width={300}
+              list={['deepseek-v4-pro', 'deepseek-v4-flash']}
+              onChange={(v) => upd({ deepseekModelId: v.trim() || undefined })}
+            />
+          </Row>
+        )}
       </Section>
 
       <Section title={t('Your launchers')} description={t('Any command becomes an entry in the folder menu and the palette.')}>

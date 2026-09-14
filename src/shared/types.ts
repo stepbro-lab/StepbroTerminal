@@ -195,7 +195,9 @@ export interface Prefs {
   claudePath?: string
   /** DeepSeek serves an Anthropic-shaped API; with a key, Claude Code runs on its models as the DeepSeek preset. */
   deepseekApiKey?: string
-  deepseekModel?: 'pro' | 'flash'
+  /** V4 Pro, V4 Flash, or whatever model id is in deepseekModelId. */
+  deepseekModel?: 'pro' | 'flash' | 'custom'
+  deepseekModelId?: string
   /** How many archived sessions a folder shows in the sidebar before "more"; 5 when unset. */
   archivedShown?: number
   shell?: string
