@@ -156,7 +156,10 @@ async function boot(): Promise<void> {
     },
     setPrefs: (partial: Partial<Prefs>): Prefs => {
       const themeChanged = partial.theme !== undefined && partial.theme !== ctx.prefs.theme
-      const shellChanged = partial.shell !== undefined || partial.claudePath !== undefined || partial.customPresets !== undefined
+      // Anything that decides which agents count as installed. DeepSeek is one as soon as it has a
+      // key and stops being one when the key goes; the key's characters in between change nothing.
+      const deepseekToggled = 'deepseekApiKey' in partial && !!partial.deepseekApiKey !== !!ctx.prefs.deepseekApiKey
+      const shellChanged = partial.shell !== undefined || partial.claudePath !== undefined || partial.customPresets !== undefined || deepseekToggled
       ctx.prefs = { ...ctx.prefs, ...partial }
       savePrefs(ctx.prefs)
       ctx.emit('prefs:update', ctx.prefs)
