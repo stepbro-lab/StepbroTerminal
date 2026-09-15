@@ -121,12 +121,8 @@ export async function archiveSession(id: string): Promise<void> {
     const pick = await popup([{ id: 'archive', label: t('Archive anyway (something is still running)') }, { id: 'cancel', label: t('Keep it running') }])
     if (pick !== 'archive') return
   }
-  const ui = useUi.getState()
-  const wasFocused = ui.activeId === id
-  const alone = paneIds().length <= 1
-  ui.dropPane(id)
-  if (wasFocused && alone) ui.setActive(nextSessionId(id))
-  registry.dispose(id)
+  // The pane stays where it is and shows the session put away, with the way back; nothing else
+  // is brought in front. Its terminal is kept too, so bringing it back fills the same pane.
   window.step.send('host:archive', id, true)
 }
 
