@@ -5,7 +5,7 @@ import { usePrefs } from '@/stores/prefs'
 import { registry } from '@/terminal/TerminalRegistry'
 import { popup, sep } from './menus'
 import type { MenuPosition } from '@/components/ContextMenu'
-import type { SidebarProject, SidebarSession } from './sidebarModel'
+import { canResume as sessionCanResume, type SidebarProject, type SidebarSession } from './sidebarModel'
 import { findWorkspace, layoutFor, openablePanes, paneTitle } from './launchConfigs'
 import { hasLeaf, leaves } from './layout'
 import { t } from '@/lib/i18n'
@@ -284,7 +284,7 @@ export async function newSessionMenu(projectPath: string): Promise<void> {
 export async function sessionMenu(row: SidebarSession, pos: MenuPosition = {}): Promise<void> {
   const ui = useUi.getState()
   const s = row.session
-  const canResume = !!s.launch.resumeArgs && !!s.agent.sessionId
+  const canResume = sessionCanResume(s)
   const grouped = ui.views.some((v) => hasLeaf(v, s.id) && leaves(v).length > 1)
   // Another session can be put beside the pane in front, unless it is that pane or already shares its view.
   const front = ui.activeId

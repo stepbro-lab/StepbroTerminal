@@ -100,6 +100,15 @@ export function orderRows(rows: SidebarSession[]): SidebarSession[] {
   })
 }
 
+/**
+ * Whether starting the session again can pick its conversation back up: an agent launched with
+ * a resume argument, or Claude Code typed into a shell, which left its conversation id behind.
+ */
+export function canResume(s: Session): boolean {
+  if (!s.agent.sessionId) return false
+  return !!s.launch.resumeArgs || (s.presetId === 'shell' && s.agent.detectedPreset === 'claude')
+}
+
 export function defaultTitle(s: Session): string {
   if (s.presetId === 'shell') return 'Shell'
   return s.presetId.charAt(0).toUpperCase() + s.presetId.slice(1)

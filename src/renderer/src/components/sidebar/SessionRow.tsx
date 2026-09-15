@@ -7,6 +7,7 @@ import { useData } from '@/stores/data'
 import { archiveSession, closeSession, renameSession, restoreSession, sessionMenu } from '@/lib/actions'
 import { StatusGlyph } from './StatusGlyph'
 import { AgentLogo } from './AgentLogo'
+import { canResume as sessionCanResume } from '@/lib/sidebarModel'
 import { t } from '@/lib/i18n'
 
 interface Props {
@@ -35,7 +36,7 @@ export function SessionRow({ row, insert, onDragOver, onDrop }: Props) {
   // Text: active is bright, busy is one step down, idle is muted, exited and archived are faint.
   const titleColor = active ? 'var(--text)' : busy ? 'var(--text-secondary)' : exited || archived ? 'var(--text-faint)' : 'var(--text-muted)'
   const logoColor = active ? 'var(--text)' : busy ? 'var(--text-secondary)' : 'var(--text-faint)'
-  const canResume = !!row.session.launch.resumeArgs && !!row.session.agent.sessionId
+  const canResume = sessionCanResume(row.session)
 
   return (
     <div

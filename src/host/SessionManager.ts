@@ -315,6 +315,9 @@ export class SessionManager extends EventEmitter {
     this.truncateLog(l, true)
     this.emit('clear', id)
     const canResume = !!l.s.launch.resumeArgs && !!l.s.agent.sessionId
+    // Claude Code typed into a shell left its conversation behind: the fresh shell is told to pick
+    // it up, the way a person would, once it has settled.
+    if (!canResume && l.s.presetId === 'shell' && l.s.agent.detectedPreset === 'claude' && l.s.agent.sessionId) l.runOnStart = `claude --resume ${l.s.agent.sessionId}`
     this.spawn(l, canResume)
     this.emitSession(l)
   }
@@ -666,7 +669,9 @@ export class SessionManager extends EventEmitter {
           byPid.delete(pid)
         } else {
           l.s.agent.registryPid = undefined
-          l.s.agent.detectedPreset = undefined
+          // A live shell the agent has left is a shell again; a session that has ended keeps the
+          // name of the agent that ran in it, and its conversation, for when it is brought back.
+          if (l.s.alive) l.s.agent.detectedPreset = undefined
           l.s.agent.tool = undefined
           if (l.s.status === 'working' || l.s.status === 'attention' || l.s.status === 'done') l.s.status = 'idle'
           this.emitSession(l)
@@ -881,7 +886,7 @@ export class SessionManager extends EventEmitter {
    */
   private async noteAgentScreen(l: Live): Promise<void> {
     const s = l.s
-    if (s.launch.hooks || s.agent.registryPid || !s.agent.detectedPreset) return
+    if (s.launch.hooks || s.agent.registryPid || !s.agent.detectedPreset || !s.alive) return
     await l.drained
     if (!this.live.has(s.id)) return
     if (l.screen.buffer.active.type === 'alternate') {

@@ -5,7 +5,7 @@ import { useData } from '@/stores/data'
 import { useUi } from '@/stores/ui'
 import { archiveSession, closeSession, copyText, killSession, openFolder, pinSession, renameSession, restartSession, splitWithNewShell, redrawSession } from '@/lib/actions'
 import { popup, sep } from '@/lib/menus'
-import { defaultTitle, rowPresetId } from '@/lib/sidebarModel'
+import { canResume as sessionCanResume, defaultTitle, rowPresetId } from '@/lib/sidebarModel'
 import { StatusGlyph } from '../sidebar/StatusGlyph'
 import { DRAG_TYPE } from './TerminalPane'
 import { SearchBar } from './SearchBar'
@@ -28,7 +28,7 @@ export function CardHeader({ session, split = false, dim = false, inset = 0 }: {
   const [editing, setEditing] = useState(false)
   const color = presets.find((p) => p.id === rowPresetId(session))?.color ?? '#8a8a90'
   const title = session.title || defaultTitle(session)
-  const canResume = !!session.launch.resumeArgs && !!session.agent.sessionId
+  const canResume = sessionCanResume(session)
   const isActive = activeId === session.id
 
   const more = async (anchor: HTMLElement): Promise<void> => {
