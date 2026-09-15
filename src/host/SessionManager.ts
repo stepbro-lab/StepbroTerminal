@@ -315,10 +315,6 @@ export class SessionManager extends EventEmitter {
     this.truncateLog(l, true)
     this.emit('clear', id)
     const canResume = !!l.s.launch.resumeArgs && !!l.s.agent.sessionId
-    // Claude Code typed into a shell left its conversation behind: the fresh shell is told to pick
-    // it up, the way a person would, once it has settled.
-    const was = l.s.agent.detectedPreset ?? l.s.agent.lastPreset
-    if (!canResume && l.s.presetId === 'shell' && was === 'claude' && l.s.agent.sessionId) l.runOnStart = `claude --resume ${l.s.agent.sessionId}`
     this.spawn(l, canResume)
     this.emitSession(l)
   }

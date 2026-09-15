@@ -14,9 +14,15 @@ gsap.registerPlugin(Flip)
  */
 let remembered: Flip.FlipState | null = null
 let settled: Promise<void> = Promise.resolve()
+/** Longer than any travel; a terminal waiting on the panes is never left waiting past this. */
+const SETTLE_MAX_MS = 700
 
-/** Resolves once the panes stand still: building a new terminal is heavy enough to stall a tween, so it waits for this. */
-export const paneMotionSettled = (): Promise<void> => settled
+/**
+ * Resolves once the panes stand still: building a new terminal is heavy enough to stall a tween,
+ * so it waits for this. Never for long, though: a travel that failed to report its end would
+ * otherwise leave a pane with no terminal in it.
+ */
+export const paneMotionSettled = (): Promise<void> => Promise.race([settled, new Promise<void>((r) => setTimeout(r, SETTLE_MAX_MS))])
 
 const reduced = (): boolean => window.matchMedia('(prefers-reduced-motion: reduce)').matches
 const cards = (): HTMLElement[] => Array.from(document.querySelectorAll<HTMLElement>('[data-pane]'))
@@ -54,13 +60,18 @@ export function movePanes(): void {
     registry.releaseFits()
     done()
   }
-  Flip.from(state, {
-    targets: els,
-    duration: 0.3,
-    ease: 'power3.out',
-    absolute: true,
-    onEnter: (entering) => gsap.fromTo(entering, { opacity: 0, scale: 0.97 }, { opacity: 1, scale: 1, duration: 0.3, ease: 'power3.out', clearProps: 'opacity,scale' }),
-    onComplete: release,
-    onInterrupt: release
-  })
+  try {
+    Flip.from(state, {
+      targets: els,
+      duration: 0.3,
+      ease: 'power3.out',
+      absolute: true,
+      onEnter: (entering) => gsap.fromTo(entering, { opacity: 0, scale: 0.97 }, { opacity: 1, scale: 1, duration: 0.3, ease: 'power3.out', clearProps: 'opacity,scale' }),
+      onComplete: release,
+      onInterrupt: release
+    })
+  } catch {
+    // A travel that could not start is a travel that is over.
+    release()
+  }
 }

@@ -97,6 +97,11 @@ export function redrawSession(id: string): void {
 }
 
 export function restartSession(id: string): void {
+  const s = useData.getState().sessions[id]
+  if (s && claudeInShell(s)) {
+    void reviveAsClaude(s)
+    return
+  }
   registry.markDetached(id)
   window.step.send('host:restart', id)
 }
@@ -125,10 +130,26 @@ export async function archiveSession(id: string): Promise<void> {
   window.step.send('host:archive', id, true)
 }
 
+/**
+ * Claude Code typed into a shell, brought back: not the shell with the command typed into it
+ * again, but a Claude Code session of its own that picks the conversation up straight away, the
+ * way one started from the menu does. The shell it lived in goes.
+ */
+async function reviveAsClaude(s: Session): Promise<void> {
+  const created = await createSession(s.projectPath, 'claude', { resumeId: s.agent.sessionId, title: s.title || undefined })
+  if (created) await closeSession(s.id)
+}
+
+const claudeInShell = (s: Session): boolean => s.presetId === 'shell' && sessionCanResume(s)
+
 /** Brings an archived session back and starts it again, resuming its conversation when it can. */
 export function restoreSession(id: string): void {
   const s = useData.getState().sessions[id]
   if (!s) return
+  if (claudeInShell(s)) {
+    void reviveAsClaude(s)
+    return
+  }
   window.step.send('host:archive', id, false)
   restartSession(id)
   const ui = useUi.getState()
