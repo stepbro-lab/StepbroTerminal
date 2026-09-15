@@ -13,7 +13,7 @@ const ownButtons = platform !== 'darwin'
 /** Room kept clear at the left of the top row for the window's buttons. */
 export const CORNER_INSET = ownButtons ? 112 : 84
 /** The band along the left edge that brings the sidebar back, and how long the pointer rests in it first. */
-const EDGE_WIDTH = 28
+const EDGE_WIDTH = 100
 const EDGE_DWELL_MS = 120
 /** The window's top row, in pixels: the same as --chrome-h. */
 const CHROME_H = 36
@@ -78,12 +78,14 @@ export function WindowCorner() {
 }
 
 /**
- * With the sidebar folded away, the left edge of the window brings it back: bring the pointer to
- * the band along it and let it rest a moment, and the sidebar unfolds, and stays, the way it does
- * from its own button. The band is followed from the pointer's position rather than laid over
- * the terminal, so the terminal under it still takes clicks and selections; a hairline lights up
- * along the edge while the pointer is there, so the band is not a thing to hunt for. Nothing
- * happens while a button is held, which is a selection, not a visit.
+ * With the sidebar folded away, the left side of the window brings it back: bring the pointer
+ * into the band along it and let it rest a moment, and the sidebar unfolds, and stays, the way
+ * it does from its own button. The band is wide, a hand's width rather than a hairline, and is
+ * followed from the pointer's position rather than laid over the terminal, so the terminal under
+ * it still takes clicks and selections; a line lights up along the edge while the pointer is in
+ * it, so there is nothing to hunt for. Nothing happens while a button is held, which is a
+ * selection, not a visit; and after the sidebar is folded with the pointer still in the band, the
+ * pointer has to leave and come back before the band counts again.
  */
 export function EdgeReveal() {
   const setPrefs = usePrefs((s) => s.set)
@@ -91,6 +93,7 @@ export function EdgeReveal() {
   useEffect(() => {
     let timer = 0
     let inside = false
+    let armed = false
     const leave = (): void => {
       inside = false
       setNear(false)
@@ -98,7 +101,8 @@ export function EdgeReveal() {
     }
     const onMove = (e: MouseEvent): void => {
       const inBand = e.clientX < EDGE_WIDTH && e.clientY >= CHROME_H && e.buttons === 0
-      if (inBand && !inside) {
+      if (!inBand) armed = true
+      if (inBand && armed && !inside) {
         inside = true
         setNear(true)
         timer = window.setTimeout(() => void setPrefs({ sidebarCollapsed: false }), EDGE_DWELL_MS)

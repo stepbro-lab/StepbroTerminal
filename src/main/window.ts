@@ -130,7 +130,7 @@ export function cornerEnter(win: BrowserWindow | null, width: number, height: nu
 
 const WM_NCMOUSEMOVE = 0x00a0
 /** How wide the edge is, and how long the pointer rests on it; the same numbers as the page's own edge. */
-const EDGE_WIDTH = 28
+const EDGE_WIDTH = 100
 const EDGE_DWELL_MS = 120
 const EDGE_TOP = 36
 
