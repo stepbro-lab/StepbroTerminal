@@ -101,8 +101,8 @@ export interface SendMap {
   'win:close': () => void
   'win:setActiveSession': (id: string | null) => void
   'win:setTitle': (title: string) => void
-  /** Windows: the pointer is over the client part of the title bar; keep the caption buttons shown. */
-  'win:captionPing': () => void
+  /** The pointer entered the window's top-left corner, this many DIP wide and tall: show the window's buttons there. */
+  'win:cornerEnter': (width: number, height: number) => void
   'clipboard:write': (text: string) => void
   'workspace:set': (state: WorkspaceState) => void
   /** The preview pane beside a session has its browser view up, with this webContents id; and it is gone. */
@@ -143,8 +143,8 @@ export interface EventMap {
   'win:maximized': (maximized: boolean) => void
   /** macOS: the window went full screen, where the traffic lights leave the bar. */
   'win:fullscreen': (fullscreen: boolean) => void
-  /** Windows: whether the pointer is over the title bar; the caption buttons show while it is. */
-  'win:captionHover': (over: boolean) => void
+  /** Whether the pointer is in the window's top-left corner, where its buttons show while it is. */
+  'win:cornerHover': (over: boolean) => void
   /** A folder handed to the app from outside: dropped on its icon, or given on the command line. */
   'ui:openFolder': (path: string) => void
   /** A step://workspace/<name> link: open that workspace. */

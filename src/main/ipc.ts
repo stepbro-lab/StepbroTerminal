@@ -8,7 +8,7 @@ import { readTranscriptDetails, transcriptPath } from './claude/transcript'
 import { buildLaunchSpec } from './presets/launchSpec'
 import { gitChanges, gitDiff, gitRevert } from './git'
 import { loadWorkspace, saveWorkspace } from './prefs'
-import { captionPing } from './window'
+import { cornerEnter } from './window'
 import type { Ctx } from './context'
 import { t } from './i18n'
 
@@ -132,7 +132,7 @@ export function registerIpc(ctx: Ctx): void {
     ctx.activeId = id
   })
   on('win:setTitle', (title) => ctx.win?.setTitle(title ? `${title} — stepbro terminal` : 'stepbro terminal'))
-  on('win:captionPing', () => captionPing(ctx.win))
+  on('win:cornerEnter', (width, height) => cornerEnter(ctx.win, width, height))
   on('clipboard:write', (text) => clipboard.writeText(text))
   handle('clipboard:kind', () => {
     const formats = clipboard.availableFormats()

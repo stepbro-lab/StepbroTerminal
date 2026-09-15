@@ -3,9 +3,6 @@ import { appLogoPath, dockLogoPath } from './branding'
 import { join } from 'node:path'
 import type { Prefs } from '@shared/types'
 
-/** Height of the title bar in DIP; the same number as --titlebar-h in the renderer. */
-export const TITLEBAR_HEIGHT = 40
-
 const BG = { light: '#f6f3f2', dark: '#1c1b1b' }
 
 export function isDark(prefs: Prefs): boolean {
@@ -35,11 +32,10 @@ export function createWindow(prefs: Prefs): BrowserWindow {
     show: false,
     title: 'stepbro terminal',
     backgroundColor: isDark(prefs) ? BG.dark : BG.light,
-    // macOS keeps its traffic lights in our bar, centred on its height, with the sidebar toggle and
-    // the rest of the bar's buttons following them on the same line. Windows and Linux draw no
-    // frame at all: the bar is ours, and the caption buttons are ours too (on Windows they show
-    // only on hover).
-    ...(platform === 'darwin' ? { titleBarStyle: 'hiddenInset' as const, trafficLightPosition: { x: 14, y: (TITLEBAR_HEIGHT - 12) / 2 } } : { frame: false }),
+    // No frame on any system: the terminal takes the whole window. The window's buttons live in
+    // its top-left corner and show only while the pointer is there: macOS's own traffic lights,
+    // kept hidden until then; on Windows and Linux three lights of ours drawn the same way.
+    ...(platform === 'darwin' ? { titleBarStyle: 'hidden' as const, trafficLightPosition: { x: 12, y: 12 } } : { frame: false }),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,
@@ -50,6 +46,7 @@ export function createWindow(prefs: Prefs): BrowserWindow {
     }
   })
   applyAppIcon(win, prefs)
+  if (platform === 'darwin') win.setWindowButtonVisibility(false)
   win.once('ready-to-show', () => win.show())
   win.webContents.setWindowOpenHandler(({ url }) => {
     void shell.openExternal(url)
@@ -59,11 +56,10 @@ export function createWindow(prefs: Prefs): BrowserWindow {
   win.webContents.on('will-navigate', (e) => e.preventDefault())
   win.on('maximize', () => win.webContents.send('win:maximized', true))
   win.on('unmaximize', () => win.webContents.send('win:maximized', false))
-  // In macOS full screen the traffic lights go away with the menu bar, and the space kept for them
-  // in our bar goes with them.
+  // In macOS full screen the traffic lights go away with the menu bar.
   win.on('enter-full-screen', () => win.webContents.send('win:fullscreen', true))
   win.on('leave-full-screen', () => win.webContents.send('win:fullscreen', false))
-  if (platform === 'win32') watchCaptionHover(win)
+  watchCorner(win)
   if (process.env['ELECTRON_RENDERER_URL']) {
     void win.loadURL(process.env['ELECTRON_RENDERER_URL'])
   } else {
@@ -77,56 +73,54 @@ export function applyWindowTheme(win: BrowserWindow, prefs: Prefs): void {
   win.setBackgroundColor(isDark(prefs) ? BG.dark : BG.light)
 }
 
-// ---- Windows: show our caption buttons only while the pointer is over the title bar ----
+// ---- the window's buttons: shown while the pointer is in the top-left corner ----
 
-const WM_NCMOUSEMOVE = 0x00a0
-const HIDE_CHECK_MS = 220
-const pings = new WeakMap<BrowserWindow, () => void>()
+const CORNER_CHECK_MS = 160
+const corners = new WeakMap<BrowserWindow, (width: number, height: number) => void>()
 
 /**
- * The title bar is a drag region, which Windows treats as the native caption: the page never sees
- * the pointer over it. So the main process watches instead. WM_NCMOUSEMOVE says the pointer is on
- * the caption, the renderer pings when it is over the bar's own buttons, and a short timer keeps
- * checking that the cursor is still inside the strip before the buttons are hidden again.
+ * The corner is part of the page, so the page sees the pointer arrive and says so. It cannot see
+ * it leave: on a Mac the traffic lights are native buttons that take the pointer for themselves
+ * once shown, and on every system a drag region sits right beside the corner and swallows what
+ * happens over it. So from then on the main process keeps looking at where the cursor is, and
+ * hides the buttons again once it has left the corner.
  */
-function watchCaptionHover(win: BrowserWindow): void {
+function watchCorner(win: BrowserWindow): void {
   let shown = false
+  let zone = { width: 0, height: 0 }
   let timer: NodeJS.Timeout | undefined
-  const inStrip = (): boolean => {
+  const inside = (): boolean => {
     const p = screen.getCursorScreenPoint()
     const b = win.getContentBounds()
-    return p.x >= b.x && p.x < b.x + b.width && p.y >= b.y && p.y < b.y + TITLEBAR_HEIGHT
+    return p.x >= b.x && p.x < b.x + zone.width && p.y >= b.y && p.y < b.y + zone.height
   }
   const set = (v: boolean): void => {
     if (shown === v || win.isDestroyed()) return
     shown = v
-    win.webContents.send('win:captionHover', v)
+    if (process.platform === 'darwin') win.setWindowButtonVisibility(v)
+    win.webContents.send('win:cornerHover', v)
   }
   const check = (): void => {
     if (win.isDestroyed()) return
-    if (inStrip()) {
+    if (inside()) {
       set(true)
-      arm()
+      timer = setTimeout(check, CORNER_CHECK_MS)
     } else {
       set(false)
     }
   }
-  const arm = (): void => {
+  corners.set(win, (width, height) => {
+    zone = { width, height }
     if (timer) clearTimeout(timer)
-    timer = setTimeout(check, HIDE_CHECK_MS)
-  }
-  const seen = (): void => {
-    set(true)
-    arm()
-  }
-  win.hookWindowMessage(WM_NCMOUSEMOVE, seen)
+    // Full screen on a Mac has no traffic lights to show; the corner's own buttons still show.
+    check()
+  })
   win.on('closed', () => {
     if (timer) clearTimeout(timer)
   })
-  pings.set(win, seen)
 }
 
-/** The renderer saw the pointer over the client part of the title bar (its buttons, the tabs). */
-export function captionPing(win: BrowserWindow | null): void {
-  if (win) pings.get(win)?.()
+/** The renderer saw the pointer enter the corner, which is this big. */
+export function cornerEnter(win: BrowserWindow | null, width: number, height: number): void {
+  if (win) corners.get(win)?.(width, height)
 }

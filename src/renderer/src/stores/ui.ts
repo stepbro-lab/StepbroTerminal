@@ -43,7 +43,7 @@ interface UiState {
   /** macOS: full screen, where the traffic lights leave the title bar. */
   fullscreen: boolean
   /** Windows: the pointer is over the title bar, so the caption buttons show. */
-  captionHover: boolean
+  cornerHover: boolean
   setActive: (id: string | null) => void
   restore: (views: LayoutNode[], activeView: number, activeId: string | null) => void
   closeView: (index: number) => void
@@ -72,7 +72,7 @@ interface UiState {
   tickSpinner: () => void
   setMaximized: (v: boolean) => void
   setFullscreen: (fullscreen: boolean) => void
-  setCaptionHover: (v: boolean) => void
+  setCornerHover: (v: boolean) => void
 }
 
 let toastSeq = 1
@@ -107,7 +107,7 @@ export const useUi = create<UiState>((set, get) => ({
   spinnerFrame: 0,
   maximized: false,
   fullscreen: false,
-  captionHover: false,
+  cornerHover: false,
 
   // Showing a session brings its view forward; a session with no view gets one of its own.
   setActive: (id) => {
@@ -244,7 +244,7 @@ export const useUi = create<UiState>((set, get) => ({
   tickSpinner: () => set((s) => ({ spinnerFrame: (s.spinnerFrame + 1) % 10 })),
   setMaximized: (maximized) => set({ maximized }),
   setFullscreen: (fullscreen) => set({ fullscreen }),
-  setCaptionHover: (captionHover) => set({ captionHover })
+  setCornerHover: (cornerHover) => set({ cornerHover })
 }))
 
 /** The view on screen. */

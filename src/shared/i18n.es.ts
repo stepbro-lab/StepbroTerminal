@@ -88,6 +88,7 @@ export const es: Record<string, string> = {
   'Toggle sidebar': 'Mostrar u ocultar la barra lateral',
   'Toggle Sidebar': 'Mostrar u ocultar la barra lateral',
   'Show sidebar': 'Mostrar la barra lateral',
+  'Switch folder': 'Cambiar de carpeta',
   'Hide sidebar': 'Ocultar la barra lateral',
   Sidebar: 'Barra lateral',
   Width: 'Ancho',

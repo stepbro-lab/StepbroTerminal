@@ -66,9 +66,8 @@
   --radius-row: 9px;
   --radius-input: 10px;
   --radius-pop: 14px;
-  --titlebar-h: 40px;
-  /* The strip above the panes on Windows and Linux: just tall enough for its caption buttons. */
-  --strip-h: 28px;
+  /* The window's top row on every system: where its buttons show, and the row the session rail sits in. */
+  --chrome-h: 36px;
   --row-h: 27px;
   --ease: cubic-bezier(0.2, 0, 0, 1);
 }

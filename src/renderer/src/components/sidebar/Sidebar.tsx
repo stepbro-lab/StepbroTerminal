@@ -42,7 +42,6 @@ function chunk(rows: SidebarSession[]): Array<{ view: number | null; rows: Sideb
 const MIN_W = 200
 const MAX_W = 360
 /** The margin the cards keep on the left once the sidebar is gone; matches the other sides. */
-const EDGE_PX = 6.5
 /** While the sidebar is dragged, terminals refit this often rather than on every pixel. */
 const DRAG_FIT_MS = 160
 
@@ -157,17 +156,15 @@ export function Sidebar() {
     document.documentElement.style.setProperty('--sidebar-w', `${width}px`)
   }, [width])
 
-  // Folding and unfolding: the sidebar slides with a tween rather than a CSS transition, the cards'
-  // left margin grows as it goes, and the terminals fit once at the end instead of on every frame.
+  // Folding and unfolding: the sidebar slides with a tween rather than a CSS transition, and the
+  // terminals fit once at the end instead of on every frame.
   const aside = useRef<HTMLElement>(null)
   const firstLayout = useRef(true)
   useLayoutEffect(() => {
     const el = aside.current
     if (!el) return
-    const root = document.documentElement.style
     const settle = (): void => {
       el.style.width = collapsed ? '0px' : 'var(--sidebar-w)'
-      root.setProperty('--pane-edge', collapsed ? `${EDGE_PX}px` : '0px')
     }
     if (firstLayout.current || reducedMotion()) {
       firstLayout.current = false
@@ -185,7 +182,6 @@ export function Sidebar() {
       ease: 'power3.out',
       onUpdate: () => {
         el.style.width = `${state.w}px`
-        root.setProperty('--pane-edge', `${(1 - state.w / Math.max(1, width)) * EDGE_PX}px`)
       },
       onComplete: () => {
         settle()

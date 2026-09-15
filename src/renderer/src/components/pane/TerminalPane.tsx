@@ -2,14 +2,18 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { AlertTriangle } from 'lucide-react'
 import type { Session } from '@shared/types'
 import { useData } from '@/stores/data'
+import { usePrefs } from '@/stores/prefs'
 import { activeLayout, useUi, type DropZone, type LayoutNode } from '@/stores/ui'
 import { useTerminalMount } from '@/terminal/useTerminalMount'
 import { registry } from '@/terminal/TerminalRegistry'
 import { closeSession, restartSession, restoreSession } from '@/lib/actions'
 import { leaves, zoneFor } from '@/lib/layout'
 import { movePanes, rememberPanes, shapeOf } from '@/lib/paneMotion'
-import { TopStrip } from '../Chrome'
+import { RAIL_INSET, topRightLeaf } from '@/lib/rail'
+import { EdgeReveal, TopStrip } from '../Chrome'
+import { SessionRail } from '../SessionRail'
 import { CardHeader } from './CardHeader'
+import { SearchBar } from './SearchBar'
 import { EmptyState } from './EmptyState'
 import { HostBanner } from './HostBanner'
 import { PreviewPane } from './PreviewPane'
@@ -27,8 +31,9 @@ export function TerminalPane() {
   const sessions = useData((s) => s.sessions)
   const connected = hostState.kind === 'connected'
   const live = leaves(layout).filter((id) => sessions[id])
-  // The sidebar keeps the cards off the left edge; as it folds away, --pane-edge (set by the sidebar) takes over.
-  const edge = { paddingLeft: 'var(--pane-edge, 0px)' }
+  // With the sidebar folded away the cards fill the window edge to edge, and the session rail
+  // takes the sidebar's place in the top-right corner.
+  const immersive = usePrefs((s) => s.prefs?.sidebarCollapsed ?? false)
 
   // Panes travel when the arrangement changes shape: remembered just before React re-lays them
   // out (the store tells us first), moved right after it has. A gutter drag only changes proportions.
@@ -45,9 +50,11 @@ export function TerminalPane() {
 
   if (!layout || live.length === 0) {
     return (
-      <main className="flex min-w-0 flex-1 flex-col" style={edge}>
-        <TopStrip />
-        <div className="flex min-h-0 flex-1 pb-2 pr-2">
+      <main className="pane-area relative flex min-w-0 flex-1 flex-col" data-immersive={immersive}>
+        <TopStrip tall={immersive} />
+        {immersive && <EdgeReveal />}
+        <div className="pane-frame relative flex min-h-0 flex-1">
+          {immersive && <SessionRail />}
           <DropTarget className="card relative flex h-full w-full flex-col">{connected ? <EmptyState /> : <HostBanner />}</DropTarget>
         </div>
       </main>
@@ -57,29 +64,32 @@ export function TerminalPane() {
   const sidePanel = side && sessions[side.sessionId] ? (side.kind === 'preview' ? <PreviewPane key={side.url} url={side.url} sessionId={side.sessionId} /> : <ChangesPane sessionId={side.sessionId} />) : null
 
   return (
-    <main className="flex min-w-0 flex-1 flex-col" style={edge}>
-      <TopStrip />
-      <div className="flex min-h-0 flex-1 gap-2 pb-2 pr-2">
-        <div className="flex min-w-0 flex-1">
-          <LayoutView node={layout} path={[]} connected={connected} multi={live.length > 1} />
+    <main className="pane-area relative flex min-w-0 flex-1 flex-col" data-immersive={immersive}>
+      <TopStrip tall={immersive} />
+      {immersive && <EdgeReveal />}
+      <div className="pane-frame flex min-h-0 flex-1 gap-2">
+        {/* The rail hangs over the terminals' own corner, left of any side panel. */}
+        <div className="relative flex min-w-0 flex-1">
+          {immersive && <SessionRail />}
+          <LayoutView node={layout} path={[]} connected={connected} multi={live.length > 1} bare={immersive && live.length === 1} underRail={immersive && live.length > 1 ? topRightLeaf(layout) : null} />
         </div>
-        {sidePanel && <div className="flex min-w-0 flex-[0_0_44%]">{sidePanel}</div>}
+        {sidePanel && <div className="side-panel flex min-w-0 flex-[0_0_44%]">{sidePanel}</div>}
       </div>
     </main>
   )
 }
 
-function LayoutView({ node, path, connected, multi }: { node: LayoutNode; path: Array<'a' | 'b'>; connected: boolean; multi: boolean }) {
-  if (node.kind === 'leaf') return <PaneCard id={node.id} connected={connected} multi={multi} />
+function LayoutView({ node, path, connected, multi, bare, underRail }: { node: LayoutNode; path: Array<'a' | 'b'>; connected: boolean; multi: boolean; bare: boolean; underRail: string | null }) {
+  if (node.kind === 'leaf') return <PaneCard id={node.id} connected={connected} multi={multi} bare={bare} underRail={underRail === node.id} />
   const row = node.dir === 'row'
   return (
     <div className="flex min-h-0 min-w-0 flex-1" style={{ flexDirection: row ? 'row' : 'column' }}>
       <div className="flex min-h-0 min-w-0" style={{ flex: `${node.ratio} 1 0px` }}>
-        <LayoutView node={node.a} path={[...path, 'a']} connected={connected} multi={multi} />
+        <LayoutView node={node.a} path={[...path, 'a']} connected={connected} multi={multi} bare={bare} underRail={underRail} />
       </div>
       <Gutter row={row} path={path} />
       <div className="flex min-h-0 min-w-0" style={{ flex: `${1 - node.ratio} 1 0px` }}>
-        <LayoutView node={node.b} path={[...path, 'b']} connected={connected} multi={multi} />
+        <LayoutView node={node.b} path={[...path, 'b']} connected={connected} multi={multi} bare={bare} underRail={underRail} />
       </div>
     </div>
   )
@@ -107,12 +117,12 @@ function Gutter({ row, path }: { row: boolean; path: Array<'a' | 'b'> }) {
   }
   return (
     <div
-      className="group relative shrink-0"
+      className="gutter group relative shrink-0"
       style={{ width: row ? 8 : undefined, height: row ? undefined : 8, cursor: row ? 'col-resize' : 'row-resize' }}
       onMouseDown={onDown}
     >
       <div
-        className="absolute rounded-full opacity-0 transition-opacity group-hover:opacity-100"
+        className="gutter-line absolute rounded-full opacity-0 transition-opacity group-hover:opacity-100"
         style={{
           background: 'var(--border-strong)',
           left: row ? 3 : 24,
@@ -183,9 +193,15 @@ function DropHighlight({ zone }: { zone: DropZone }) {
   )
 }
 
-function PaneCard({ id, connected, multi }: { id: string; connected: boolean; multi: boolean }) {
+/**
+ * `bare`: the one pane of a window with no sidebar, drawn without a header; the rail names it.
+ * `underRail`: the rail hangs over this pane's corner, so its header keeps its buttons out from under it.
+ */
+function PaneCard({ id, connected, multi, bare, underRail }: { id: string; connected: boolean; multi: boolean; bare: boolean; underRail: boolean }) {
   const session = useData((s) => s.sessions[id])
   const focused = useUi((s) => s.activeId === id)
+  const searchOpen = useUi((s) => s.searchOpen)
+  const setSearchOpen = useUi((s) => s.setSearchOpen)
   const mountRef = useTerminalMount(session ? session.id : null, connected)
   const { zone, handlers } = useDropZone(id)
   if (!session) return null
@@ -201,8 +217,13 @@ function PaneCard({ id, connected, multi }: { id: string; connected: boolean; mu
       onMouseDownCapture={focusMe}
       {...handlers}
     >
-      <CardHeader session={session} split={multi} dim={multi && !focused} />
-      <div className="relative min-h-0 flex-1 overflow-hidden px-3 pb-2.5 pt-2">
+      {!bare && <CardHeader session={session} split={multi} dim={multi && !focused} inset={underRail ? RAIL_INSET : 0} />}
+      {bare && searchOpen && focused && (
+        <div className="absolute left-3 top-1 z-20 flex h-8 items-center rounded-full px-2" style={{ background: 'var(--bg-elevated)', boxShadow: 'var(--shadow-chip)' }}>
+          <SearchBar id={session.id} onClose={() => setSearchOpen(false)} />
+        </div>
+      )}
+      <div className={`relative min-h-0 flex-1 overflow-hidden ${bare ? 'px-4 pb-3 pt-1' : 'px-3 pb-2.5 pt-2'}`}>
         {/* The mount node stays in the tree while the host reconnects, so xterm is never orphaned. */}
         <div
           ref={mountRef}

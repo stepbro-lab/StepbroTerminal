@@ -9,6 +9,7 @@ import { defaultTitle } from '@/lib/sidebarModel'
 import { pruneLayout, type LayoutNode } from '@/lib/layout'
 import { addDroppedFolders, openWorkspaceByKey } from '@/lib/actions'
 import { Sidebar, useSidebarModel } from '@/components/sidebar/Sidebar'
+import { WindowCorner } from '@/components/Chrome'
 import { TerminalPane } from '@/components/pane/TerminalPane'
 import { CommandPalette } from '@/components/CommandPalette'
 import { SettingsView } from '@/components/settings/SettingsView'
@@ -78,7 +79,7 @@ export default function App() {
       s.on('ui:handoff', (h) => useHandoff.getState().arrive(h)),
       s.on('win:maximized', (m) => useUi.getState().setMaximized(m)),
       s.on('win:fullscreen', (f) => useUi.getState().setFullscreen(f)),
-      s.on('win:captionHover', (over) => useUi.getState().setCaptionHover(over)),
+      s.on('win:cornerHover', (over) => useUi.getState().setCornerHover(over)),
       s.on('ui:openFolder', (p) => void addDroppedFolders([p])),
       s.on('ui:openWorkspace', (k) => void openWorkspaceByKey(k))
     ]
@@ -196,6 +197,7 @@ export default function App() {
         <TerminalPane />
       </div>
       {settingsOpen && <SettingsView />}
+      <WindowCorner />
       <CommandPalette />
       <NotesPanel />
       <NoteFlight />

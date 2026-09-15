@@ -13,7 +13,8 @@ import { titled } from '@/lib/shortcuts'
 import { usePrefs } from '@/stores/prefs'
 import { t } from '@/lib/i18n'
 
-export function CardHeader({ session, split = false, dim = false }: { session: Session; split?: boolean; dim?: boolean }) {
+/** `inset`: room kept clear at the right end, for whatever hangs over this corner of the pane. */
+export function CardHeader({ session, split = false, dim = false, inset = 0 }: { session: Session; split?: boolean; dim?: boolean; inset?: number }) {
   usePrefs((s) => s.prefs?.keybindings) // tooltips follow the user's shortcut choices
   const presets = useData((s) => s.presets)
   const searchOpen = useUi((s) => s.searchOpen)
@@ -107,7 +108,7 @@ export function CardHeader({ session, split = false, dim = false }: { session: S
   return (
     <div
       className="flex h-9 shrink-0 items-center gap-2 border-b border-line pl-3 pr-1.5"
-      style={{ opacity: dim ? 0.75 : 1 }}
+      style={{ opacity: dim ? 0.75 : 1, paddingRight: inset || undefined }}
       draggable
       onDragStart={(e) => {
         e.dataTransfer.setData(DRAG_TYPE, session.id)
