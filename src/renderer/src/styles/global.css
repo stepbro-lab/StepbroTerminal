@@ -743,21 +743,48 @@ kbd {
   color: #fff;
 }
 
-/* The left edge with the sidebar folded away: a hairline that lights up while the pointer is in the band beside it. */
-.edge-hint {
+/* ---- the folded sidebar out over the terminal for a look, in from the left and back the same way ---- */
+aside[data-peek] {
   position: absolute;
   left: 0;
-  top: var(--chrome-h);
+  top: 0;
   bottom: 0;
-  width: 2px;
-  z-index: 35;
-  pointer-events: none;
-  background: var(--accent);
-  opacity: 0;
-  transition: opacity 140ms var(--ease);
+  z-index: 38;
+  width: var(--sidebar-w) !important;
+  background: var(--bg-sidebar);
+  border-radius: 0 var(--radius-card) var(--radius-card) 0;
+  box-shadow:
+    var(--shadow-pop),
+    0 0 0 1px var(--border);
 }
-.edge-hint[data-near='true'] {
-  opacity: 0.55;
+aside[data-peek='in'] {
+  animation: peek-in 260ms var(--ease) both;
+}
+aside[data-peek='out'] {
+  animation: peek-out 220ms var(--ease) both;
+  pointer-events: none;
+}
+@keyframes peek-in {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes peek-out {
+  from {
+    transform: none;
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  aside[data-peek='in'],
+  aside[data-peek='out'] {
+    animation-duration: 1ms;
+  }
 }
 
 /* ---- the pane area with the sidebar folded: the cards fill the window edge to edge ---- */

@@ -58,6 +58,22 @@ export function Sidebar() {
   const closeView = useUi((s) => s.closeView)
   const width = prefs?.sidebarWidth ?? 240
   const collapsed = prefs?.sidebarCollapsed ?? false
+  // Folded away, the sidebar can still come out over the terminal for a look: in from the left,
+  // out again the same way. Unfolded for good while out, it simply stays, in the row like always.
+  const peek = useUi((s) => s.sidebarPeek)
+  const [peekPhase, setPeekPhase] = useState<'off' | 'in' | 'out'>('off')
+  useEffect(() => {
+    if (peek) {
+      setPeekPhase('in')
+      return
+    }
+    setPeekPhase((phase) => (phase === 'in' && collapsed ? 'out' : 'off'))
+  }, [peek, collapsed])
+  useEffect(() => {
+    if (peekPhase !== 'out') return
+    const timer = window.setTimeout(() => setPeekPhase('off'), 240)
+    return () => window.clearTimeout(timer)
+  }, [peekPhase])
   const dragging = useRef(false)
   const list = useRef<HTMLDivElement>(null)
   // Folders dragged in from the desktop land in the sidebar the same way "Add folder" would.
@@ -248,7 +264,7 @@ export function Sidebar() {
   }
 
   return (
-    <aside {...drop.props} ref={aside} className="relative flex h-full shrink-0 flex-col overflow-hidden">
+    <aside {...drop.props} ref={aside} className="relative flex h-full shrink-0 flex-col overflow-hidden" data-peek={peekPhase === 'off' ? undefined : peekPhase}>
       <SidebarHeader />
       <div
         ref={list}

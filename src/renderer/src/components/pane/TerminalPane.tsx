@@ -10,7 +10,7 @@ import { closeSession, restartSession, restoreSession } from '@/lib/actions'
 import { leaves, zoneFor } from '@/lib/layout'
 import { movePanes, rememberPanes, shapeOf } from '@/lib/paneMotion'
 import { RAIL_INSET, topRightLeaf } from '@/lib/rail'
-import { EdgeReveal, TopStrip } from '../Chrome'
+import { SidebarPeek, TopStrip } from '../Chrome'
 import { SessionRail } from '../SessionRail'
 import { CardHeader } from './CardHeader'
 import { SearchBar } from './SearchBar'
@@ -52,7 +52,7 @@ export function TerminalPane() {
     return (
       <main className="pane-area relative flex min-w-0 flex-1 flex-col" data-immersive={immersive}>
         <TopStrip tall={immersive} />
-        {immersive && <EdgeReveal />}
+        {immersive && <SidebarPeek />}
         <div className="pane-frame relative flex min-h-0 flex-1">
           {immersive && <SessionRail />}
           <DropTarget className="card relative flex h-full w-full flex-col">{connected ? <EmptyState /> : <HostBanner />}</DropTarget>
@@ -66,7 +66,7 @@ export function TerminalPane() {
   return (
     <main className="pane-area relative flex min-w-0 flex-1 flex-col" data-immersive={immersive}>
       <TopStrip tall={immersive} />
-      {immersive && <EdgeReveal />}
+      {immersive && <SidebarPeek />}
       <div className="pane-frame flex min-h-0 flex-1 gap-2">
         {/* The rail hangs over the terminals' own corner, left of any side panel. */}
         <div className="relative flex min-w-0 flex-1">

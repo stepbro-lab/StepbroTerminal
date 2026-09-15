@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { Copy, Minus, PanelLeft, Square, X } from 'lucide-react'
 import { usePrefs } from '@/stores/prefs'
 import { useUi } from '@/stores/ui'
@@ -12,9 +12,11 @@ const platform = window.step.platform
 const ownButtons = platform !== 'darwin'
 /** Room kept clear at the left of the top row for the window's buttons. */
 export const CORNER_INSET = ownButtons ? 112 : 84
-/** The band along the left edge that brings the sidebar back, and how long the pointer rests in it first. */
+/** The band along the left edge that brings the sidebar out, and how long the pointer rests in it first. */
 const EDGE_WIDTH = 100
-const EDGE_DWELL_MS = 120
+const EDGE_DWELL_MS = 90
+/** How long the pointer may be off the sidebar before it goes back: room to cross a gap. */
+const PEEK_LINGER_MS = 220
 /** The window's top row, in pixels: the same as --chrome-h. */
 const CHROME_H = 36
 
@@ -49,7 +51,9 @@ export function WindowCorner() {
   const fullscreen = useUi((s) => s.fullscreen)
   const collapsed = usePrefs((s) => s.prefs?.sidebarCollapsed ?? false)
   const settingsOpen = useUi((s) => s.settingsOpen)
-  const withButtons = collapsed && !settingsOpen
+  const peek = useUi((s) => s.sidebarPeek)
+  // While the sidebar is out for a look its own header carries these; two sets would overlap.
+  const withButtons = collapsed && !settingsOpen && !peek
   const enter = (e: React.MouseEvent<HTMLDivElement>): void => {
     const r = e.currentTarget.getBoundingClientRect()
     window.step.send('win:cornerEnter', Math.ceil(r.right), Math.ceil(r.bottom))
@@ -78,47 +82,76 @@ export function WindowCorner() {
 }
 
 /**
- * With the sidebar folded away, the left side of the window brings it back: bring the pointer
- * into the band along it and let it rest a moment, and the sidebar unfolds, and stays, the way
- * it does from its own button. The band is wide, a hand's width rather than a hairline, and is
- * followed from the pointer's position rather than laid over the terminal, so the terminal under
- * it still takes clicks and selections; a line lights up along the edge while the pointer is in
- * it, so there is nothing to hunt for. Nothing happens while a button is held, which is a
- * selection, not a visit; and after the sidebar is folded with the pointer still in the band, the
- * pointer has to leave and come back before the band counts again.
+ * With the sidebar folded away, the left side of the window brings it out for a look, the way
+ * Arc and Zen do it: bring the pointer into the band along the edge and the sidebar slides in
+ * over the terminal, which stays exactly as it was underneath. It stays out while the pointer is
+ * on it, and goes back when the pointer leaves it, when a key is pressed, or when something else
+ * is clicked. Its own button unfolds it for good. Nothing happens while a button is held, which
+ * is a selection, not a visit; and once it has gone back with the pointer still in the band, the
+ * pointer has to leave the band and come in again before it counts.
  */
-export function EdgeReveal() {
-  const setPrefs = usePrefs((s) => s.set)
-  const [near, setNear] = useState(false)
+export function SidebarPeek() {
+  const setPeek = useUi((s) => s.setSidebarPeek)
+  const sidebarWidth = usePrefs((s) => s.prefs?.sidebarWidth ?? 240)
   useEffect(() => {
-    let timer = 0
-    let inside = false
+    let dwell = 0
+    let linger = 0
+    let inBand = false
     let armed = false
-    const leave = (): void => {
-      inside = false
-      setNear(false)
-      window.clearTimeout(timer)
+    const out = (): boolean => useUi.getState().sidebarPeek
+    const onAside = (target: EventTarget | null): boolean => !!(target as Element | null)?.closest?.('aside[data-peek]')
+    const goBack = (): void => {
+      window.clearTimeout(linger)
+      window.clearTimeout(dwell)
+      inBand = false
+      armed = false
+      if (out()) setPeek(false)
     }
     const onMove = (e: MouseEvent): void => {
-      const inBand = e.clientX < EDGE_WIDTH && e.clientY >= CHROME_H && e.buttons === 0
-      if (!inBand) armed = true
-      if (inBand && armed && !inside) {
-        inside = true
-        setNear(true)
-        timer = window.setTimeout(() => void setPrefs({ sidebarCollapsed: false }), EDGE_DWELL_MS)
-      } else if (!inBand && inside) {
-        leave()
+      if (out()) {
+        // Off the sidebar for more than a moment, and it goes back.
+        const over = e.clientX < sidebarWidth + 8
+        if (over) window.clearTimeout(linger)
+        else if (!linger) linger = window.setTimeout(goBack, PEEK_LINGER_MS)
+        if (over) linger = 0
+        return
+      }
+      const here = e.clientX < EDGE_WIDTH && e.clientY >= CHROME_H && e.buttons === 0
+      if (!here) armed = true
+      if (here && armed && !inBand) {
+        inBand = true
+        dwell = window.setTimeout(() => setPeek(true), EDGE_DWELL_MS)
+      } else if (!here && inBand) {
+        inBand = false
+        window.clearTimeout(dwell)
       }
     }
+    const onKey = (e: KeyboardEvent): void => {
+      if (out() && !onAside(e.target)) goBack()
+    }
+    const onDown = (e: MouseEvent): void => {
+      if (out() && !onAside(e.target)) goBack()
+    }
+    const onLeave = (): void => {
+      window.clearTimeout(dwell)
+      inBand = false
+      if (out()) goBack()
+    }
     document.addEventListener('mousemove', onMove)
-    document.documentElement.addEventListener('mouseleave', leave)
+    document.addEventListener('keydown', onKey, true)
+    document.addEventListener('mousedown', onDown, true)
+    document.documentElement.addEventListener('mouseleave', onLeave)
     return () => {
       document.removeEventListener('mousemove', onMove)
-      document.documentElement.removeEventListener('mouseleave', leave)
-      window.clearTimeout(timer)
+      document.removeEventListener('keydown', onKey, true)
+      document.removeEventListener('mousedown', onDown, true)
+      document.documentElement.removeEventListener('mouseleave', onLeave)
+      window.clearTimeout(dwell)
+      window.clearTimeout(linger)
+      setPeek(false)
     }
-  }, [setPrefs])
-  return <div className="edge-hint" data-near={near} aria-hidden="true" />
+  }, [setPeek, sidebarWidth])
+  return null
 }
 
 /** The top row of the sidebar: the window's buttons, after the room kept for the window's own. The window drags by it. */

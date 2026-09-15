@@ -80,10 +80,10 @@ export default function App() {
       s.on('win:maximized', (m) => useUi.getState().setMaximized(m)),
       s.on('win:fullscreen', (f) => useUi.getState().setFullscreen(f)),
       s.on('win:cornerHover', (over) => useUi.getState().setCornerHover(over)),
-      // The frame's part of the left edge: brings the sidebar back the way the page's own edge does.
+      // The frame's part of the left edge: brings the sidebar out the way the page's own edge does.
       s.on('win:edgeRest', () => {
-        const prefs = usePrefs.getState()
-        if (prefs.prefs?.sidebarCollapsed && !useUi.getState().settingsOpen) void prefs.set({ sidebarCollapsed: false })
+        const ui = useUi.getState()
+        if (usePrefs.getState().prefs?.sidebarCollapsed && !ui.settingsOpen) ui.setSidebarPeek(true)
       }),
       s.on('ui:openFolder', (p) => void addDroppedFolders([p])),
       s.on('ui:openWorkspace', (k) => void openWorkspaceByKey(k))

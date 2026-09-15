@@ -42,8 +42,10 @@ interface UiState {
   maximized: boolean
   /** macOS: full screen, where the traffic lights leave the title bar. */
   fullscreen: boolean
-  /** Windows: the pointer is over the title bar, so the caption buttons show. */
+  /** The pointer is in the window's top-left corner, so the window's buttons show. */
   cornerHover: boolean
+  /** The folded sidebar is out over the terminal for a look, brought by the pointer at the left edge. */
+  sidebarPeek: boolean
   setActive: (id: string | null) => void
   restore: (views: LayoutNode[], activeView: number, activeId: string | null) => void
   closeView: (index: number) => void
@@ -73,6 +75,7 @@ interface UiState {
   setMaximized: (v: boolean) => void
   setFullscreen: (fullscreen: boolean) => void
   setCornerHover: (v: boolean) => void
+  setSidebarPeek: (v: boolean) => void
 }
 
 let toastSeq = 1
@@ -108,6 +111,7 @@ export const useUi = create<UiState>((set, get) => ({
   maximized: false,
   fullscreen: false,
   cornerHover: false,
+  sidebarPeek: false,
 
   // Showing a session brings its view forward; a session with no view gets one of its own.
   setActive: (id) => {
@@ -244,7 +248,8 @@ export const useUi = create<UiState>((set, get) => ({
   tickSpinner: () => set((s) => ({ spinnerFrame: (s.spinnerFrame + 1) % 10 })),
   setMaximized: (maximized) => set({ maximized }),
   setFullscreen: (fullscreen) => set({ fullscreen }),
-  setCornerHover: (cornerHover) => set({ cornerHover })
+  setCornerHover: (cornerHover) => set({ cornerHover }),
+  setSidebarPeek: (sidebarPeek) => set({ sidebarPeek })
 }))
 
 /** The view on screen. */
