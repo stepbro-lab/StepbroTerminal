@@ -15,8 +15,13 @@ export const CORNER_INSET = ownButtons ? 112 : 84
 /** The band along the left edge that brings the sidebar out, and how long the pointer rests in it first. */
 const EDGE_WIDTH = 100
 const EDGE_DWELL_MS = 90
-/** How long the pointer may be off the sidebar before it goes back: room to cross a gap. */
-const PEEK_LINGER_MS = 220
+/**
+ * How far past the sidebar's edge the pointer may wander with the sidebar staying out, and how
+ * long it may be beyond that before the sidebar goes back: it goes when the pointer has clearly
+ * left for the terminal, not when it strays a little.
+ */
+const PEEK_REACH = 160
+const PEEK_LINGER_MS = 260
 /** The window's top row, in pixels: the same as --chrome-h. */
 const CHROME_H = 36
 
@@ -85,9 +90,9 @@ export function WindowCorner() {
  * With the sidebar folded away, the left side of the window brings it out for a look, the way
  * Arc and Zen do it: bring the pointer into the band along the edge and the sidebar slides in
  * over the terminal, which stays exactly as it was underneath. It stays out while the pointer is
- * on it, and goes back when the pointer leaves it, when a key is pressed, or when something else
- * is clicked. Its own button unfolds it for good. Nothing happens while a button is held, which
- * is a selection, not a visit; and once it has gone back with the pointer still in the band, the
+ * on it or near it, and goes back once the pointer has moved well away or clicked something
+ * else. Its own button unfolds it for good. Nothing happens while a button is held, which is a
+ * selection, not a visit; and once it has gone back with the pointer still in the band, the
  * pointer has to leave the band and come in again before it counts.
  */
 export function SidebarPeek() {
@@ -109,11 +114,14 @@ export function SidebarPeek() {
     }
     const onMove = (e: MouseEvent): void => {
       if (out()) {
-        // Off the sidebar for more than a moment, and it goes back.
-        const over = e.clientX < sidebarWidth + 8
-        if (over) window.clearTimeout(linger)
-        else if (!linger) linger = window.setTimeout(goBack, PEEK_LINGER_MS)
-        if (over) linger = 0
+        // Well away from the sidebar for more than a moment, and it goes back.
+        const near = e.clientX < sidebarWidth + PEEK_REACH
+        if (near) {
+          window.clearTimeout(linger)
+          linger = 0
+        } else if (!linger) {
+          linger = window.setTimeout(goBack, PEEK_LINGER_MS)
+        }
         return
       }
       const here = e.clientX < EDGE_WIDTH && e.clientY >= CHROME_H && e.buttons === 0
@@ -126,9 +134,6 @@ export function SidebarPeek() {
         window.clearTimeout(dwell)
       }
     }
-    const onKey = (e: KeyboardEvent): void => {
-      if (out() && !onAside(e.target)) goBack()
-    }
     const onDown = (e: MouseEvent): void => {
       if (out() && !onAside(e.target)) goBack()
     }
@@ -138,12 +143,10 @@ export function SidebarPeek() {
       if (out()) goBack()
     }
     document.addEventListener('mousemove', onMove)
-    document.addEventListener('keydown', onKey, true)
     document.addEventListener('mousedown', onDown, true)
     document.documentElement.addEventListener('mouseleave', onLeave)
     return () => {
       document.removeEventListener('mousemove', onMove)
-      document.removeEventListener('keydown', onKey, true)
       document.removeEventListener('mousedown', onDown, true)
       document.documentElement.removeEventListener('mouseleave', onLeave)
       window.clearTimeout(dwell)
