@@ -60,6 +60,7 @@ export function EmptyState() {
           </span>
         )}
       </div>
+      <div className="absolute bottom-4 text-[11.5px] text-faint">v{window.step.version}</div>
       {hint}
     </div>
   )

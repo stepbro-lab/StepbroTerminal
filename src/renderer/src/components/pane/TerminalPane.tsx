@@ -7,6 +7,8 @@ import { activeLayout, useUi, type DropZone, type LayoutNode } from '@/stores/ui
 import { useTerminalMount } from '@/terminal/useTerminalMount'
 import { registry } from '@/terminal/TerminalRegistry'
 import { closeSession, restartSession, restoreSession } from '@/lib/actions'
+import { defaultTitle, rowPresetId } from '@/lib/sidebarModel'
+import { AgentLogo } from '../sidebar/AgentLogo'
 import { leaves, zoneFor } from '@/lib/layout'
 import { movePanes, rememberPanes, shapeOf } from '@/lib/paneMotion'
 import { RAIL_INSET, topRightLeaf } from '@/lib/rail'
@@ -236,31 +238,19 @@ function PaneCard({ id, connected, multi, bare, underRail }: { id: string; conne
           }}
         />
         {session.status === 'error' && session.error && <ErrorBar session={session} />}
-        {!session.alive && session.status === 'exited' && (
+        {!session.alive && session.status === 'exited' && !session.archived && (
           <Bar>
             <span className="min-w-0 flex-1 truncate text-muted">{session.exitCode !== undefined ? t('Process exited with code {code}.', { code: session.exitCode }) : t('Process exited.')}</span>
             {/* Buttons with room around them; the words alone were a target too small to hit. */}
-            {session.archived ? (
-              <>
-                <button className="btn btn-secondary h-7 px-3 text-[12.5px]" onClick={() => restoreSession(session.id)}>
-                  {t(session.launch.resumeArgs && session.agent.sessionId ? 'Restore and resume conversation' : 'Restore')}
-                </button>
-                <button className="btn btn-secondary h-7 px-3 text-[12.5px]" onClick={() => void closeSession(session.id)}>
-                  {t('Delete')}
-                </button>
-              </>
-            ) : (
-              <>
-                <button className="btn btn-secondary h-7 px-3 text-[12.5px]" onClick={() => restartSession(session.id)}>
-                  {t(session.launch.resumeArgs && session.agent.sessionId ? 'Restart and resume conversation' : 'Restart')}
-                </button>
-                <button className="btn btn-secondary h-7 px-3 text-[12.5px]" onClick={() => void closeSession(session.id)}>
-                  {t('Close')}
-                </button>
-              </>
-            )}
+            <button className="btn btn-secondary h-7 px-3 text-[12.5px]" onClick={() => restartSession(session.id)}>
+              {t(session.launch.resumeArgs && session.agent.sessionId ? 'Restart and resume conversation' : 'Restart')}
+            </button>
+            <button className="btn btn-secondary h-7 px-3 text-[12.5px]" onClick={() => void closeSession(session.id)}>
+              {t('Close')}
+            </button>
           </Bar>
         )}
+        {session.archived && <ArchivedView session={session} />}
       </div>
       {!connected && (
         <div className="absolute inset-0 z-10" style={{ background: 'var(--bg-overlay)' }}>
@@ -268,6 +258,37 @@ function PaneCard({ id, connected, multi, bare, underRail }: { id: string; conne
         </div>
       )}
       {zone && <DropHighlight zone={zone} />}
+    </div>
+  )
+}
+
+/**
+ * A session put away has no terminal to show, so its pane shows the session itself: the agent's
+ * mark, the title, and the way back. Resuming brings the conversation back where an agent can
+ * pick it up; deleting lets it go.
+ */
+function ArchivedView({ session }: { session: Session }) {
+  const presets = useData((s) => s.presets)
+  const presetId = rowPresetId(session)
+  const color = presets.find((p) => p.id === presetId)?.color ?? 'var(--text-muted)'
+  const canResume = !!session.launch.resumeArgs && !!session.agent.sessionId
+  return (
+    <div className="fade-in absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 p-8 text-center" style={{ background: 'var(--bg-card)' }}>
+      <span style={{ color }}>
+        <AgentLogo presetId={presetId} size={40} />
+      </span>
+      <div>
+        <div className="text-[15px] font-semibold tracking-[-0.01em]">{session.title || defaultTitle(session)}</div>
+        <div className="mt-1 text-[12.5px] text-muted">{t('Archived')}</div>
+      </div>
+      <div className="flex items-center gap-2">
+        <button className="btn btn-primary" onClick={() => restoreSession(session.id)}>
+          {t(canResume ? 'Resume' : 'Restore')}
+        </button>
+        <button className="btn btn-secondary" onClick={() => void closeSession(session.id)}>
+          {t('Delete')}
+        </button>
+      </div>
     </div>
   )
 }

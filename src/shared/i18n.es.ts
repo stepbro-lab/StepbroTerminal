@@ -403,6 +403,8 @@ export const es: Record<string, string> = {
   'Archive': 'Archivar',
   'Unarchive': 'Desarchivar',
   'Restore and resume conversation': 'Restaurar y retomar la conversación',
+  Archived: 'Archivada',
+  Resume: 'Retomar',
   'Archive anyway (something is still running)': 'Archivar de todos modos (algo sigue en marcha)',
   '{n} more archived': '{n} archivadas más',
   'Show fewer': 'Mostrar menos',
