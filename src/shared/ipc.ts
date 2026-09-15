@@ -145,6 +145,8 @@ export interface EventMap {
   'win:fullscreen': (fullscreen: boolean) => void
   /** Whether the pointer is in the window's top-left corner, where its buttons show while it is. */
   'win:cornerHover': (over: boolean) => void
+  /** Windows: the pointer rested on the window's left edge, the part the page never sees. */
+  'win:edgeRest': () => void
   /** A folder handed to the app from outside: dropped on its icon, or given on the command line. */
   'ui:openFolder': (path: string) => void
   /** A step://workspace/<name> link: open that workspace. */

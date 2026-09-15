@@ -60,6 +60,7 @@ export function createWindow(prefs: Prefs): BrowserWindow {
   win.on('enter-full-screen', () => win.webContents.send('win:fullscreen', true))
   win.on('leave-full-screen', () => win.webContents.send('win:fullscreen', false))
   watchCorner(win)
+  if (platform === 'win32') watchLeftEdge(win)
   if (process.env['ELECTRON_RENDERER_URL']) {
     void win.loadURL(process.env['ELECTRON_RENDERER_URL'])
   } else {
@@ -123,4 +124,42 @@ function watchCorner(win: BrowserWindow): void {
 /** The renderer saw the pointer enter the corner, which is this big. */
 export function cornerEnter(win: BrowserWindow | null, width: number, height: number): void {
   if (win) corners.get(win)?.(width, height)
+}
+
+// ---- Windows: the left edge of a window that is not maximized ----
+
+const WM_NCMOUSEMOVE = 0x00a0
+/** How wide the edge is, and how long the pointer rests on it; the same numbers as the page's own edge. */
+const EDGE_WIDTH = 28
+const EDGE_DWELL_MS = 120
+const EDGE_TOP = 36
+
+/**
+ * A window without a frame keeps a few pixels along each side to resize by, and Windows treats
+ * them as the frame: the page never sees the pointer there. Maximized, the border is gone and
+ * the page's own edge works; sized, the pointer resting against the left edge lands here. The
+ * frame reports the pointer moving over it, and after a moment's rest the page is told.
+ */
+function watchLeftEdge(win: BrowserWindow): void {
+  let timer: NodeJS.Timeout | undefined
+  const onEdge = (): boolean => {
+    const p = screen.getCursorScreenPoint()
+    const b = win.getContentBounds()
+    return p.x >= b.x - 1 && p.x < b.x + EDGE_WIDTH && p.y >= b.y + EDGE_TOP && p.y < b.y + b.height
+  }
+  win.hookWindowMessage(WM_NCMOUSEMOVE, () => {
+    if (!onEdge()) {
+      if (timer) clearTimeout(timer)
+      timer = undefined
+      return
+    }
+    if (timer) return
+    timer = setTimeout(() => {
+      timer = undefined
+      if (!win.isDestroyed() && onEdge()) win.webContents.send('win:edgeRest')
+    }, EDGE_DWELL_MS)
+  })
+  win.on('closed', () => {
+    if (timer) clearTimeout(timer)
+  })
 }

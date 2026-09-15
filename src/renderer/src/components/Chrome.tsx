@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { Copy, Minus, PanelLeft, Square, X } from 'lucide-react'
 import { usePrefs } from '@/stores/prefs'
 import { useUi } from '@/stores/ui'
@@ -12,8 +12,11 @@ const platform = window.step.platform
 const ownButtons = platform !== 'darwin'
 /** Room kept clear at the left of the top row for the window's buttons. */
 export const CORNER_INSET = ownButtons ? 112 : 84
-/** How long the pointer rests on the left edge before the sidebar comes back. */
-const EDGE_DWELL_MS = 140
+/** The band along the left edge that brings the sidebar back, and how long the pointer rests in it first. */
+const EDGE_WIDTH = 28
+const EDGE_DWELL_MS = 120
+/** The window's top row, in pixels: the same as --chrome-h. */
+const CHROME_H = 36
 
 /** The buttons that belong to the window rather than to a pane: fold the sidebar, activity, updates, notes. */
 function ChromeButtons() {
@@ -75,24 +78,43 @@ export function WindowCorner() {
 }
 
 /**
- * With the sidebar folded away, the left edge of the window brings it back: rest the pointer
- * there a moment and the sidebar unfolds, and stays, the way it does from its own button. Nothing
- * shows until then.
+ * With the sidebar folded away, the left edge of the window brings it back: bring the pointer to
+ * the band along it and let it rest a moment, and the sidebar unfolds, and stays, the way it does
+ * from its own button. The band is followed from the pointer's position rather than laid over
+ * the terminal, so the terminal under it still takes clicks and selections; a hairline lights up
+ * along the edge while the pointer is there, so the band is not a thing to hunt for. Nothing
+ * happens while a button is held, which is a selection, not a visit.
  */
 export function EdgeReveal() {
   const setPrefs = usePrefs((s) => s.set)
-  const timer = useRef(0)
-  useEffect(() => () => window.clearTimeout(timer.current), [])
-  return (
-    <div
-      className="edge-reveal no-drag"
-      onMouseEnter={() => {
-        window.clearTimeout(timer.current)
-        timer.current = window.setTimeout(() => void setPrefs({ sidebarCollapsed: false }), EDGE_DWELL_MS)
-      }}
-      onMouseLeave={() => window.clearTimeout(timer.current)}
-    />
-  )
+  const [near, setNear] = useState(false)
+  useEffect(() => {
+    let timer = 0
+    let inside = false
+    const leave = (): void => {
+      inside = false
+      setNear(false)
+      window.clearTimeout(timer)
+    }
+    const onMove = (e: MouseEvent): void => {
+      const inBand = e.clientX < EDGE_WIDTH && e.clientY >= CHROME_H && e.buttons === 0
+      if (inBand && !inside) {
+        inside = true
+        setNear(true)
+        timer = window.setTimeout(() => void setPrefs({ sidebarCollapsed: false }), EDGE_DWELL_MS)
+      } else if (!inBand && inside) {
+        leave()
+      }
+    }
+    document.addEventListener('mousemove', onMove)
+    document.documentElement.addEventListener('mouseleave', leave)
+    return () => {
+      document.removeEventListener('mousemove', onMove)
+      document.documentElement.removeEventListener('mouseleave', leave)
+      window.clearTimeout(timer)
+    }
+  }, [setPrefs])
+  return <div className="edge-hint" data-near={near} aria-hidden="true" />
 }
 
 /** The top row of the sidebar: the window's buttons, after the room kept for the window's own. The window drags by it. */

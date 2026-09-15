@@ -743,14 +743,21 @@ kbd {
   color: #fff;
 }
 
-/* The left edge with the sidebar folded away: rest the pointer here and the sidebar comes back. */
-.edge-reveal {
+/* The left edge with the sidebar folded away: a hairline that lights up while the pointer is in the band beside it. */
+.edge-hint {
   position: absolute;
   left: 0;
   top: var(--chrome-h);
   bottom: 0;
-  width: 6px;
+  width: 2px;
   z-index: 35;
+  pointer-events: none;
+  background: var(--accent);
+  opacity: 0;
+  transition: opacity 140ms var(--ease);
+}
+.edge-hint[data-near='true'] {
+  opacity: 0.55;
 }
 
 /* ---- the pane area with the sidebar folded: the cards fill the window edge to edge ---- */
