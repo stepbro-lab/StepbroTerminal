@@ -176,7 +176,17 @@ export function SidebarHeader() {
  * What sits above the panes: a drag strip and nothing else. Thin beside an open sidebar, whose
  * header carries the window's buttons; tall where the cards fill the window, so the corner and
  * the session rail have a row to sit in and the terminal starts a little below the top edge.
+ *
+ * While the sidebar is out for a look it lies over this strip, and the system adds up drag
+ * regions without regard to what is drawn on top: the strip, coming later in the page, would
+ * make the buttons in the sidebar's header a place to drag the window by instead of buttons. So
+ * for as long as the sidebar is out, the part of the strip under it is cut out of the drag region.
  */
 export function TopStrip({ tall = false }: { tall?: boolean }) {
-  return <div className="drag shrink-0" style={{ height: tall ? 'var(--chrome-h)' : 8 }} />
+  const peek = useUi((s) => s.sidebarPeek)
+  return (
+    <div className="drag flex shrink-0" style={{ height: tall ? 'var(--chrome-h)' : 8 }}>
+      {peek && <div className="no-drag h-full shrink-0" style={{ width: 'var(--sidebar-w)' }} />}
+    </div>
+  )
 }
