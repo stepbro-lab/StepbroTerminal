@@ -31,9 +31,11 @@ export function TerminalPane() {
   const sessions = useData((s) => s.sessions)
   const connected = hostState.kind === 'connected'
   const live = leaves(layout).filter((id) => sessions[id])
-  // With the sidebar folded away the cards fill the window edge to edge, and the session rail
-  // takes the sidebar's place in the top-right corner.
+  // With the sidebar folded away the session rail takes its place in the top-right corner, and a
+  // lone pane fills the window edge to edge; panes side by side keep their cards, so they read
+  // as the separate things they are.
   const immersive = usePrefs((s) => s.prefs?.sidebarCollapsed ?? false)
+  const bare = immersive && live.length <= 1
 
   // Panes travel when the arrangement changes shape: remembered just before React re-lays them
   // out (the store tells us first), moved right after it has. A gutter drag only changes proportions.
@@ -50,7 +52,7 @@ export function TerminalPane() {
 
   if (!layout || live.length === 0) {
     return (
-      <main className="pane-area relative flex min-w-0 flex-1 flex-col" data-immersive={immersive}>
+      <main className="pane-area relative flex min-w-0 flex-1 flex-col" data-immersive={immersive} data-bare={bare}>
         <TopStrip tall={immersive} />
         {immersive && <SidebarPeek />}
         <div className="pane-frame relative flex min-h-0 flex-1">
@@ -64,14 +66,14 @@ export function TerminalPane() {
   const sidePanel = side && sessions[side.sessionId] ? (side.kind === 'preview' ? <PreviewPane key={side.url} url={side.url} sessionId={side.sessionId} /> : <ChangesPane sessionId={side.sessionId} />) : null
 
   return (
-    <main className="pane-area relative flex min-w-0 flex-1 flex-col" data-immersive={immersive}>
+    <main className="pane-area relative flex min-w-0 flex-1 flex-col" data-immersive={immersive} data-bare={bare}>
       <TopStrip tall={immersive} />
       {immersive && <SidebarPeek />}
       <div className="pane-frame flex min-h-0 flex-1 gap-2">
         {/* The rail hangs over the terminals' own corner, left of any side panel. */}
         <div className="relative flex min-w-0 flex-1">
           {immersive && <SessionRail />}
-          <LayoutView node={layout} path={[]} connected={connected} multi={live.length > 1} bare={immersive && live.length === 1} underRail={immersive && live.length > 1 ? topRightLeaf(layout) : null} />
+          <LayoutView node={layout} path={[]} connected={connected} multi={live.length > 1} bare={bare} underRail={immersive && !bare ? topRightLeaf(layout) : null} />
         </div>
         {sidePanel && <div className="side-panel flex min-w-0 flex-[0_0_44%]">{sidePanel}</div>}
       </div>

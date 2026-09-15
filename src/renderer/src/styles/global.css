@@ -275,6 +275,13 @@ button {
 .field::placeholder {
   color: var(--text-muted);
 }
+/* The rename field in a pane's header: sized to the header's row, which is shorter than a field. */
+.field.header-rename {
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 7px;
+  font-size: 13px;
+}
 .field:focus {
   box-shadow:
     0 0 0 1px var(--accent) inset,
@@ -787,32 +794,31 @@ aside[data-peek='out'] {
   }
 }
 
-/* ---- the pane area with the sidebar folded: the cards fill the window edge to edge ---- */
+/* ---- the pane area with the sidebar folded ---- */
 .pane-frame {
   padding: 0 8px 8px 0;
   transition: padding 280ms var(--ease);
 }
-.pane-area[data-immersive='true'] {
-  background: var(--bg-card);
-}
+/* No sidebar to keep the cards off the left edge, so the frame does. */
 .pane-area[data-immersive='true'] .pane-frame {
-  padding: 0;
+  padding: 0 8px 8px;
 }
+/* A lone pane fills the window edge to edge: no card around it, no frame, one surface. */
 .pane-area .card {
   transition: border-radius 280ms var(--ease);
 }
-.pane-area[data-immersive='true'] .card {
+.pane-area[data-bare='true'] {
+  background: var(--bg-card);
+}
+.pane-area[data-bare='true'] .pane-frame {
+  padding: 0;
+}
+.pane-area[data-bare='true'] .card {
   border-radius: 0;
   border-color: transparent;
   box-shadow: none;
 }
-/* Panes side by side are all one surface now, so the seam between them is drawn. */
-.pane-area[data-immersive='true'] .gutter-line {
-  opacity: 1;
-  background: var(--border);
-  inset: 0 3px;
-}
-.pane-area[data-immersive='true'] .side-panel {
+.pane-area[data-bare='true'] .side-panel {
   box-shadow: -1px 0 0 var(--border);
 }
 

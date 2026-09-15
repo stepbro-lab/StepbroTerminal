@@ -61,14 +61,21 @@ export function Sidebar() {
   // Folded away, the sidebar can still come out over the terminal for a look: in from the left,
   // out again the same way. Unfolded for good while out, it simply stays, in the row like always.
   const peek = useUi((s) => s.sidebarPeek)
+  const setPeek = useUi((s) => s.setSidebarPeek)
   const [peekPhase, setPeekPhase] = useState<'off' | 'in' | 'out'>('off')
   useEffect(() => {
+    if (!collapsed) {
+      // Unfolded, by its own button while out or otherwise: it is in the row now, not out on a visit.
+      if (peek) setPeek(false)
+      setPeekPhase('off')
+      return
+    }
     if (peek) {
       setPeekPhase('in')
       return
     }
-    setPeekPhase((phase) => (phase === 'in' && collapsed ? 'out' : 'off'))
-  }, [peek, collapsed])
+    setPeekPhase((phase) => (phase === 'in' ? 'out' : 'off'))
+  }, [peek, collapsed, setPeek])
   useEffect(() => {
     if (peekPhase !== 'out') return
     const timer = window.setTimeout(() => setPeekPhase('off'), 240)

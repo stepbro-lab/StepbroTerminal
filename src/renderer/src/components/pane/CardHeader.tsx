@@ -210,7 +210,7 @@ function TitleInput({ session, onDone }: { session: Session; onDone: () => void 
   return (
     <input
       ref={ref}
-      className="field h-6 min-w-0 flex-1"
+      className="field header-rename min-w-0 flex-1"
       value={value}
       placeholder={session.title || defaultTitle(session)}
       onChange={(e) => setValue(e.target.value)}
