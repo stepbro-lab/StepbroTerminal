@@ -1,9 +1,9 @@
 // Renders the app icons from the two master logos in resources/icons and the tray icons from inline SVG.
 // Run with `pnpm icons`; CI runs it before every build so the checked-in files only matter in dev.
 //
-// Two looks, and the person picks one in Settings > Appearance: "mono", the black spark on a
-// white tile (the default, and the icon the installers and executables carry), and "color", the
-// magenta spark on blue. Everything the app can change at run time is rendered for both: the
+// Two looks, and the person picks one in Settings > Appearance: "light", the black spark on a
+// white tile (the default, and the icon the installers and executables carry), and "dark", the
+// white spark on black. Everything the app can change at run time is rendered for both: the
 // window and Dock icon, the tray, notifications and the empty pane.
 import fs from 'node:fs'
 import path from 'node:path'
@@ -18,9 +18,9 @@ fs.mkdirSync(iconsDir, { recursive: true })
 fs.mkdirSync(buildDir, { recursive: true })
 fs.mkdirSync(assetsDir, { recursive: true })
 
-const masters = { mono: 'StepbroLogoMono.png', color: 'StepbroLogo.png' }
+const masters = { light: 'StepbroLogoLight.png', dark: 'StepbroLogoDark.png' }
 const logos = Object.fromEntries(Object.entries(masters).map(([id, file]) => [id, `data:image/png;base64,${fs.readFileSync(path.join(iconsDir, file)).toString('base64')}`]))
-const DEFAULT = 'mono'
+const DEFAULT = 'light'
 
 /**
  * A logo scaled onto a square canvas; `inset` leaves transparent room around it, as a share of

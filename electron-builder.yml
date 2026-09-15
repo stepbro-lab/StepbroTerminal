@@ -27,8 +27,8 @@ extraResources:
   - from: resources/icons
     to: icons
     filter:
-      - '!StepbroLogo.png'
-      - '!StepbroLogoMono.png'
+      - '!StepbroLogoLight.png'
+      - '!StepbroLogoDark.png'
 # The host runs as a plain Node process, so it and node-pty must live outside the asar.
 # The host runs as a plain Node process outside the asar, so everything it requires must be
 # unpacked with it: the bytecode loader, its own bytecode, the chunk it shares with the main

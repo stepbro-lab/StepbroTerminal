@@ -70,7 +70,7 @@ export class Notifier {
       process.platform === 'win32'
         ? new Notification({ toastXml: this.toast(s.id, title, body, sticky), silent: true })
         : // macOS shows the app's own icon on the left by itself; an extra image would sit on the right.
-          new Notification({ title, body, icon: process.platform === 'linux' ? appLogoPath(this.deps.getPrefs().logo ?? 'mono') : undefined, silent: true })
+          new Notification({ title, body, icon: process.platform === 'linux' ? appLogoPath(this.deps.getPrefs().logo ?? 'light') : undefined, silent: true })
     n.on('click', () => this.show(s.id))
     // macOS refuses notifications from an app whose bundle is not signed, and says so only here.
     n.on('failed', (_e, error) => this.deps.log('notification failed', s.id.slice(0, 8), s.status, error))
@@ -95,7 +95,7 @@ export class Notifier {
     return `<toast activationType="protocol" launch="step://focus/${id}"${sticky ? ' scenario="reminder"' : ''}>
   <visual>
     <binding template="ToastGeneric">
-      <image placement="appLogoOverride" src="${escapeXml(pathToFileUrl(appLogoPath(this.deps.getPrefs().logo ?? 'mono')))}"/>
+      <image placement="appLogoOverride" src="${escapeXml(pathToFileUrl(appLogoPath(this.deps.getPrefs().logo ?? 'light')))}"/>
       <text hint-maxLines="1">${escapeXml(title)}</text>
       <text>${escapeXml(body)}</text>
     </binding>

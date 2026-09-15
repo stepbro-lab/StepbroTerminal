@@ -14,7 +14,7 @@ export function isDark(prefs: Prefs): boolean {
  * carry the default look; this is what lets the person pick the other one in Settings.
  */
 export function applyAppIcon(win: BrowserWindow, prefs: Prefs): void {
-  const logo = prefs.logo ?? 'mono'
+  const logo = prefs.logo ?? 'light'
   const mac = process.platform === 'darwin'
   const image = nativeImage.createFromPath(mac ? dockLogoPath(logo) : appLogoPath(logo))
   if (image.isEmpty()) return

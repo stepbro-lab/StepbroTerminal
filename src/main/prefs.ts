@@ -46,6 +46,13 @@ export function loadPrefs(): Prefs {
     }
     // A short-lived default of 1.1 sat between the two; it moves on as well.
     if (raw && raw.fontFamily === 'JetBrains Mono' && raw.lineHeight === 1.1) raw.lineHeight = defaultPrefs.lineHeight
+    // The logo's looks were "mono" and "color" before they became the light and dark tiles.
+    if (raw && raw.logo !== undefined) {
+      const legacy: Record<string, string> = { mono: 'light', color: 'dark' }
+      const logo = String(raw.logo)
+      if (logo in legacy) raw.logo = legacy[logo]
+      else if (logo !== 'light' && logo !== 'dark') delete raw.logo
+    }
     return { ...defaultPrefs, ...raw }
   } catch {
     return { ...defaultPrefs }

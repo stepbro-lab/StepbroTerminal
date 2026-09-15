@@ -13,12 +13,12 @@ export function iconsDir(): string {
 }
 
 /** Path of the logo PNG in the chosen look: shown inside notifications and on the window. */
-export function appLogoPath(logo: LogoId = 'mono'): string {
+export function appLogoPath(logo: LogoId = 'light'): string {
   return path.join(iconsDir(), `app-256-${logo}.png`)
 }
 
 /** The Dock copy, with the room around it macOS expects; the window's would sit too large there. */
-export function dockLogoPath(logo: LogoId = 'mono'): string {
+export function dockLogoPath(logo: LogoId = 'light'): string {
   return path.join(iconsDir(), `dock-${logo}.png`)
 }
 
@@ -38,7 +38,7 @@ export function applyShortcutIcons(logo: LogoId): void {
   ]
   const exe = process.execPath.toLowerCase()
   // The packaged executable carries the default look itself; in development Electron's own binary does not.
-  const icon = logo === 'mono' && app.isPackaged ? process.execPath : path.join(iconsDir(), `app-${logo}.ico`)
+  const icon = logo === 'light' && app.isPackaged ? process.execPath : path.join(iconsDir(), `app-${logo}.ico`)
   let changed = 0
   for (const dir of dirs) {
     let names: string[] = []

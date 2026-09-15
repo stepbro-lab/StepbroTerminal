@@ -172,7 +172,7 @@ async function boot(): Promise<void> {
         // and on Windows the shortcuts, so it holds when the app is closed or pinned.
         if (ctx.win) applyAppIcon(ctx.win, ctx.prefs)
         ctx.tray.refresh()
-        applyShortcutIcons(ctx.prefs.logo ?? 'mono')
+        applyShortcutIcons(ctx.prefs.logo ?? 'light')
       }
       if (partial.language !== undefined) {
         setLanguage(ctx.prefs.language)
@@ -246,7 +246,7 @@ async function boot(): Promise<void> {
   })
   ctx.tray.create()
   // An update rewrites the Windows shortcuts with the default icon; a chosen color logo goes back on them.
-  if (ctx.prefs.logo && ctx.prefs.logo !== 'mono') applyShortcutIcons(ctx.prefs.logo)
+  if (ctx.prefs.logo && ctx.prefs.logo !== 'light') applyShortcutIcons(ctx.prefs.logo)
 
   ctxRef = ctx
   // Folders given at launch: dropped on the app icon, or named on the command line.

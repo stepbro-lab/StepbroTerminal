@@ -39,7 +39,7 @@ export class StepTray {
   private shown = ''
 
   private logo(): LogoId {
-    return this.deps.getPrefs().logo ?? 'mono'
+    return this.deps.getPrefs().logo ?? 'light'
   }
   private timer: NodeJS.Timeout | null = null
 

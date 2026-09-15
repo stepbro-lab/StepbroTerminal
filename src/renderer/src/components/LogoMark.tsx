@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import gsap from 'gsap'
 import { usePrefs } from '@/stores/prefs'
-import { DEFAULT_LOGO, LOGOS } from '@/lib/logos'
+import { LOGOS, logoOf } from '@/lib/logos'
 
 /**
  * The app's logo in the look the person chose, alive: it floats a little, leans a degree or two
@@ -10,7 +10,7 @@ import { DEFAULT_LOGO, LOGOS } from '@/lib/logos'
  */
 export function LogoMark({ size = 72 }: { size?: number }) {
   const root = useRef<HTMLDivElement>(null)
-  const logo = LOGOS[usePrefs((s) => s.prefs?.logo) ?? DEFAULT_LOGO]
+  const logo = LOGOS[logoOf(usePrefs((s) => s.prefs?.logo))]
 
   useEffect(() => {
     const el = root.current

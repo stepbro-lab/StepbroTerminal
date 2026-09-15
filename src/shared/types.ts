@@ -164,14 +164,14 @@ export interface CustomPreset {
 }
 
 export type AccentId = 'graphite' | 'blue' | 'orange' | 'yellow' | 'green' | 'teal' | 'purple' | 'pink'
-/** The two looks of the logo: the black spark on a white tile, and the magenta spark on blue. */
-export type LogoId = 'mono' | 'color'
+/** The two looks of the logo: the black spark on a white tile, and the white spark on black. */
+export type LogoId = 'light' | 'dark'
 
 export interface Prefs {
   theme: 'system' | 'light' | 'dark'
   /** Tints the accent and, very slightly, the window chrome. */
   accent: AccentId
-  /** Which of the two logos the app shows: the black spark on white (the default) or the color one. */
+  /** Which of the two logos the app shows: the light tile (the default) or the dark one. */
   logo?: LogoId
   fontFamily: string
   fontSize: number
