@@ -42,10 +42,14 @@ select {
   letter-spacing: inherit;
 }
 
+/* Anything that can be pressed says so: the hand, the way Windows and the web have always shown it. */
 button {
   background: none;
   border: 0;
   padding: 0;
+  cursor: pointer;
+}
+button:disabled {
   cursor: default;
 }
 
@@ -110,6 +114,7 @@ button {
 /* ---- sidebar rows ---- */
 .row {
   position: relative;
+  cursor: pointer;
   display: grid;
   align-items: center;
   height: var(--row-h);
