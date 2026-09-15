@@ -9,6 +9,8 @@ export interface AgentMeta {
   sessionId?: string
   /** Detected agent preset id when the user typed an agent inside a shell. */
   detectedPreset?: string
+  /** The last agent seen in this shell, kept after it has quit or the session has ended: what the session was. */
+  lastPreset?: string
   /** Pid of a Claude Code process mapped to this session through the live registry. */
   registryPid?: number
   /** Hooks are arriving from an agent the user started inside this shell; they drive the status until it ends. */

@@ -37,8 +37,9 @@ function same(a: string, b: string): boolean {
   return window.step.platform === 'win32' ? na.toLowerCase() === nb.toLowerCase() : na === nb
 }
 
+/** The agent a row is drawn as: the one running in it, or for a session that has ended, the last one that ran there. */
 export function rowPresetId(s: Session): string {
-  return s.agent.detectedPreset ?? s.presetId
+  return s.agent.detectedPreset ?? (s.alive ? undefined : s.agent.lastPreset) ?? s.presetId
 }
 
 /**
@@ -106,7 +107,7 @@ export function orderRows(rows: SidebarSession[]): SidebarSession[] {
  */
 export function canResume(s: Session): boolean {
   if (!s.agent.sessionId) return false
-  return !!s.launch.resumeArgs || (s.presetId === 'shell' && s.agent.detectedPreset === 'claude')
+  return !!s.launch.resumeArgs || (s.presetId === 'shell' && (s.agent.detectedPreset ?? s.agent.lastPreset) === 'claude')
 }
 
 export function defaultTitle(s: Session): string {

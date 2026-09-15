@@ -28,10 +28,12 @@ describe('canResume', () => {
   it('needs a conversation id, and either a resume argument or Claude Code typed into a shell', () => {
     const agent = { ...base, presetId: 'claude', agent: { sessionId: 'abc' }, launch: { command: 'claude', args: [], resumeArgs: ['--resume', '{sessionId}'], hooks: true } } as never
     const shellClaude = { ...base, presetId: 'shell', agent: { sessionId: 'abc', detectedPreset: 'claude' }, launch: { command: 'pwsh', args: [], hooks: false } } as never
+    const endedShellClaude = { ...base, presetId: 'shell', agent: { sessionId: 'abc', lastPreset: 'claude' }, launch: { command: 'pwsh', args: [], hooks: false } } as never
     const plainShell = { ...base, presetId: 'shell', agent: {}, launch: { command: 'pwsh', args: [], hooks: false } } as never
     const noId = { ...base, presetId: 'claude', agent: {}, launch: { command: 'claude', args: [], resumeArgs: ['--resume', '{sessionId}'], hooks: true } } as never
     expect(canResume(agent)).toBe(true)
     expect(canResume(shellClaude)).toBe(true)
+    expect(canResume(endedShellClaude)).toBe(true)
     expect(canResume(plainShell)).toBe(false)
     expect(canResume(noId)).toBe(false)
   })

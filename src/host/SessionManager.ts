@@ -317,7 +317,8 @@ export class SessionManager extends EventEmitter {
     const canResume = !!l.s.launch.resumeArgs && !!l.s.agent.sessionId
     // Claude Code typed into a shell left its conversation behind: the fresh shell is told to pick
     // it up, the way a person would, once it has settled.
-    if (!canResume && l.s.presetId === 'shell' && l.s.agent.detectedPreset === 'claude' && l.s.agent.sessionId) l.runOnStart = `claude --resume ${l.s.agent.sessionId}`
+    const was = l.s.agent.detectedPreset ?? l.s.agent.lastPreset
+    if (!canResume && l.s.presetId === 'shell' && was === 'claude' && l.s.agent.sessionId) l.runOnStart = `claude --resume ${l.s.agent.sessionId}`
     this.spawn(l, canResume)
     this.emitSession(l)
   }
@@ -416,6 +417,7 @@ export class SessionManager extends EventEmitter {
       const agent = detectAgentFromCommand(line)
       if (agent && agent !== l.s.agent.detectedPreset && !l.s.launch.hooks) {
         l.s.agent.detectedPreset = agent
+        l.s.agent.lastPreset = agent
         this.emitSession(l)
       }
       // Lines typed into an agent are prompts worth remembering; the launch command itself is not.
@@ -693,6 +695,7 @@ export class SessionManager extends EventEmitter {
           l.s.agent.registryPid = e.pid
           l.s.agent.sessionId = e.sessionId
           l.s.agent.detectedPreset = 'claude'
+          l.s.agent.lastPreset = 'claude'
           log('mapped claude', e.pid, '->', l.s.id)
           // A freshly mapped agent that is not busy is simply idle; "done" is reserved for finished turns.
           const busy = /busy|working|running/i.test(e.status ?? '')
