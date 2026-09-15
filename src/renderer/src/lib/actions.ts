@@ -270,10 +270,14 @@ export async function newSessionMenu(projectPath: string): Promise<void> {
     items.push(sep, ...agents.map((p) => ({ id: `new:${p.id}`, label: p.name })))
   }
   if (hasHistory) items.push(sep, { id: 'resume', label: t('Resume a Claude Code conversation…') })
+  // With a pane in front, a new shell can also go beside it rather than in a view of its own.
+  const beside = useUi.getState().activeId
+  if (beside) items.push(sep, { id: 'split-right', label: t('Split right with a new shell') }, { id: 'split-down', label: t('Split down with a new shell') })
   const pick = await popup(items)
   if (!pick) return
   if (pick === 'shell') await newShell(projectPath)
   else if (pick === 'resume') useUi.getState().openPalette('', 'resume', projectPath)
+  else if (pick === 'split-right' || pick === 'split-down') await splitWithNewShell(pick === 'split-right' ? 'row' : 'column', beside ?? undefined)
   else if (pick.startsWith('new:')) await createSession(projectPath, pick.slice(4))
 }
 
@@ -282,10 +286,15 @@ export async function sessionMenu(row: SidebarSession, pos: MenuPosition = {}): 
   const s = row.session
   const canResume = !!s.launch.resumeArgs && !!s.agent.sessionId
   const grouped = ui.views.some((v) => hasLeaf(v, s.id) && leaves(v).length > 1)
+  // Another session can be put beside the pane in front, unless it is that pane or already shares its view.
+  const front = ui.activeId
+  const beside = !!front && front !== s.id && !s.archived && !ui.views.some((v) => hasLeaf(v, front) && hasLeaf(v, s.id))
   const pick = await popup([
     { id: 'rename', label: t('Rename') },
     { id: 'pin', label: t(s.pinned ? 'Unpin' : 'Pin') },
     sep,
+    { id: 'beside-right', label: t('Open to the right of the current pane'), enabled: beside },
+    { id: 'beside-down', label: t('Open below the current pane'), enabled: beside },
     { id: 'detach', label: t('Move to its own view'), enabled: grouped },
     s.archived ? { id: 'restore', label: t(canResume ? 'Restore and resume conversation' : 'Restore') } : { id: 'restart', label: t(canResume ? 'Restart and resume conversation' : 'Restart') },
     { id: 'kill', label: t('Kill process'), enabled: s.alive },
@@ -307,6 +316,12 @@ export async function sessionMenu(row: SidebarSession, pos: MenuPosition = {}): 
     case 'detach':
       ui.detach(s.id)
       break
+    case 'beside-right':
+    case 'beside-down': {
+      const target = useUi.getState().activeId
+      if (target && target !== s.id) useUi.getState().dropSession(s.id, target, pick === 'beside-right' ? 'right' : 'bottom')
+      break
+    }
     case 'archive':
       await archiveSession(s.id)
       break

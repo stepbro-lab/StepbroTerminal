@@ -6,6 +6,7 @@ import { newSessionMenu, sessionMenu } from '@/lib/actions'
 import { popup } from '@/lib/menus'
 import { railProject, railStatus } from '@/lib/rail'
 import { useSidebarModel } from './sidebar/Sidebar'
+import { DRAG_TYPE } from './pane/TerminalPane'
 import { AgentLogo } from './sidebar/AgentLogo'
 import { t } from '@/lib/i18n'
 
@@ -17,7 +18,8 @@ const LINGER_MS = 260
  * bar per session beside its agent's mark, as little as a set of tally marks. A bar sweeps with
  * light while its agent works and turns amber while it waits on you. Point at the rail and the
  * bars open into pills with their titles, and a click puts that session in front; leave, and it
- * folds back. What the sidebar does at length, this does in a corner.
+ * folds back. Drag a pill onto the terminal and that session lands beside the pane there, on
+ * whichever side it is dropped. What the sidebar does at length, this does in a corner.
  */
 export function SessionRail() {
   const model = useSidebarModel()
@@ -61,6 +63,13 @@ export function SessionRail() {
             data-active={row.id === activeId}
             data-status={railStatus(row)}
             title={row.title}
+            draggable
+            onDragStart={(e) => {
+              e.dataTransfer.setData(DRAG_TYPE, row.id)
+              e.dataTransfer.effectAllowed = 'move'
+              useUi.getState().setDragging(row.id)
+            }}
+            onDragEnd={() => useUi.getState().setDragging(null)}
             onClick={() => setActive(row.id)}
             onContextMenu={(e) => {
               e.preventDefault()
