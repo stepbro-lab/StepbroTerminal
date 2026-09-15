@@ -103,6 +103,7 @@ export function SidebarPeek() {
     let linger = 0
     let inBand = false
     let armed = false
+    let lastX = Infinity
     const out = (): boolean => useUi.getState().sidebarPeek
     const onAside = (target: EventTarget | null): boolean => !!(target as Element | null)?.closest?.('aside[data-peek]')
     const goBack = (): void => {
@@ -113,6 +114,7 @@ export function SidebarPeek() {
       if (out()) setPeek(false)
     }
     const onMove = (e: MouseEvent): void => {
+      lastX = e.clientX
       if (out()) {
         // Well away from the sidebar for more than a moment, and it goes back.
         const near = e.clientX < sidebarWidth + PEEK_REACH
@@ -137,10 +139,14 @@ export function SidebarPeek() {
     const onDown = (e: MouseEvent): void => {
       if (out() && !onAside(e.target)) goBack()
     }
+    // The pointer "leaving" is also what the page sees when it crosses a drag region, the top row
+    // or the sidebar's own header: the system takes the pointer there. So leaving only counts as
+    // going away when the pointer was last seen well away; near the sidebar it is merely resting
+    // on a drag region, or has left the window by the side the sidebar is on, and the sidebar stays.
     const onLeave = (): void => {
       window.clearTimeout(dwell)
       inBand = false
-      if (out()) goBack()
+      if (out() && lastX >= sidebarWidth + PEEK_REACH) goBack()
     }
     document.addEventListener('mousemove', onMove)
     document.addEventListener('mousedown', onDown, true)
