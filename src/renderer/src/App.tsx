@@ -10,7 +10,7 @@ import { pruneLayout, type LayoutNode } from '@/lib/layout'
 import { addDroppedFolders, openWorkspaceByKey } from '@/lib/actions'
 import { Sidebar, useSidebarModel } from '@/components/sidebar/Sidebar'
 import { WindowCorner } from '@/components/Chrome'
-import { VoiceBubble } from '@/components/voice/VoiceBubble'
+import { useVoice } from '@/stores/voice'
 import { TerminalPane } from '@/components/pane/TerminalPane'
 import { CommandPalette } from '@/components/CommandPalette'
 import { SettingsView } from '@/components/settings/SettingsView'
@@ -91,6 +91,13 @@ export default function App() {
     ]
     void s.invoke('win:isMaximized').then((m) => useUi.getState().setMaximized(m))
     void s.invoke('notes:list').then((notes) => useNotes.getState().receive(notes))
+    // Talking is held, not toggled, and the key can come up anywhere: in a terminal, over a
+    // menu, or after the window lost focus altogether. Any of those ends the turn. (voice-keyup)
+    const onKeyUp = (): void => useVoice.getState().release()
+    const onBlur = (): void => useVoice.getState().release()
+    window.addEventListener('keyup', onKeyUp, true)
+    window.addEventListener('blur', onBlur)
+
     const onKey = (ev: KeyboardEvent): void => {
       if (handleKeydown(ev)) {
         ev.preventDefault()
@@ -118,6 +125,8 @@ export default function App() {
       offWorkspace()
       offs.forEach((off) => off())
       window.removeEventListener('keydown', onKey, true)
+      window.removeEventListener('keyup', onKeyUp, true)
+      window.removeEventListener('blur', onBlur)
       document.removeEventListener('dragover', swallowFileDrop)
       document.removeEventListener('drop', swallowFileDrop)
       mq.removeEventListener('change', onMq)
@@ -204,7 +213,6 @@ export default function App() {
       </div>
       {settingsOpen && <SettingsView />}
       <WindowCorner />
-      <VoiceBubble />
       <CommandPalette />
       <NotesPanel />
       <NoteFlight />

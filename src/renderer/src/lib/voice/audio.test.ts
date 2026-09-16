@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { base64ToPcm16, floatsToPcm16, loudness, pcm16ToBase64, pcm16ToFloats, resample } from './audio'
+import { base64ToPcm16, floatsToPcm16, pcm16ToBase64, pcm16ToFloats, resample } from './audio'
 
 describe('samples back and forth', () => {
   it('turns floats into 16-bit samples and back without drifting', () => {
@@ -57,19 +57,5 @@ describe('base64', () => {
   it('drops a trailing half sample rather than reading past the end', () => {
     const odd = btoa('abc')
     expect(base64ToPcm16(odd).length).toBe(1)
-  })
-})
-
-describe('loudness', () => {
-  it('is nothing for silence and rises with the voice', () => {
-    expect(loudness(new Float32Array(64))).toBe(0)
-    const quiet = loudness(new Float32Array(64).fill(0.02))
-    const loud = loudness(new Float32Array(64).fill(0.3))
-    expect(quiet).toBeLessThan(loud)
-    expect(loud).toBeLessThanOrEqual(1)
-  })
-
-  it('never goes past one, however loud it gets', () => {
-    expect(loudness(new Float32Array(64).fill(1))).toBe(1)
   })
 })

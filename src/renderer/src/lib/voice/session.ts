@@ -1,23 +1,22 @@
 import { Mic, Speaker, base64ToPcm16, pcm16ToBase64 } from './audio'
-import { audioChunk, buildSetup, parseServerMessage, speechLanguage, textTurn, toolResult, LIVE_URL, type LiveCall } from './protocol'
+import { audioChunk, buildSetup, parseServerMessage, speechLanguage, textTurn, toolResult, turnEnd, turnStart, LIVE_URL, type LiveCall } from './protocol'
 import { runTool, VOICE_FUNCTIONS, VOICE_INSTRUCTIONS, type ToolOutcome, type VoiceApp } from './tools'
 
 /**
- * One spoken conversation, from the moment the bubble opens to the moment it closes: a socket to
- * the model, the microphone going out, its voice coming back, and the tools it calls in between.
+ * One spoken conversation: a socket to the model, the microphone going out while the key is held,
+ * its voice coming back, and the tools it calls in between.
+ *
+ * The microphone stays open the whole time but muted between turns, so pressing to speak is
+ * instant, and nothing is converted or sent while nobody is talking.
  */
 
-export type VoiceState = 'off' | 'connecting' | 'listening' | 'speaking' | 'error'
+export type VoiceState = 'off' | 'connecting' | 'ready' | 'talking' | 'answering' | 'error'
 
 export interface VoiceHandlers {
   state: (state: VoiceState, detail?: string) => void
-  /** What the person is saying, as it is recognized. */
+  /** What the person said, once it has been recognized. */
   heard: (text: string) => void
-  /** What the voice is saying, as it says it. */
-  said: (text: string) => void
   did: (what: NonNullable<ToolOutcome['did']>) => void
-  /** How loud the microphone is, 0 to 1, for the bubble to move to. */
-  level: (level: number) => void
 }
 
 export interface VoiceOptions {
@@ -44,7 +43,10 @@ export class VoiceConversation {
   private speaker = new Speaker()
   private o: VoiceOptions
   private stopped = false
-  private speaking = false
+  private ready = false
+  private talking = false
+  /** Pressed before the socket was ready: the turn opens the moment it is. */
+  private waiting = false
 
   constructor(o: VoiceOptions) {
     this.o = o
@@ -57,8 +59,7 @@ export class VoiceConversation {
     try {
       await this.mic.open({
         deviceId: this.o.deviceId,
-        onBlock: (pcm, level) => {
-          this.o.on.level(level)
+        onBlock: (pcm) => {
           if (this.ws?.readyState === WebSocket.OPEN) this.ws.send(audioChunk(pcm16ToBase64(pcm)))
         }
       })
@@ -67,8 +68,8 @@ export class VoiceConversation {
       return
     }
     this.speaker.onSpeaking = (on) => {
-      this.speaking = on
-      if (!this.stopped) this.o.on.state(on ? 'speaking' : 'listening')
+      if (this.stopped || this.talking) return
+      this.o.on.state(on ? 'answering' : 'ready')
     }
 
     const ws = new WebSocket(`${LIVE_URL}?key=${encodeURIComponent(this.o.apiKey)}`)
@@ -94,12 +95,41 @@ export class VoiceConversation {
     }
   }
 
+  /** Pressed: from here until it is let go, everything heard belongs to one turn. */
+  beginTurn(): void {
+    if (this.stopped || this.talking) return
+    if (!this.ready) {
+      this.waiting = true
+      return
+    }
+    this.talking = true
+    this.waiting = false
+    // Speaking over the answer cuts it off, the way it would with a person.
+    this.speaker.stop()
+    this.ws?.send(turnStart())
+    this.mic.setMuted(false)
+    this.o.on.state('talking')
+  }
+
+  /** Let go: the turn is over and the model may answer. */
+  endTurn(): void {
+    this.waiting = false
+    if (!this.talking) return
+    this.talking = false
+    this.mic.setMuted(true)
+    this.ws?.send(turnEnd())
+    if (!this.stopped) this.o.on.state('ready')
+  }
+
   private async onMessage(ev: MessageEvent): Promise<void> {
     const raw = typeof ev.data === 'string' ? ev.data : await (ev.data as Blob).text()
     for (const event of parseServerMessage(raw)) {
       switch (event.kind) {
         case 'ready':
-          this.o.on.state('listening')
+          this.ready = true
+          this.o.on.state('ready')
+          // Pressed while it was still connecting: open the turn now rather than lose it.
+          if (this.waiting) this.beginTurn()
           break
         case 'audio':
           this.speaker.play(base64ToPcm16(event.data))
@@ -107,18 +137,14 @@ export class VoiceConversation {
         case 'heard':
           this.o.on.heard(event.text)
           break
-        case 'said':
-          this.o.on.said(event.text)
-          break
         case 'interrupted':
-          // Spoken over: what is queued is already out of date.
           this.speaker.stop()
           break
         case 'tools':
           void this.answerTools(event.calls)
           break
         case 'goAway':
-          this.fail('The conversation reached its limit. Start it again.')
+          this.fail('The conversation reached its limit. Press to talk again.')
           break
         default:
           break
@@ -143,19 +169,9 @@ export class VoiceConversation {
     if (this.ws?.readyState === WebSocket.OPEN) this.ws.send(toolResult(answers))
   }
 
-  /** Something typed into the bubble instead of spoken. */
+  /** Something typed instead of spoken. */
   say(text: string): void {
     if (this.ws?.readyState === WebSocket.OPEN) this.ws.send(textTurn(text))
-  }
-
-  /** Stops the microphone without hanging up; the voice can still be heard. */
-  setMuted(muted: boolean): void {
-    this.mic.setMuted(muted)
-  }
-
-  /** True while the model's voice is coming out of the speakers. */
-  isSpeaking(): boolean {
-    return this.speaking
   }
 
   private fail(detail: string): void {
@@ -166,6 +182,7 @@ export class VoiceConversation {
 
   stop(keepState = false): void {
     this.stopped = true
+    this.talking = false
     this.mic.close()
     this.speaker.close()
     const ws = this.ws

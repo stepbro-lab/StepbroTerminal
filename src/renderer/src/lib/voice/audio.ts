@@ -59,15 +59,6 @@ export function base64ToPcm16(b64: string): Int16Array {
   return new Int16Array(bytes.buffer, 0, Math.floor(bytes.length / 2))
 }
 
-/** How loud a block is, 0 to 1: what the bubble pulses to. */
-export function loudness(input: Float32Array): number {
-  if (!input.length) return 0
-  let sum = 0
-  for (let i = 0; i < input.length; i++) sum += input[i] * input[i]
-  // Speech sits well below full scale, so the root mean square is lifted into a usable range.
-  return Math.min(1, Math.sqrt(sum / input.length) * 4)
-}
-
 /**
  * The worklet that hands blocks of microphone audio back to the page. It runs on the audio
  * thread, where nothing else may block it, and is given to the browser as text: bundlers have no
@@ -98,7 +89,7 @@ export async function listMics(): Promise<Array<{ id: string; label: string }>> 
 }
 
 export interface MicOptions {
-  onBlock: (pcm: Int16Array, level: number) => void
+  onBlock: (pcm: Int16Array) => void
   /** The microphone to listen through; the system default when left out. */
   deviceId?: string
 }
@@ -109,7 +100,7 @@ export class Mic {
   private stream: MediaStream | null = null
   private node: AudioWorkletNode | null = null
   private url = ''
-  private muted = false
+  private muted = true
 
   async open(o: MicOptions): Promise<void> {
     // Echo cancellation is what keeps the model from hearing itself through the speakers.
@@ -132,9 +123,9 @@ export class Mic {
     const node = new AudioWorkletNode(ctx, 'step-capture')
     this.node = node
     node.port.onmessage = (e: MessageEvent<Float32Array>) => {
+      // Muted between turns, so nothing is measured, converted or sent while nobody is talking.
       if (this.muted) return
-      const block = e.data
-      o.onBlock(floatsToPcm16(resample(block, ctx.sampleRate, INPUT_RATE)), loudness(block))
+      o.onBlock(floatsToPcm16(resample(e.data, ctx.sampleRate, INPUT_RATE)))
     }
     ctx.createMediaStreamSource(this.stream).connect(node)
     // Connected to nothing audible: the worklet only reports, it must not be heard.

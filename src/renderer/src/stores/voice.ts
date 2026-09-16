@@ -1,58 +1,55 @@
 import { create } from 'zustand'
 import { usePrefs } from './prefs'
+import { useUi } from './ui'
 import { liveApp } from '@/lib/voice/app'
 import { DEFAULT_VOICE_MODEL } from '@/lib/voice/protocol'
 import { VoiceConversation, type VoiceState } from '@/lib/voice/session'
-import type { ToolOutcome } from '@/lib/voice/tools'
+import { t } from '@/lib/i18n'
 
-/** The voice that is speaking now, if any. Kept beside the store: it is a thing, not a value. */
+/** The conversation that is open, if any. Kept beside the store: it is a thing, not a value. */
 let live: VoiceConversation | null = null
+/** Connecting takes a second, so a finished conversation is kept a while in case of a follow-up. */
+let idle = 0
+const IDLE_MS = 45_000
 
 export interface VoiceStore {
-  /** Whether the bubble is on screen at all. */
-  open: boolean
   state: VoiceState
-  /** Why it stopped, when it stopped badly. */
-  detail: string
-  /** What the person is saying and what the voice is answering, for the caption under the bubble. */
-  heard: string
-  said: string
-  level: number
-  muted: boolean
-  /** The last thing the voice did in the app, to show for a moment. */
-  did: NonNullable<ToolOutcome['did']> | null
-  toggle: () => void
-  show: () => void
-  hide: () => void
-  setMuted: (muted: boolean) => void
-  /** Says something to it in writing, for when speaking out loud is not on. */
-  say: (text: string) => void
+  /**
+   * Press to talk, let go to send. Pressing connects if nothing is open yet, and holding through
+   * the connection still works: the turn starts the moment it is ready.
+   */
+  press: () => void
+  release: () => void
+  /** Hang up now rather than waiting for the conversation to go cold. */
+  stop: () => void
+}
+
+/** What went wrong, in words worth acting on; anything unexpected is repeated as it came. */
+function reason(detail: string): string {
+  if (detail === 'no-key') return t('Add a Gemini key in Settings to talk.')
+  if (detail === 'microphone-denied') return t('stepbro terminal needs the microphone to hear you.')
+  if (/denied access|permission_denied/i.test(detail)) return t('Google will not let this key talk: its project has no access. Make another one in AI Studio.')
+  if (/api.?key|unauthenticated|invalid/i.test(detail)) return t('Google did not accept this key. Check it in Settings.')
+  return detail || t('The voice stopped.')
 }
 
 export const useVoice = create<VoiceStore>((set, get) => ({
-  open: false,
   state: 'off',
-  detail: '',
-  heard: '',
-  said: '',
-  level: 0,
-  muted: false,
-  did: null,
 
-  toggle: () => (get().open ? get().hide() : get().show()),
-
-  show: () => {
-    if (get().open) return
-    const prefs = usePrefs.getState().prefs
-    const apiKey = prefs?.geminiApiKey?.trim() ?? ''
-    set({ open: true, heard: '', said: '', did: null, detail: '', muted: false, level: 0 })
-    if (!apiKey) {
-      // Nothing to connect with: the bubble opens anyway and says so, with the way to fix it.
-      set({ state: 'error', detail: 'no-key' })
+  press: () => {
+    window.clearTimeout(idle)
+    if (live) {
+      live.beginTurn()
       return
     }
-    live?.stop(true)
-    live = new VoiceConversation({
+    const prefs = usePrefs.getState().prefs
+    const apiKey = prefs?.geminiApiKey?.trim() ?? ''
+    if (!apiKey) {
+      set({ state: 'error' })
+      useUi.getState().toast(reason('no-key'), 'error')
+      return
+    }
+    const conversation = new VoiceConversation({
       apiKey,
       model: prefs?.voiceModel?.trim() || DEFAULT_VOICE_MODEL,
       language: prefs?.language ?? 'en',
@@ -60,32 +57,35 @@ export const useVoice = create<VoiceStore>((set, get) => ({
       deviceId: prefs?.voiceInput || undefined,
       app: liveApp(),
       on: {
-        state: (state, detail) => set({ state, detail: detail ?? '' }),
-        // Each turn is spoken afresh: the caption shows this turn, not the whole conversation.
-        heard: (text) => set((s) => ({ heard: s.said ? text : s.heard + text, said: '' })),
-        said: (text) => set((s) => ({ said: s.said + text })),
-        did: (did) => set({ did }),
-        level: (level) => set({ level })
+        state: (state, detail) => {
+          set({ state })
+          if (state === 'error') {
+            useUi.getState().toast(reason(detail ?? ''), 'error')
+            if (live === conversation) live = null
+          }
+        },
+        // Nothing is drawn while it listens, so nothing here has to reach the screen.
+        heard: () => {},
+        did: () => {}
       }
     })
-    void live.start()
+    live = conversation
+    void conversation.start()
+    // Held from the first press: the turn opens as soon as the socket is ready.
+    conversation.beginTurn()
   },
 
-  hide: () => {
+  release: () => {
+    live?.endTurn()
+    window.clearTimeout(idle)
+    // Kept warm for a follow-up, then hung up so nothing is billed for sitting there.
+    idle = window.setTimeout(() => get().stop(), IDLE_MS)
+  },
+
+  stop: () => {
+    window.clearTimeout(idle)
     live?.stop()
     live = null
-    set({ open: false, state: 'off', heard: '', said: '', did: null, detail: '', level: 0 })
-  },
-
-  setMuted: (muted) => {
-    live?.setMuted(muted)
-    set({ muted })
-  },
-
-  say: (text) => {
-    const said = text.trim()
-    if (!said) return
-    live?.say(said)
-    set({ heard: said, said: '' })
+    set({ state: 'off' })
   }
 }))

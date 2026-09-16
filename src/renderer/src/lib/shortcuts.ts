@@ -48,7 +48,8 @@ export function runCommand(cmd: Command): void {
       ui.setSettingsOpen(!ui.settingsOpen)
       break
     case 'voice':
-      useVoice.getState().toggle()
+      // Held rather than toggled; the key coming up ends the turn (see App).
+      useVoice.getState().press()
       break
     case 'restart-session':
       if (ui.activeId) restartSession(ui.activeId)

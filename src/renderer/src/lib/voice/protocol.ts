@@ -42,9 +42,13 @@ export function buildSetup(o: SetupOptions): string {
       },
       systemInstruction: { parts: [{ text: o.instructions }] },
       tools: o.functions.length ? [{ functionDeclarations: o.functions }] : [],
-      // Both sides transcribed, so the bubble can show what was heard and what was said.
+      // Both sides transcribed: what was heard is what the prompt is written from.
       inputAudioTranscription: {},
-      outputAudioTranscription: {}
+      outputAudioTranscription: {},
+      // Push to talk: the turn ends when the person lets go of the key, not when they go quiet.
+      // Someone thinking out loud stops and starts, and being cut off mid-thought is the whole
+      // reason talking to a machine is tiring.
+      realtimeInputConfig: { automaticActivityDetection: { disabled: true } }
     }
   })
 }
@@ -55,6 +59,15 @@ export function buildSetup(o: SetupOptions): string {
  */
 export function audioChunk(base64: string): string {
   return JSON.stringify({ realtimeInput: { audio: { mimeType: `audio/pcm;rate=${INPUT_RATE}`, data: base64 } } })
+}
+
+/** The person pressed the key to speak, and let it go. Audio between the two is one turn. */
+export function turnStart(): string {
+  return JSON.stringify({ realtimeInput: { activityStart: {} } })
+}
+
+export function turnEnd(): string {
+  return JSON.stringify({ realtimeInput: { activityEnd: {} } })
 }
 
 /** Something typed rather than spoken, sent as a finished turn. */

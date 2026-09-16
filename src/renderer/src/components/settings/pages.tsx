@@ -342,7 +342,7 @@ export function VoicePage() {
       </Section>
 
       <Section title={t('What it can do')} description={t('It writes prompts on the input line of the session you mean, for you to read and send. It never sends one on its own, and it can open terminals, split panes and read what is on screen.')}>
-        <Row label={t('Open it')} hint={t('Or the button beside the notes, at the top of the window.')}>
+        <Row label={t('Hold to talk')} hint={t('Hold the key while you speak and let go when you finish. Or hold the button beside the notes, at the top of the window.')}>
           {chord ? <Keys chord={chord} /> : <span className="text-[12.5px] text-muted">{t('No key set')}</span>}
         </Row>
       </Section>

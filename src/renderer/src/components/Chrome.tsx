@@ -32,8 +32,9 @@ function ChromeButtons() {
   const prefs = usePrefs((s) => s.prefs)
   const setPrefs = usePrefs((s) => s.set)
   const collapsed = prefs?.sidebarCollapsed ?? false
-  const talking = useVoice((s) => s.open)
-  const toggleVoice = useVoice((s) => s.toggle)
+  const voice = useVoice((s) => s.state)
+  const press = useVoice((s) => s.press)
+  const release = useVoice((s) => s.release)
   return (
     <div className="no-drag flex items-center gap-0.5">
       <button className="icon-btn" data-on={!collapsed} title={t('Toggle sidebar')} onClick={() => void setPrefs({ sidebarCollapsed: !collapsed })}>
@@ -41,7 +42,14 @@ function ChromeButtons() {
       </button>
       <ActivityPulse />
       <UpdatePill />
-      <button className="icon-btn" data-on={talking} title={titled(t('Talk to stepbro terminal'), 'voice')} onClick={toggleVoice}>
+      <button
+        className="icon-btn voice-btn"
+        data-voice={voice}
+        title={titled(t('Hold to talk'), 'voice')}
+        onMouseDown={press}
+        onMouseUp={release}
+        onMouseLeave={release}
+      >
         <AudioLines size={15} />
       </button>
       <NotesButton />
