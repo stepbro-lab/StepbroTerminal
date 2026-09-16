@@ -197,6 +197,10 @@ export interface Prefs {
   claudePath?: string
   /** DeepSeek serves an Anthropic-shaped API; with a key, Claude Code runs on its models as the DeepSeek preset. */
   deepseekApiKey?: string
+  /** Talking to the terminal: the key for Gemini's live API, and the model and voice it speaks with. */
+  geminiApiKey?: string
+  voiceModel?: string
+  voiceName?: string
   /** V4 Pro, V4 Flash, or whatever model id is in deepseekModelId. */
   deepseekModel?: 'pro' | 'flash' | 'custom'
   deepseekModelId?: string

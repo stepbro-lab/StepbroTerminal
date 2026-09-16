@@ -6,6 +6,7 @@ import { flatSessions, type SidebarProject } from './sidebarModel'
 import { registry } from '@/terminal/TerminalRegistry'
 import { jumpToAttention } from './attention'
 import { useNotes } from '@/stores/notes'
+import { useVoice } from '@/stores/voice'
 import { displayChord, matchShortcut, resolveBindings, type Bindings, type ShortcutId, type ShortcutMatch } from '@shared/keybindings'
 import { t } from '@/lib/i18n'
 
@@ -45,6 +46,9 @@ export function runCommand(cmd: Command): void {
       break
     case 'settings':
       ui.setSettingsOpen(!ui.settingsOpen)
+      break
+    case 'voice':
+      useVoice.getState().toggle()
       break
     case 'restart-session':
       if (ui.activeId) restartSession(ui.activeId)

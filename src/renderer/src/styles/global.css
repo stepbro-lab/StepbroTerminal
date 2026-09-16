@@ -755,6 +755,118 @@ kbd {
   color: #fff;
 }
 
+/* ---- the voice: a bubble over the terminal that listens and answers ---- */
+.voice {
+  position: fixed;
+  z-index: 60;
+  width: 72px;
+}
+.voice-body {
+  position: relative;
+  width: 72px;
+  height: 72px;
+}
+.voice-orb {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 999px;
+  background: var(--bg-elevated);
+  color: var(--text);
+  box-shadow: var(--shadow-chip);
+  cursor: grab;
+  transition: color 160ms var(--ease);
+}
+.voice-orb:active {
+  cursor: grabbing;
+}
+/* The orb draws on a transparent canvas of its own and must not take the press. */
+.voice-orb canvas {
+  pointer-events: none;
+}
+.voice-orb[data-state='error'] {
+  color: var(--danger);
+}
+.voice-orb[data-muted='true'] canvas {
+  opacity: 0.4;
+}
+/* Muted: the orb holds still behind the reason it is holding still. */
+.voice-muted {
+  position: absolute;
+  display: inline-flex;
+  color: var(--text-muted);
+}
+/* Closing sits on the rim, out of the way of the press that mutes. */
+.voice-close {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  box-shadow: 0 0 0 1px var(--border);
+  opacity: 0;
+  transition: opacity 140ms var(--ease);
+}
+.voice:hover .voice-close {
+  opacity: 1;
+}
+.voice-close:hover {
+  color: var(--text);
+}
+/* What it heard and what it did, opening away from whichever edge the bubble sits nearest. */
+.voice-caption {
+  position: absolute;
+  top: calc(100% + 10px);
+  /* Near the foot of the window it opens upward instead, so it is never cut off. */
+  width: max-content;
+  max-width: 280px;
+  padding: 8px 12px;
+  border-radius: var(--radius-pop);
+  background: var(--bg-overlay);
+  box-shadow:
+    0 0 0 1px var(--border) inset,
+    var(--shadow-chip);
+  font-size: 12.5px;
+  line-height: 1.35;
+  color: var(--text);
+}
+.voice[data-side='right'] .voice-caption {
+  right: 0;
+}
+.voice[data-side='left'] .voice-caption {
+  left: 0;
+}
+.voice[data-vside='up'] .voice-caption {
+  top: auto;
+  bottom: calc(100% + 10px);
+}
+.voice-caption[data-error='true'] .voice-text {
+  color: var(--danger);
+}
+.voice-did {
+  margin-bottom: 4px;
+  font-weight: 500;
+  color: var(--accent);
+}
+.voice-fix {
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--accent);
+}
+.voice-fix:hover {
+  text-decoration: underline;
+}
+
 /* ---- the folded sidebar out over the terminal for a look, in from the left and back the same way ---- */
 aside[data-peek] {
   position: absolute;

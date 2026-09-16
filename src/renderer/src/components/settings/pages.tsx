@@ -8,6 +8,7 @@ import { launchWorkspace } from '@/lib/actions'
 import { blankPane, newLaunchConfig, workspaceUrl } from '@/lib/launchConfigs'
 import { ACCENTS } from '@/theme/accents'
 import { DEFAULT_LOGO, LOGOS } from '@/lib/logos'
+import { DEFAULT_VOICE_MODEL } from '@/lib/voice/protocol'
 import type { LogoId } from '@shared/types'
 import { LANGUAGES } from '@shared/i18n'
 import { AgentLogo } from '../sidebar/AgentLogo'
@@ -207,6 +208,38 @@ export function AgentsPage() {
             mono
             width={300}
             onChange={(v) => upd({ claudePath: v || undefined })}
+          />
+        </Row>
+      </Section>
+
+      <Section
+        title={t('Voice')}
+        description={t('Talk to stepbro terminal and it writes the prompt for you, on the input line of the session you mean, for you to read and send. It listens and answers through Gemini, so it needs a key.')}
+      >
+        <Row label={t('API key')} hint={t('Kept on this machine, in the app preferences.')}>
+          <TextField value={p.geminiApiKey ?? ''} placeholder="AIza…" mono secret width={300} onChange={(v) => upd({ geminiApiKey: v.trim() || undefined })} />
+          <SmallButton onClick={() => void window.step.invoke('app:openExternal', 'https://aistudio.google.com/apikey')}>{t('Get a key')}</SmallButton>
+        </Row>
+        <Row label={t('Model')} hint={t('Any Gemini model that listens and speaks: their names end in live or native-audio.')}>
+          <TextField
+            value={p.voiceModel ?? ''}
+            placeholder={DEFAULT_VOICE_MODEL}
+            mono
+            width={300}
+            list={['models/gemini-3.8-live', 'models/gemini-3.1-flash-live-preview', 'models/gemini-2.5-flash-native-audio-latest']}
+            onChange={(v) => upd({ voiceModel: v.trim() || undefined })}
+          />
+        </Row>
+        <Row label={t('Its voice')} hint={t('How it sounds. Takes effect the next time you open it.')}>
+          <Segmented
+            value={p.voiceName ?? 'Puck'}
+            options={[
+              { value: 'Puck', label: 'Puck' },
+              { value: 'Kore', label: 'Kore' },
+              { value: 'Aoede', label: 'Aoede' },
+              { value: 'Charon', label: 'Charon' }
+            ]}
+            onChange={(voiceName) => upd({ voiceName })}
           />
         </Row>
       </Section>
