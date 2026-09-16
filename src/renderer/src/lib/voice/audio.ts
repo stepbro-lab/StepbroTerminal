@@ -88,6 +88,24 @@ export async function listMics(): Promise<Array<{ id: string; label: string }>> 
     .map((d, i) => ({ id: d.deviceId, label: d.label || `Microphone ${i + 1}` }))
 }
 
+/**
+ * How loud each side is, right now, between 0 and 1. Kept as two plain numbers rather than in a
+ * store: the wave reads them from an animation frame sixty times a second, and the microphone
+ * writes to them three hundred times a second. Putting either through React is what made the old
+ * bubble stutter; a number written to a module has no listeners and re-renders nothing.
+ */
+let heard = 0
+
+/** Loudness of what the microphone is picking up, and of the voice answering. */
+export const micLevel = (): number => heard
+
+/** Root mean square of a block of samples: the loudness a person would call it. */
+function loudness(block: Float32Array): number {
+  let sum = 0
+  for (let i = 0; i < block.length; i++) sum += block[i] * block[i]
+  return Math.sqrt(sum / (block.length || 1))
+}
+
 export interface MicOptions {
   onBlock: (pcm: Int16Array) => void
   /** The microphone to listen through; the system default when left out. */
@@ -125,6 +143,7 @@ export class Mic {
     node.port.onmessage = (e: MessageEvent<Float32Array>) => {
       // Muted between turns, so nothing is measured, converted or sent while nobody is talking.
       if (this.muted) return
+      heard = loudness(e.data)
       o.onBlock(floatsToPcm16(resample(e.data, ctx.sampleRate, INPUT_RATE)))
     }
     ctx.createMediaStreamSource(this.stream).connect(node)
@@ -136,6 +155,8 @@ export class Mic {
   /** Stops sending without dropping the device, so speaking again is instant. */
   setMuted(muted: boolean): void {
     this.muted = muted
+    // Nothing is being picked up while muted, and a wave left at its last height looks stuck.
+    if (muted) heard = 0
   }
 
   close(): void {
@@ -159,12 +180,37 @@ export class Speaker {
   private ctx: AudioContext | null = null
   private playing: AudioBufferSourceNode[] = []
   private nextAt = 0
+  /** Reads the loudness of what is coming out of the speaker at this instant, not of what is queued. */
+  private analyser: AnalyserNode | null = null
+  private samples: Uint8Array<ArrayBuffer> | null = null
   /** Set while sound is actually coming out, so the bubble can show it. */
   onSpeaking: (speaking: boolean) => void = () => {}
 
   private context(): AudioContext {
-    if (!this.ctx) this.ctx = new AudioContext({ sampleRate: OUTPUT_RATE })
+    if (!this.ctx) {
+      this.ctx = new AudioContext({ sampleRate: OUTPUT_RATE })
+      // Everything played goes through here on its way out, so what it reports is what is heard:
+      // slices are booked seconds ahead, and their own samples would run the wave far too early.
+      this.analyser = this.ctx.createAnalyser()
+      this.analyser.fftSize = 256
+      this.samples = new Uint8Array(new ArrayBuffer(this.analyser.fftSize))
+      this.analyser.connect(this.ctx.destination)
+    }
     return this.ctx
+  }
+
+  /** How loud the voice is at this instant, between 0 and 1; zero when it is not speaking. */
+  level(): number {
+    const analyser = this.analyser
+    const samples = this.samples
+    if (!analyser || !samples || !this.playing.length) return 0
+    analyser.getByteTimeDomainData(samples)
+    let sum = 0
+    for (let i = 0; i < samples.length; i++) {
+      const v = (samples[i] - 128) / 128
+      sum += v * v
+    }
+    return Math.sqrt(sum / samples.length)
   }
 
   play(pcm: Int16Array): void {
@@ -177,7 +223,7 @@ export class Speaker {
     buffer.getChannelData(0).set(pcm16ToFloats(pcm))
     const src = ctx.createBufferSource()
     src.buffer = buffer
-    src.connect(ctx.destination)
+    src.connect(this.analyser ?? ctx.destination)
     // A slice that arrives late starts now; one that arrives early waits its turn.
     const start = Math.max(ctx.currentTime, this.nextAt)
     src.start(start)

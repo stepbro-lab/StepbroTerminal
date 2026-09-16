@@ -1,4 +1,4 @@
-import { app, clipboard, dialog, ipcMain, Menu, shell } from 'electron'
+import { app, clipboard, dialog, ipcMain, Menu, shell, systemPreferences } from 'electron'
 import fs from 'node:fs'
 import type { CreateRequest, InvokeMap, SendMap } from '@shared/ipc'
 import type { MenuItemSpec, Session } from '@shared/types'
@@ -9,6 +9,8 @@ import { buildLaunchSpec } from './presets/launchSpec'
 import { gitChanges, gitDiff, gitRevert } from './git'
 import { loadWorkspace, saveWorkspace } from './prefs'
 import { cornerEnter } from './window'
+import { voiceLevel, voiceState } from './voiceHud'
+import { globalKeyHeld } from './globalKeys'
 import type { Ctx } from './context'
 import { t } from './i18n'
 
@@ -163,6 +165,20 @@ export function registerIpc(ctx: Ctx): void {
   })
   handle('app:revealPath', (p) => shell.showItemInFolder(p))
   handle('app:paths', () => ({ data: stepDir(), hostLog: hostLogPath() }))
+
+  // ---- talking ----
+
+  // The window draws nothing of its own while talking, so this is how the pill over other programs
+  // knows what is going on. It only ever shows while the terminal is behind something else.
+  on('voice:state', (state) => voiceState(state))
+  on('voice:level', (mine, theirs) => voiceLevel(mine, theirs))
+  handle('voice:keyHeld', () => !!globalKeyHeld())
+  handle('voice:askForMicrophone', async () => {
+    // Windows and Linux ask through the page itself; macOS asks the system, once, and remembers.
+    if (process.platform !== 'darwin') return true
+    if (systemPreferences.getMediaAccessStatus('microphone') === 'granted') return true
+    return systemPreferences.askForMediaAccess('microphone')
+  })
 
   // ---- resource use (Settings > Advanced) ----
   handle('stats:get', async () => {

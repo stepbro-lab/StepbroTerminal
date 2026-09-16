@@ -1,4 +1,4 @@
-import { Mic, Speaker, base64ToPcm16, pcm16ToBase64 } from './audio'
+import { Mic, Speaker, base64ToPcm16, micLevel, pcm16ToBase64 } from './audio'
 import { audioChunk, buildSetup, parseServerMessage, speechLanguage, textTurn, toolResult, turnEnd, turnStart, LIVE_URL, type LiveCall } from './protocol'
 import { runTool, VOICE_FUNCTIONS, VOICE_INSTRUCTIONS, type ToolOutcome, type VoiceApp } from './tools'
 
@@ -49,6 +49,13 @@ export class VoiceConversation {
   private waiting = false
   /** Said before the socket was ready: sent the moment it is. */
   private queued: string[] = []
+  /**
+   * Frames that must not land inside an open turn. The markers around a turn frame audio and
+   * nothing else: a text turn or a tool result sent between them makes the model close the socket
+   * with "precondition check failed". So anything that is not audio waits for the turn to end,
+   * which costs nothing — the model is not answering while somebody is still speaking to it.
+   */
+  private outbox: string[] = []
 
   constructor(o: VoiceOptions) {
     this.o = o
@@ -97,6 +104,15 @@ export class VoiceConversation {
     }
   }
 
+  /**
+   * How loud each side is at this instant, between 0 and 1: what the microphone is picking up,
+   * and what the voice is saying. Read straight from the audio, never stored, so asking sixty
+   * times a second costs nothing and changes nothing.
+   */
+  level(): { mine: number; theirs: number } {
+    return { mine: micLevel(), theirs: this.speaker.level() }
+  }
+
   /** Pressed: from here until it is let go, everything heard belongs to one turn. */
   beginTurn(): void {
     if (this.stopped || this.talking) return
@@ -120,6 +136,8 @@ export class VoiceConversation {
     this.talking = false
     this.mic.setMuted(true)
     this.ws?.send(turnEnd())
+    // Whatever was held back while the turn was open can go now that it is closed.
+    for (const frame of this.outbox.splice(0)) this.sendBetweenTurns(frame)
     if (!this.stopped) this.o.on.state('ready')
   }
 
@@ -169,7 +187,7 @@ export class VoiceConversation {
         return { id: call.id, name: call.name, output: outcome.output }
       })
     )
-    if (this.ws?.readyState === WebSocket.OPEN) this.ws.send(toolResult(answers))
+    this.sendBetweenTurns(toolResult(answers))
   }
 
   /** Something written instead of spoken: a question typed, or a passage to read out. */
@@ -179,7 +197,17 @@ export class VoiceConversation {
       this.queued.push(text)
       return
     }
-    if (this.ws?.readyState === WebSocket.OPEN) this.ws.send(textTurn(text))
+    this.sendBetweenTurns(textTurn(text))
+  }
+
+  /** Sends a frame now, or the moment the turn under way is over. */
+  private sendBetweenTurns(frame: string): void {
+    if (this.stopped) return
+    if (this.talking) {
+      this.outbox.push(frame)
+      return
+    }
+    if (this.ws?.readyState === WebSocket.OPEN) this.ws.send(frame)
   }
 
   private fail(detail: string): void {

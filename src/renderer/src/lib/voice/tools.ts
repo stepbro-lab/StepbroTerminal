@@ -39,11 +39,15 @@ export interface VoiceApp {
   screen(id: string): string
   /** Puts text on the session's input line, without submitting it. */
   type(id: string, text: string): void
-  /** Submits whatever is on the input line. */
-  enter(id: string): void
+  /** Submits whatever is on the input line, giving a burst of text time to land first. */
+  enter(id: string): Promise<void>
   focus(id: string): void
-  /** Opens a terminal in a folder, running a shell or an agent. */
-  open(folderPath: string, presetId: string): Promise<string | null>
+  /**
+   * Opens a terminal in a folder, running a shell or an agent. `firstMessage` is typed and sent
+   * once it has settled at its prompt, which is the only safe way to say something to a program
+   * that is still starting up.
+   */
+  open(folderPath: string, presetId: string, firstMessage?: string): Promise<string | null>
   /** Opens a shell beside the pane in front. */
   split(dir: 'row' | 'column'): Promise<void>
 }
@@ -78,7 +82,7 @@ export const VOICE_FUNCTIONS: FunctionDeclaration[] = [
   },
   {
     name: 'send_prompt',
-    description: 'Presses Enter on a session, sending what is written there. Only ever call this when the person asks for it in so many words.',
+    description: 'Presses Enter on a session, sending whatever write_prompt left there. Call it straight after write_prompt whenever the person asked for the prompt to be sent — "and send it", "send it to him", "envíaselo" — and never when they did not.',
     parameters: {
       type: 'object',
       properties: { session: { type: 'string', description: 'Session id, title or agent name. The one in front when left out.' } },
@@ -107,7 +111,12 @@ export const VOICE_FUNCTIONS: FunctionDeclaration[] = [
       type: 'object',
       properties: {
         folder: { type: 'string', description: 'Folder name or path. The folder of the session in front when left out.' },
-        agent: { type: 'string', description: 'What runs in it: shell, or an agent name such as claude or codex. A shell when left out.' }
+        agent: { type: 'string', description: 'What runs in it: shell, or an agent name such as claude or codex. A shell when left out.' },
+        send: {
+          type: 'string',
+          description:
+            'A prompt to send it the moment it is ready, written out in full. Use this, rather than a write_prompt afterwards, whenever the person asks for a terminal and for something to be sent to it in one breath: a program that is still starting up cannot be typed into. Leave it out when they only asked for the terminal.'
+        }
       },
       required: []
     }
@@ -201,9 +210,11 @@ export async function runTool(app: VoiceApp, name: string, args: Record<string, 
     const folder = resolveFolder(folders, args.folder, folders.find((f) => f.name === here?.folder)?.path)
     if (!folder) return { output: 'There are no folders in the sidebar yet. Ask the person to add one.' }
     const agent = resolveAgent(app.agents(), args.agent)
-    const id = await app.open(folder.path, agent?.id ?? 'shell')
+    const send = typeof args.send === 'string' ? args.send.trim() : ''
+    const id = await app.open(folder.path, agent?.id ?? 'shell', send || undefined)
     if (!id) return { output: `${agent?.name ?? 'The shell'} would not start in ${folder.name}.` }
     const what = `${agent?.name ?? 'Shell'} in ${folder.name}`
+    if (send) return { output: `Open: ${what}, and the prompt goes in as soon as it is up.`, did: { kind: 'sent', session: what } }
     return { output: `Open: ${what}. It is in front now.`, did: { kind: 'opened', session: what } }
   }
   if (name === 'split_pane') {
@@ -234,7 +245,7 @@ export async function runTool(app: VoiceApp, name: string, args: Record<string, 
       }
     }
     case 'send_prompt': {
-      app.enter(target.id)
+      await app.enter(target.id)
       return { output: `Sent to ${target.title}.`, did: { kind: 'sent', session: target.title } }
     }
     case 'focus_session': {
@@ -262,6 +273,9 @@ How to behave:
 - Find out what is going on yourself. Call list_sessions, list_folders and read_screen before asking them to repeat something you could have looked at.
 - You can open terminals for them: open_session starts a shell or an agent in any folder, and split_pane puts one beside what is already there. Do it when they ask for a terminal, and say in a few words what you opened.
 - When they describe work to be done, call write_prompt with the whole thing written out: what to do, what done looks like, which files or folders, and what must not be touched. Then say in one short sentence which session you wrote it to. Do not read the prompt back to them.
-- The prompt is left on the input line for them to read and send. Never call send_prompt unless they ask you to send it in so many words.
+- Writing a prompt and sending it are two separate tools, and which one they wanted is in what they said.
+- By default write_prompt is the end of it: the prompt waits on the input line for them to read and press Enter themselves.
+- But when they ask for it to be sent — "y se lo envías", "envíaselo", "mándaselo", "and send it", "and tell it to start" — then sending it is part of what they asked for. Call write_prompt and then send_prompt in the same breath, without asking whether you should, and say in one short sentence what you sent and where. They asked you to press Enter so that they would not have to; leaving it sitting there is not doing what they asked.
+- When the terminal is not open yet — "abre claude en tal carpeta y envíale tal cosa" — it is one call: open_session with the folder, the agent, and the whole prompt in its send argument. It goes in by itself once the agent has finished starting up. Never open a terminal and then write into it: there is nothing there to type into yet.
 - Never write a prompt that tells an agent to delete files, reset or force-push, unless they say exactly that.
 - If they are only asking you a question, just answer it. Not everything is a prompt.`

@@ -23,7 +23,7 @@ function currentDims(): { cols: number; rows: number } {
 export async function createSession(
   projectPath: string,
   presetId: string,
-  opts: { resumeId?: string; title?: string } = {}
+  opts: { resumeId?: string; title?: string; runOnStart?: string } = {}
 ): Promise<Session | null> {
   const ui = useUi.getState()
   try {

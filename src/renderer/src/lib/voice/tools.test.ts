@@ -33,7 +33,7 @@ interface Spy {
   typed: Array<[string, string]>
   entered: string[]
   focused: string[]
-  opened: Array<[string, string]>
+  opened: Array<[string, string, string | undefined]>
   splits: string[]
 }
 
@@ -46,10 +46,12 @@ function fakeApp(over: Partial<VoiceApp> = {}): VoiceApp & Spy {
     agents: () => agents,
     screen: () => 'PS C:\\> error: no such file',
     type: (id, text) => spy.typed.push([id, text]),
-    enter: (id) => spy.entered.push(id),
+    enter: async (id) => {
+      spy.entered.push(id)
+    },
     focus: (id) => spy.focused.push(id),
-    open: async (folder, preset) => {
-      spy.opened.push([folder, preset])
+    open: async (folder, preset, first) => {
+      spy.opened.push([folder, preset, first])
       return 'new-id'
     },
     split: async (dir) => {
@@ -184,15 +186,32 @@ describe('runTool', () => {
   it('opens a terminal in the folder and with the agent that were asked for', async () => {
     const app = fakeApp()
     const outcome = await runTool(app, 'open_session', { folder: 'melon', agent: 'claude' })
-    expect(app.opened).toEqual([['C:\\dev\\melon-mind', 'claude']])
+    expect(app.opened).toEqual([['C:\\dev\\melon-mind', 'claude', undefined]])
     expect(outcome.did).toEqual({ kind: 'opened', session: 'Claude Code in melon-mind' })
+  })
+
+  it('gives the new terminal its first prompt, rather than typing into one that is still starting', async () => {
+    // "open claude there and send it this" is one thing asked for, and an agent drawing its
+    // prompt cannot be typed into: the prompt travels with the session and goes in once it settles.
+    const app = fakeApp()
+    const outcome = await runTool(app, 'open_session', { folder: 'melon', agent: 'claude', send: '  Fix the login form.  ' })
+    expect(app.opened).toEqual([['C:\\dev\\melon-mind', 'claude', 'Fix the login form.']])
+    expect(app.typed).toEqual([])
+    expect(outcome.did).toEqual({ kind: 'sent', session: 'Claude Code in melon-mind' })
+  })
+
+  it('treats an empty send as no send at all', async () => {
+    const app = fakeApp()
+    const outcome = await runTool(app, 'open_session', { folder: 'melon', send: '   ' })
+    expect(app.opened[0][2]).toBeUndefined()
+    expect(outcome.did).toEqual({ kind: 'opened', session: 'Shell in melon-mind' })
   })
 
   it('opens a shell where the person already is when neither was said', async () => {
     const app = fakeApp()
     await runTool(app, 'open_session', {})
     // The session in front is the shell in StepTerminal, so that is where a new one belongs.
-    expect(app.opened).toEqual([['C:\\dev\\StepTerminal', 'shell']])
+    expect(app.opened).toEqual([['C:\\dev\\StepTerminal', 'shell', undefined]])
   })
 
   it('says so when the terminal would not start', async () => {
@@ -231,7 +250,11 @@ describe('what the model is offered', () => {
     expect(names).toContain('send_prompt')
     const write = VOICE_FUNCTIONS.find((f) => f.name === 'write_prompt')!
     expect(write.parameters.required).toEqual(['text'])
-    expect(VOICE_FUNCTIONS.find((f) => f.name === 'send_prompt')!.description).toMatch(/only ever call this when the person asks/i)
+    // Two tools, and the one that presses Enter says plainly both when to call it and when not:
+    // being shy about sending is as wrong as sending on its own when somebody asked for it.
+    const send = VOICE_FUNCTIONS.find((f) => f.name === 'send_prompt')!
+    expect(send.description).toMatch(/whenever the person asked for the prompt to be sent/i)
+    expect(send.description).toMatch(/never when they did not/i)
   })
 
   it('offers opening a terminal and splitting one, so it is not only a typist', () => {
@@ -251,7 +274,8 @@ describe('what the model is offered', () => {
 
 describe('the voice of it', () => {
   it('is told to keep quiet about sending on its own, and that it may open terminals', () => {
-    expect(VOICE_INSTRUCTIONS).toMatch(/Never call send_prompt unless they ask/)
+    expect(VOICE_INSTRUCTIONS).toMatch(/write_prompt is the end of it/)
+    expect(VOICE_INSTRUCTIONS).toMatch(/when they ask for it to be sent/)
     expect(VOICE_INSTRUCTIONS).toMatch(/Speak the language they speak/)
     expect(VOICE_INSTRUCTIONS).toMatch(/open_session/)
   })

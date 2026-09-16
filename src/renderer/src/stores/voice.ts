@@ -12,6 +12,19 @@ let live: VoiceConversation | null = null
 /** Connecting takes a second, so a finished conversation is kept a while in case of a follow-up. */
 let idle = 0
 const IDLE_MS = 45_000
+/**
+ * A turn started by the key the system holds is ended by pressing that key again, and a key
+ * pressed by mistake would otherwise leave the microphone open for the rest of the day. So a turn
+ * nobody ends is ended here; long enough that it never cuts anyone off mid-sentence.
+ */
+let capped = 0
+const MAX_TURN_MS = 90_000
+/**
+ * Whether the turn under way is being held down. A key coming up ends a held turn and nothing
+ * else: one started by the key the system holds waits for that key to be pressed a second time,
+ * and must survive every other key that happens to come up in between.
+ */
+let held = false
 
 export interface VoiceStore {
   state: VoiceState
@@ -21,11 +34,25 @@ export interface VoiceStore {
    */
   press: () => void
   release: () => void
+  /** Ends a turn that is being held down, and leaves a turn that is not. For keys coming up. */
+  releaseHeld: () => void
+  /**
+   * Press to start, press again to send. What the key the system holds can do: a key held across
+   * the whole machine reports going down and never coming up, on any platform.
+   */
+  toggle: () => void
   /** Reads a passage out loud, at the pace set in Settings. Nothing is answered or summarized. */
   read: (text: string) => void
   /** Hang up now rather than waiting for the conversation to go cold. */
   stop: () => void
 }
+
+/**
+ * How loud each side is at this instant, between 0 and 1. Deliberately a function and not part of
+ * the store: the wave asks sixty times a second, and a number that lived in the store would
+ * re-render everything holding it that often, which is what made the old bubble stutter.
+ */
+export const voiceLevels = (): { mine: number; theirs: number } => live?.level() ?? { mine: 0, theirs: 0 }
 
 /** What went wrong, in words worth acting on; anything unexpected is repeated as it came. */
 function reason(detail: string): string {
@@ -33,6 +60,7 @@ function reason(detail: string): string {
   if (detail === 'microphone-denied') return t('stepbro terminal needs the microphone to hear you.')
   if (/denied access|permission_denied/i.test(detail)) return t('Google will not let this key talk: its project has no access. Make another one in AI Studio.')
   if (/api.?key|unauthenticated|invalid/i.test(detail)) return t('Google did not accept this key. Check it in Settings.')
+  if (/precondition/i.test(detail)) return t('The conversation was cut off. Press to talk again.')
   return detail || t('The voice stopped.')
 }
 
@@ -41,8 +69,25 @@ export const useVoice = create<VoiceStore>((set) => ({
 
   press: () => {
     window.clearTimeout(idle)
+    held = true
     const conversation = connect(set)
     conversation?.beginTurn()
+  },
+
+  releaseHeld: () => {
+    if (held) useVoice.getState().release()
+  },
+
+  toggle: () => {
+    const voice = useVoice.getState()
+    if (voice.state === 'talking') {
+      voice.release()
+      return
+    }
+    voice.press()
+    held = false
+    window.clearTimeout(capped)
+    capped = window.setTimeout(() => useVoice.getState().release(), MAX_TURN_MS)
   },
 
   read: (text) => {
@@ -56,13 +101,17 @@ export const useVoice = create<VoiceStore>((set) => ({
   },
 
   release: () => {
+    held = false
     live?.endTurn()
+    window.clearTimeout(capped)
     window.clearTimeout(idle)
     // Kept warm for a follow-up, then hung up so nothing is billed for sitting there.
     idle = window.setTimeout(() => useVoice.getState().stop(), IDLE_MS)
   },
 
   stop: () => {
+    held = false
+    window.clearTimeout(capped)
     window.clearTimeout(idle)
     live?.stop()
     live = null
@@ -80,6 +129,9 @@ function connect(set: (partial: Partial<VoiceStore>) => void): VoiceConversation
     useUi.getState().toast(reason('no-key'), 'error')
     return null
   }
+  // macOS will not let a program listen until it has been asked and answered; the answer is
+  // remembered, so this only ever shows the first time. Everywhere else the page asks by itself.
+  void window.step.invoke('voice:askForMicrophone')
   const conversation = new VoiceConversation({
       apiKey,
       model: prefs?.voiceModel?.trim() || DEFAULT_VOICE_MODEL,

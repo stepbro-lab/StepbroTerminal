@@ -297,6 +297,7 @@ function CustomLaunchers({ list, onChange }: { list: CustomPreset[]; onChange: (
 export function VoicePage() {
   const [p, upd] = usePrefsPage()
   const chord = useBinding('voice')
+  const anywhere = useBinding('voice-anywhere')
   const setPage = useUi((s) => s.setSettingsPage)
   const [mics, setMics] = useState<Array<{ id: string; label: string }>>([])
   useEffect(() => {
@@ -380,6 +381,21 @@ export function VoicePage() {
           {/* The keys are worth pressing on: a shortcut shown is a shortcut somebody will try to change. */}
           <button className="key-cap-btn" title={t('Change it in Shortcuts')} onClick={() => setPage('shortcuts')}>
             {chord ? <Keys chord={chord} /> : <span className="text-[12.5px] text-muted">{t('No key set')}</span>}
+          </button>
+        </Row>
+        <Row
+          label={t('From any app')}
+          hint={
+            !p.geminiApiKey?.trim()
+              ? t('It starts working once there is a key above.')
+              : p.voiceAnywhere === false
+                ? t('Only the window listens. Turn this on and the key answers wherever you are.')
+                : t('This one belongs to the whole machine, so it answers with any program in front. Press it to start talking and again to send; a pill over what you are doing shows it is listening.')
+          }
+        >
+          <Toggle value={p.voiceAnywhere !== false} onChange={(voiceAnywhere) => upd({ voiceAnywhere })} />
+          <button className="key-cap-btn" title={t('Change it in Shortcuts')} onClick={() => setPage('shortcuts')}>
+            {anywhere ? <Keys chord={anywhere} /> : <span className="text-[12.5px] text-muted">{t('No key set')}</span>}
           </button>
         </Row>
       </Section>

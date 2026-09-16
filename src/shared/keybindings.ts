@@ -30,6 +30,7 @@ export type ShortcutId =
   | 'redraw'
   | 'notes'
   | 'voice'
+  | 'voice-anywhere'
   | 'read-aloud'
   | 'toggle-sidebar'
   | 'add-project'
@@ -70,6 +71,8 @@ export const SHORTCUTS: ShortcutDef[] = [
   { id: 'notes', label: 'Notes', group: 'Find and navigate', default: 'Mod+Shift+N' },
   // Not Mod+Shift+V: inside a terminal that is paste, and the terminal answers it first.
   { id: 'voice', label: 'Talk to stepbro terminal', group: 'App', default: 'Mod+Shift+M' },
+  // Held by the system rather than by the window, so it answers while another app is in front.
+  { id: 'voice-anywhere', label: 'Talk from any app', group: 'App', default: 'Mod+Shift+Space' },
   { id: 'read-aloud', label: 'Read the selection out loud', group: 'App', default: 'Mod+Shift+P' },
   { id: 'redraw', label: 'Redraw the screen', group: 'App', default: 'Mod+Shift+L' },
   { id: 'toggle-sidebar', label: 'Toggle sidebar', group: 'App', default: 'Mod+B' },
@@ -226,12 +229,26 @@ export function reservedChords(mac: boolean): string[] {
  */
 const HOLD_SHORTCUTS = new Set(['voice'])
 
+/**
+ * Shortcuts the system holds for us, so they answer from any app. Their key is taken from every
+ * program on the machine, not only from the terminal, so one on its own is out of the question:
+ * an F key or a letter bound alone would stop working everywhere the moment it was set.
+ */
+const SYSTEM_SHORTCUTS = new Set<ShortcutId>(['voice-anywhere'])
+
+/** Whether the system holds this shortcut's key, rather than the window. */
+export function heldBySystem(id: ShortcutId): boolean {
+  return SYSTEM_SHORTCUTS.has(id)
+}
+
 /** Why a chord cannot be bound, or null when it can. */
 export function validateChord(chord: string, mac: boolean, id?: ShortcutId): string | null {
   const { mods, key } = parseChord(chord)
   const alone = !mods.some((m) => m !== 'Shift')
   const fkey = /^F\d{1,2}$/.test(key)
-  if (alone && !fkey && !(id && HOLD_SHORTCUTS.has(id))) return mac ? 'Add ⌘, ⌃ or ⌥ to it' : 'Add Ctrl or Alt to it'
+  const needsModifier = mac ? 'Add ⌘, ⌃ or ⌥ to it' : 'Add Ctrl or Alt to it'
+  if (id && SYSTEM_SHORTCUTS.has(id) && alone) return needsModifier
+  if (alone && !fkey && !(id && HOLD_SHORTCUTS.has(id))) return needsModifier
   if (reservedChords(mac).includes(chord)) return 'Reserved for copy and paste'
   // Keys a terminal cannot do without: bound on their own, there would be no way to type or leave.
   if (alone && !fkey && ['Enter', 'Tab', 'Escape', 'Backspace', 'Space', 'Delete'].includes(key)) return 'That key is needed in the terminal'

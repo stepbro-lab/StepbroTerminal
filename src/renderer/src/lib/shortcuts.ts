@@ -52,6 +52,11 @@ export function runCommand(cmd: Command): void {
       // Held rather than toggled; the key coming up ends the turn (see App).
       useVoice.getState().press()
       break
+    case 'voice-anywhere':
+      // The system normally answers this one before the window ever sees it. It lands here when
+      // another program already holds the key, or when talking from anywhere has been turned off.
+      useVoice.getState().toggle()
+      break
     case 'read-aloud':
       readAloud()
       break
@@ -189,7 +194,7 @@ export function handleKeydown(ev: KeyboardEvent): boolean {
   if (!m) return false
   // A key held down repeats, dozens of times a second. Talking is already talking by the second
   // one, so the rest are swallowed and go no further: not to the store, and not to the terminal.
-  if (ev.repeat) return m.id === 'voice'
+  if (ev.repeat) return m.id === 'voice' || m.id === 'voice-anywhere'
   if (m.id === 'jump') {
     if (m.digit) jumpTo(m.digit)
     return true

@@ -10,7 +10,7 @@ import { pruneLayout, type LayoutNode } from '@/lib/layout'
 import { addDroppedFolders, openWorkspaceByKey } from '@/lib/actions'
 import { Sidebar, useSidebarModel } from '@/components/sidebar/Sidebar'
 import { WindowCorner } from '@/components/Chrome'
-import { useVoice } from '@/stores/voice'
+import { useVoice, voiceLevels } from '@/stores/voice'
 import { SelectionRead } from '@/components/pane/SelectionRead'
 import { TerminalPane } from '@/components/pane/TerminalPane'
 import { CommandPalette } from '@/components/CommandPalette'
@@ -88,16 +88,37 @@ export default function App() {
         if (usePrefs.getState().prefs?.sidebarCollapsed && !ui.settingsOpen) ui.setSidebarPeek(true)
       }),
       s.on('ui:openFolder', (p) => void addDroppedFolders([p])),
-      s.on('ui:openWorkspace', (k) => void openWorkspaceByKey(k))
+      s.on('ui:openWorkspace', (k) => void openWorkspaceByKey(k)),
+      // The key the system holds, pressed while another program was in front.
+      s.on('ui:voiceToggle', () => useVoice.getState().toggle())
     ]
     void s.invoke('win:isMaximized').then((m) => useUi.getState().setMaximized(m))
     void s.invoke('notes:list').then((notes) => useNotes.getState().receive(notes))
     // Talking is held, not toggled, and the key can come up anywhere: in a terminal, over a
     // menu, or after the window lost focus altogether. Any of those ends the turn. (voice-keyup)
-    const onKeyUp = (): void => useVoice.getState().release()
-    const onBlur = (): void => useVoice.getState().release()
+    const onKeyUp = (): void => useVoice.getState().releaseHeld()
+    const onBlur = (): void => useVoice.getState().releaseHeld()
     window.addEventListener('keyup', onKeyUp, true)
     window.addEventListener('blur', onBlur)
+    // Nothing of the conversation is drawn in this window, so main is told where it stands: it is
+    // what puts the pill up. While one is open the loudness of both sides goes over as well, often
+    // enough for the wave in the pill to move with whoever is speaking and rarely enough to cost
+    // nothing. It is read straight from the audio, so no part of this passes through React.
+    let levels = 0
+    const offVoice = useVoice.subscribe((v, was) => {
+      if (v.state === was.state) return
+      s.send('voice:state', v.state)
+      const live = v.state !== 'off' && v.state !== 'error'
+      if (live && !levels) {
+        levels = window.setInterval(() => {
+          const l = voiceLevels()
+          s.send('voice:level', l.mine, l.theirs)
+        }, 50)
+      } else if (!live && levels) {
+        window.clearInterval(levels)
+        levels = 0
+      }
+    })
 
     const onKey = (ev: KeyboardEvent): void => {
       if (handleKeydown(ev)) {
@@ -128,6 +149,8 @@ export default function App() {
       window.removeEventListener('keydown', onKey, true)
       window.removeEventListener('keyup', onKeyUp, true)
       window.removeEventListener('blur', onBlur)
+      offVoice()
+      if (levels) window.clearInterval(levels)
       document.removeEventListener('dragover', swallowFileDrop)
       document.removeEventListener('drop', swallowFileDrop)
       mq.removeEventListener('change', onMq)

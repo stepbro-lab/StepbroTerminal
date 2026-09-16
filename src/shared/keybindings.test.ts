@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { chordFromEvent, displayParts, matchShortcut, parseChord, resolveBindings, takesAKeyFromTheTerminal, toAccelerator, validateChord, type KeyLike } from './keybindings'
+import { chordFromEvent, displayParts, heldBySystem, matchShortcut, parseChord, resolveBindings, takesAKeyFromTheTerminal, toAccelerator, validateChord, type KeyLike } from './keybindings'
 
 const ev = (over: Partial<KeyLike>): KeyLike => ({ key: '', code: '', ctrlKey: false, altKey: false, shiftKey: false, metaKey: false, ...over })
 
@@ -132,6 +132,32 @@ describe('a key held rather than tapped', () => {
 
   it('still refuses what copy and paste have spoken for', () => {
     expect(validateChord('Mod+V', false, 'voice')).toMatch(/copy and paste/)
+  })
+})
+
+describe('a key the system holds rather than the window', () => {
+  it('knows which shortcut that is', () => {
+    expect(heldBySystem('voice-anywhere')).toBe(true)
+    expect(heldBySystem('voice')).toBe(false)
+  })
+
+  it('refuses a key on its own, which talking in the window is allowed', () => {
+    // It would be taken from every program on the machine, not only from the terminal: a bare F5
+    // or full stop bound here would stop working everywhere the moment it was set.
+    expect(validateChord('.', false, 'voice-anywhere')).toMatch(/Ctrl or Alt/)
+    expect(validateChord('F5', false, 'voice-anywhere')).toMatch(/Ctrl or Alt/)
+    expect(validateChord('Shift+F5', false, 'voice-anywhere')).toMatch(/Ctrl or Alt/)
+    expect(validateChord('Mod+Shift+Space', false, 'voice-anywhere')).toBeNull()
+  })
+
+  it('has a default the system can be asked for', () => {
+    const chord = resolveBindings({}, false)['voice-anywhere']
+    expect(validateChord(chord!, false, 'voice-anywhere')).toBeNull()
+    expect(toAccelerator(chord)).toBe('CommandOrControl+Shift+Space')
+  })
+
+  it('leaves the terminal every key it had', () => {
+    expect(takesAKeyFromTheTerminal(resolveBindings({}, false)['voice-anywhere'])).toBe(false)
   })
 })
 

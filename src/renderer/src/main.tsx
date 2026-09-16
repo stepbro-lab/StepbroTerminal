@@ -11,6 +11,7 @@ import { useNotes } from '@/stores/notes'
 import { useVoice } from '@/stores/voice'
 import * as actions from '@/lib/actions'
 import { useHandoff } from '@/stores/handoff'
+import { VoiceHud } from './components/VoiceHud'
 
 if (import.meta.env.DEV) {
   // Handy for poking at state from DevTools while developing.
@@ -23,8 +24,18 @@ function Root() {
   return <App key={language} />
 }
 
-createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <Root />
-  </React.StrictMode>
-)
+const root = createRoot(document.getElementById('root')!)
+
+// The same page, opened a second time in a small window that floats over other programs while you
+// talk to the terminal from outside it. It is the pill and nothing else: no App, so no sessions,
+// no terminals and no second connection to the host.
+if (location.hash === '#voice') {
+  document.documentElement.classList.add('hud-window')
+  root.render(<VoiceHud />)
+} else {
+  root.render(
+    <React.StrictMode>
+      <Root />
+    </React.StrictMode>
+  )
+}

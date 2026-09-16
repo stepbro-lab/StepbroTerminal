@@ -205,6 +205,15 @@ export interface Prefs {
   voiceInput?: string
   /** How quickly it reads a selection out loud. */
   readSpeed?: 'slow' | 'normal' | 'fast'
+  /**
+   * Whether the system holds the talk-from-any-app key, so pressing it answers while another
+   * program is in front. On unless turned off, and only ever while there is a Gemini key.
+   */
+  voiceAnywhere?: boolean
+  /** Where the pill that floats while you talk was last dragged to, in screen coordinates. */
+  voiceHudPos?: { x: number; y: number }
+  /** Whether that pill is folded down to a bead. It listens just the same either way. */
+  voiceHudFolded?: boolean
   /** V4 Pro, V4 Flash, or whatever model id is in deepseekModelId. */
   deepseekModel?: 'pro' | 'flash' | 'custom'
   deepseekModelId?: string
