@@ -144,3 +144,18 @@ describe('takesAKeyFromTheTerminal', () => {
     expect(takesAKeyFromTheTerminal(null)).toBe(false)
   })
 })
+
+describe('a bare key bound to talking', () => {
+  const key = (over: Partial<KeyLike> = {}): KeyLike => ({ key: '.', code: 'Period', ctrlKey: false, altKey: false, shiftKey: false, metaKey: false, ...over }) as KeyLike
+
+  it('is recognized as the shortcut, which is what keeps it out of the terminal', () => {
+    // A key the app claims is a key xterm is told to ignore; one it does not claim is typed.
+    const bindings = resolveBindings({ voice: '.' }, false)
+    expect(matchShortcut(key(), bindings, false)?.id).toBe('voice')
+  })
+
+  it('is typed as usual once it is not bound to anything', () => {
+    const bindings = resolveBindings({ voice: null }, false)
+    expect(matchShortcut(key(), bindings, false)).toBeNull()
+  })
+})

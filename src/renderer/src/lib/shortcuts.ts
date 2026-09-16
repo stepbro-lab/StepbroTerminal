@@ -187,6 +187,9 @@ export function handleKeydown(ev: KeyboardEvent): boolean {
   }
   const m = commandFor(ev)
   if (!m) return false
+  // A key held down repeats, dozens of times a second. Talking is already talking by the second
+  // one, so the rest are swallowed and go no further: not to the store, and not to the terminal.
+  if (ev.repeat) return m.id === 'voice'
   if (m.id === 'jump') {
     if (m.digit) jumpTo(m.digit)
     return true
