@@ -216,13 +216,31 @@ export function reservedChords(mac: boolean): string[] {
   return mac ? ['Mod+C', 'Mod+V', 'Mod+Q'] : ['Mod+C', 'Mod+V', 'Mod+Shift+C', 'Mod+Shift+V']
 }
 
+/**
+ * Shortcuts are tapped, so a key on its own would be swallowed every time it was typed, which is
+ * why one needs a modifier. Talking is the exception: it is held down for as long as you speak,
+ * and a comfortable key to hold is a key under your finger, not a chord. So any key at all can be
+ * bound to it, including a full stop, at the price of that key no longer reaching the terminal.
+ */
+const HOLD_SHORTCUTS = new Set(['voice'])
+
 /** Why a chord cannot be bound, or null when it can. */
-export function validateChord(chord: string, mac: boolean): string | null {
+export function validateChord(chord: string, mac: boolean, id?: ShortcutId): string | null {
   const { mods, key } = parseChord(chord)
+  const alone = !mods.some((m) => m !== 'Shift')
   const fkey = /^F\d{1,2}$/.test(key)
-  if (!fkey && !mods.some((m) => m !== 'Shift')) return mac ? 'Add ⌘, ⌃ or ⌥ to it' : 'Add Ctrl or Alt to it'
+  if (alone && !fkey && !(id && HOLD_SHORTCUTS.has(id))) return mac ? 'Add ⌘, ⌃ or ⌥ to it' : 'Add Ctrl or Alt to it'
   if (reservedChords(mac).includes(chord)) return 'Reserved for copy and paste'
+  // Keys a terminal cannot do without: bound on their own, there would be no way to type or leave.
+  if (alone && !fkey && ['Enter', 'Tab', 'Escape', 'Backspace', 'Space', 'Delete'].includes(key)) return 'That key is needed in the terminal'
   return null
+}
+
+/** Whether a binding takes a key the terminal would otherwise receive, so it can be said out loud. */
+export function takesAKeyFromTheTerminal(chord: string | null): boolean {
+  if (!chord) return false
+  const { mods, key } = parseChord(chord)
+  return !mods.some((m) => m !== 'Shift') && !/^F\d{1,2}$/.test(key)
 }
 
 const KEY_LABELS: Record<string, string> = {

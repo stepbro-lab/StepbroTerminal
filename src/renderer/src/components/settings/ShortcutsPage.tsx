@@ -60,7 +60,7 @@ export function ShortcutsPage() {
         }
         chord = formatChord({ mods: c.mods, key: 'Digit' })
       }
-      const problem = validateChord(chord, isMac)
+      const problem = validateChord(chord, isMac, id)
       if (problem) {
         say(id, t(problem))
         return

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { chordFromEvent, displayParts, matchShortcut, parseChord, resolveBindings, toAccelerator, validateChord, type KeyLike } from './keybindings'
+import { chordFromEvent, displayParts, matchShortcut, parseChord, resolveBindings, takesAKeyFromTheTerminal, toAccelerator, validateChord, type KeyLike } from './keybindings'
 
 const ev = (over: Partial<KeyLike>): KeyLike => ({ key: '', code: '', ctrlKey: false, altKey: false, shiftKey: false, metaKey: false, ...over })
 
@@ -112,5 +112,35 @@ describe('display and accelerators', () => {
     expect(toAccelerator('F2')).toBe('F2')
     expect(toAccelerator('Mod+Digit')).toBeUndefined()
     expect(toAccelerator(null)).toBeUndefined()
+  })
+})
+
+describe('a key held rather than tapped', () => {
+  it('lets talking take a bare key, which a tapped shortcut may not', () => {
+    // Held for as long as you speak, so the comfortable key is one under a finger, not a chord.
+    expect(validateChord('.', false, 'voice')).toBeNull()
+    expect(validateChord('T', false, 'voice')).toBeNull()
+    expect(validateChord('.', false, 'palette')).toMatch(/Ctrl or Alt/)
+    expect(validateChord('.', false)).toMatch(/Ctrl or Alt/)
+  })
+
+  it('still refuses the keys a terminal cannot do without', () => {
+    for (const key of ['Enter', 'Tab', 'Escape', 'Backspace', 'Space']) {
+      expect(validateChord(key, false, 'voice'), key).toMatch(/needed in the terminal/)
+    }
+  })
+
+  it('still refuses what copy and paste have spoken for', () => {
+    expect(validateChord('Mod+V', false, 'voice')).toMatch(/copy and paste/)
+  })
+})
+
+describe('takesAKeyFromTheTerminal', () => {
+  it('is true only for a key the terminal would otherwise have received', () => {
+    expect(takesAKeyFromTheTerminal('.')).toBe(true)
+    expect(takesAKeyFromTheTerminal('Shift+.')).toBe(true)
+    expect(takesAKeyFromTheTerminal('F4')).toBe(false)
+    expect(takesAKeyFromTheTerminal('Mod+Shift+M')).toBe(false)
+    expect(takesAKeyFromTheTerminal(null)).toBe(false)
   })
 })

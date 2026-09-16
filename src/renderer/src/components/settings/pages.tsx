@@ -14,6 +14,7 @@ import { Keys } from '../Keys'
 import { useBinding } from '@/lib/shortcuts'
 import type { LogoId } from '@shared/types'
 import { LANGUAGES } from '@shared/i18n'
+import { takesAKeyFromTheTerminal } from '@shared/keybindings'
 import { AgentLogo } from '../sidebar/AgentLogo'
 import { Footer, Row, Section, Segmented, Select, Slider, SmallButton, TextArea, TextField, Toggle } from './controls'
 import { ResourceSections } from './Resources'
@@ -368,7 +369,14 @@ export function VoicePage() {
       </Section>
 
       <Section title={t('What it can do')} description={t('It writes prompts on the input line of the session you mean, for you to read and send. It never sends one on its own, and it can open terminals, split panes and read what is on screen.')}>
-        <Row label={t('Hold to talk')} hint={t('Hold the key while you speak and let go when you finish, or hold the button beside the notes. A single F key is easiest to hold: set one in Shortcuts.')}>
+        <Row
+          label={t('Hold to talk')}
+          hint={
+            takesAKeyFromTheTerminal(chord)
+              ? t('That key now belongs to talking and will not reach the terminal. Change it in Shortcuts.')
+              : t('Hold the key while you speak and let go when you finish, or hold the button beside the notes. This one can be any key at all, even a full stop.')
+          }
+        >
           {/* The keys are worth pressing on: a shortcut shown is a shortcut somebody will try to change. */}
           <button className="key-cap-btn" title={t('Change it in Shortcuts')} onClick={() => setPage('shortcuts')}>
             {chord ? <Keys chord={chord} /> : <span className="text-[12.5px] text-muted">{t('No key set')}</span>}
