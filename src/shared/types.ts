@@ -210,10 +210,6 @@ export interface Prefs {
    * program is in front. On unless turned off, and only ever while there is a Gemini key.
    */
   voiceAnywhere?: boolean
-  /** Where the pill that floats while you talk was last dragged to, in screen coordinates. */
-  voiceHudPos?: { x: number; y: number }
-  /** Whether that pill is folded down to a bead. It listens just the same either way. */
-  voiceHudFolded?: boolean
   /** V4 Pro, V4 Flash, or whatever model id is in deepseekModelId. */
   deepseekModel?: 'pro' | 'flash' | 'custom'
   deepseekModelId?: string

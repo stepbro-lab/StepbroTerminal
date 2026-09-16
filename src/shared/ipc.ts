@@ -112,10 +112,6 @@ export interface SendMap {
   /** The preview pane beside a session has its browser view up, with this webContents id; and it is gone. */
   'preview:attached': (sessionId: string, webContentsId: number) => void
   'preview:detached': (sessionId: string) => void
-  /** The state of the voice conversation, so the pill over other apps can follow it. */
-  'voice:state': (state: string) => void
-  /** How loud each side is, twenty times a second while a conversation is open. */
-  'voice:level': (mine: number, theirs: number) => void
   'notes:add': (text: string) => void
   'notes:update': (id: string, patch: { text?: string; done?: boolean }) => void
   'notes:delete': (id: string) => void
@@ -150,9 +146,6 @@ export interface EventMap {
   'ui:handoff': (handoff: Handoff) => void
   /** The key the system holds for talking was pressed: start a turn, or end the one under way. */
   'ui:voiceToggle': () => void
-  /** For the pill that shows over other apps: what the conversation is doing. */
-  'voice:hud': (state: string) => void
-  'voice:hudLevel': (mine: number, theirs: number) => void
   'win:maximized': (maximized: boolean) => void
   /** macOS: the window went full screen, where the traffic lights leave the bar. */
   'win:fullscreen': (fullscreen: boolean) => void

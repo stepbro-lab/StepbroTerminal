@@ -1,4 +1,4 @@
-import { Mic, Speaker, base64ToPcm16, micLevel, pcm16ToBase64 } from './audio'
+import { Mic, Speaker, base64ToPcm16, pcm16ToBase64 } from './audio'
 import { audioChunk, buildSetup, parseServerMessage, speechLanguage, textTurn, toolResult, turnEnd, turnStart, LIVE_URL, type LiveCall } from './protocol'
 import { runTool, VOICE_FUNCTIONS, VOICE_INSTRUCTIONS, type ToolOutcome, type VoiceApp } from './tools'
 
@@ -102,15 +102,6 @@ export class VoiceConversation {
       if (this.stopped) return
       this.fail(closeReason(e))
     }
-  }
-
-  /**
-   * How loud each side is at this instant, between 0 and 1: what the microphone is picking up,
-   * and what the voice is saying. Read straight from the audio, never stored, so asking sixty
-   * times a second costs nothing and changes nothing.
-   */
-  level(): { mine: number; theirs: number } {
-    return { mine: micLevel(), theirs: this.speaker.level() }
   }
 
   /** Pressed: from here until it is let go, everything heard belongs to one turn. */

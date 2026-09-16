@@ -47,13 +47,6 @@ export interface VoiceStore {
   stop: () => void
 }
 
-/**
- * How loud each side is at this instant, between 0 and 1. Deliberately a function and not part of
- * the store: the wave asks sixty times a second, and a number that lived in the store would
- * re-render everything holding it that often, which is what made the old bubble stutter.
- */
-export const voiceLevels = (): { mine: number; theirs: number } => live?.level() ?? { mine: 0, theirs: 0 }
-
 /** What went wrong, in words worth acting on; anything unexpected is repeated as it came. */
 function reason(detail: string): string {
   if (detail === 'no-key') return t('Add a Gemini key in Settings to talk.')

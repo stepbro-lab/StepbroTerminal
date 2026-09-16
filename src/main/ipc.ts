@@ -9,7 +9,6 @@ import { buildLaunchSpec } from './presets/launchSpec'
 import { gitChanges, gitDiff, gitRevert } from './git'
 import { loadWorkspace, saveWorkspace } from './prefs'
 import { cornerEnter } from './window'
-import { voiceLevel, voiceState } from './voiceHud'
 import { globalKeyHeld } from './globalKeys'
 import type { Ctx } from './context'
 import { t } from './i18n'
@@ -168,10 +167,6 @@ export function registerIpc(ctx: Ctx): void {
 
   // ---- talking ----
 
-  // The window draws nothing of its own while talking, so this is how the pill over other programs
-  // knows what is going on. It only ever shows while the terminal is behind something else.
-  on('voice:state', (state) => voiceState(state))
-  on('voice:level', (mine, theirs) => voiceLevel(mine, theirs))
   handle('voice:keyHeld', () => !!globalKeyHeld())
   handle('voice:askForMicrophone', async () => {
     // Windows and Linux ask through the page itself; macOS asks the system, once, and remembers.
