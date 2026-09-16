@@ -47,6 +47,8 @@ export class VoiceConversation {
   private talking = false
   /** Pressed before the socket was ready: the turn opens the moment it is. */
   private waiting = false
+  /** Said before the socket was ready: sent the moment it is. */
+  private queued: string[] = []
 
   constructor(o: VoiceOptions) {
     this.o = o
@@ -128,6 +130,7 @@ export class VoiceConversation {
         case 'ready':
           this.ready = true
           this.o.on.state('ready')
+          for (const text of this.queued.splice(0)) this.say(text)
           // Pressed while it was still connecting: open the turn now rather than lose it.
           if (this.waiting) this.beginTurn()
           break
@@ -169,8 +172,13 @@ export class VoiceConversation {
     if (this.ws?.readyState === WebSocket.OPEN) this.ws.send(toolResult(answers))
   }
 
-  /** Something typed instead of spoken. */
+  /** Something written instead of spoken: a question typed, or a passage to read out. */
   say(text: string): void {
+    if (this.stopped) return
+    if (!this.ready) {
+      this.queued.push(text)
+      return
+    }
     if (this.ws?.readyState === WebSocket.OPEN) this.ws.send(textTurn(text))
   }
 

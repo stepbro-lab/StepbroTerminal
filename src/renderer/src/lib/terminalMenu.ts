@@ -1,5 +1,6 @@
 import type { MenuItemSpec, Session } from '@shared/types'
 import { useData } from '@/stores/data'
+import { useVoice } from '@/stores/voice'
 import { useUi } from '@/stores/ui'
 import { useHandoff } from '@/stores/handoff'
 import { registry } from '@/terminal/TerminalRegistry'
@@ -46,6 +47,7 @@ export async function terminalContextMenu(id: string, x: number, y: number): Pro
       { id: 'paste', label: t('Paste') },
       sep,
       { label: t('Send selection to'), submenu: targets, enabled: !!selection && targets.length > 0 },
+      { id: 'read', label: t('Read aloud'), enabled: !!selection },
       sep,
       { id: 'find', label: t('Find…') },
       { id: 'redraw', label: t('Redraw screen') },
@@ -60,6 +62,9 @@ export async function terminalContextMenu(id: string, x: number, y: number): Pro
     return
   }
   switch (pick) {
+    case 'read':
+      useVoice.getState().read(selection)
+      break
     case 'copy':
       window.step.send('clipboard:write', selection)
       break

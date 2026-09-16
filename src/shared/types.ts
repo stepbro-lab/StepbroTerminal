@@ -203,6 +203,8 @@ export interface Prefs {
   voiceName?: string
   /** Which microphone it listens through; the system default when unset. */
   voiceInput?: string
+  /** How quickly it reads a selection out loud. */
+  readSpeed?: 'slow' | 'normal' | 'fast'
   /** V4 Pro, V4 Flash, or whatever model id is in deepseekModelId. */
   deepseekModel?: 'pro' | 'flash' | 'custom'
   deepseekModelId?: string

@@ -298,7 +298,12 @@ export function VoicePage() {
   const chord = useBinding('voice')
   const [mics, setMics] = useState<Array<{ id: string; label: string }>>([])
   useEffect(() => {
-    void listMics().then(setMics)
+    // Asked again whenever something is plugged in or unplugged, and once the names arrive:
+    // before the microphone has been allowed even once, the machine hands back blank labels.
+    const look = (): void => void listMics().then(setMics)
+    look()
+    navigator.mediaDevices?.addEventListener?.('devicechange', look)
+    return () => navigator.mediaDevices?.removeEventListener?.('devicechange', look)
   }, [])
   return (
     <>
@@ -330,11 +335,31 @@ export function VoicePage() {
           />
         </Row>
       </Section>
+      <Section title={t('Reading out loud')} description={t('Select anything in a terminal, right-click and it reads it to you. Headings, asterisks and boxes are left out, so it reads the words rather than the marks around them.')}>
+        <Row label={t('Pace')}>
+          <Segmented
+            value={p.readSpeed ?? 'normal'}
+            options={[
+              { value: 'slow', label: t('Slow') },
+              { value: 'normal', label: t('Normal') },
+              { value: 'fast', label: t('Fast') }
+            ]}
+            onChange={(readSpeed) => upd({ readSpeed })}
+          />
+        </Row>
+      </Section>
+
       <Section title={t('Microphone')} description={t('Which microphone it listens through. Names only appear once you have let it listen at least once.')}>
         <Row label={t('Input')} hint={mics.length ? undefined : t('No microphone found on this machine.')}>
           <Select
-            value={p.voiceInput && mics.some((m) => m.id === p.voiceInput) ? p.voiceInput : ''}
-            options={[{ value: '', label: t('System default') }, ...mics.map((m) => ({ value: m.id, label: m.label }))]}
+            value={p.voiceInput ?? ''}
+            options={[
+              { value: '', label: t('System default') },
+              ...mics.map((m) => ({ value: m.id, label: m.label })),
+              // The one that was chosen stays on the list while the machine is still being asked,
+              // and while it is unplugged, so a choice is never quietly swapped for the default.
+              ...(p.voiceInput && !mics.some((m) => m.id === p.voiceInput) ? [{ value: p.voiceInput, label: t('The one you chose (not found right now)') }] : [])
+            ]}
             width={300}
             onChange={(voiceInput) => upd({ voiceInput: voiceInput || undefined })}
           />
@@ -342,7 +367,7 @@ export function VoicePage() {
       </Section>
 
       <Section title={t('What it can do')} description={t('It writes prompts on the input line of the session you mean, for you to read and send. It never sends one on its own, and it can open terminals, split panes and read what is on screen.')}>
-        <Row label={t('Hold to talk')} hint={t('Hold the key while you speak and let go when you finish. Or hold the button beside the notes, at the top of the window.')}>
+        <Row label={t('Hold to talk')} hint={t('Hold the key while you speak and let go when you finish, or hold the button beside the notes. A single F key is easiest to hold: set one in Shortcuts.')}>
           {chord ? <Keys chord={chord} /> : <span className="text-[12.5px] text-muted">{t('No key set')}</span>}
         </Row>
       </Section>
