@@ -53,8 +53,10 @@ export function NewSessionCluster({ projectPath, onOpen }: { projectPath: string
       x: 0,
       y: 0,
       ...PILL,
-      background: 'var(--accent)',
-      color: 'var(--on-accent)',
+      // The whole cluster is one surface rather than a slab of the accent colour: calmer on an
+      // empty pane, and the same weight whichever colour the app is set to.
+      background: 'var(--bg-elevated)',
+      color: 'var(--text)',
       onClick: () => void newShell(projectPath),
       onEnter: show,
       onLeave: hide,
@@ -73,8 +75,8 @@ export function NewSessionCluster({ projectPath, onOpen }: { projectPath: string
         width: DROP,
         height: DROP,
         scale: open ? 1 : 0.3,
-        background: 'var(--accent)',
-        color: 'var(--on-accent)',
+        background: 'var(--bg-elevated)',
+        color: 'var(--text)',
         folded: !open,
         // Out from the middle of the fan, back in from its edges: the wave starts where the pill is.
         delay: Math.abs(i - (agents.length - 1) / 2) * (open ? 34 : 20),
