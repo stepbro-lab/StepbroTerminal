@@ -1083,7 +1083,7 @@ html.hud-window #root {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 12px;
+  padding: 16px;
   pointer-events: none;
 }
 
@@ -1097,7 +1097,11 @@ html.hud-window #root {
   border: 1px solid var(--border);
   border-radius: 999px;
   background: var(--bg-overlay);
-  box-shadow: var(--shadow-pop);
+  /* Its own, not the popovers': theirs is seventy pixels of blur, and a window this small cuts
+     that into a grey rectangle around the pill. This one keeps well inside the glass. */
+  box-shadow:
+    0 5px 14px rgba(0, 0, 0, 0.3),
+    0 1px 3px rgba(0, 0, 0, 0.22);
   -webkit-backdrop-filter: blur(24px) saturate(1.3);
   backdrop-filter: blur(24px) saturate(1.3);
   pointer-events: auto;
@@ -1126,14 +1130,6 @@ html.hud-window #root {
   }
 }
 
-.voice-hud-logo {
-  width: 25px;
-  height: 25px;
-  flex-shrink: 0;
-  border-radius: 7px;
-  user-select: none;
-}
-
 .voice-hud-said {
   min-width: 0;
   flex: 1;
@@ -1155,8 +1151,8 @@ html.hud-window #root {
   width: 104px;
 }
 
-.voice-hud-bars[data-count='7'] {
-  width: 34px;
+.voice-hud-bars[data-count='9'] {
+  width: 52px;
 }
 
 /* The fold: the one thing in the pill worth clicking, so the one thing the drag leaves alone. */
@@ -1188,9 +1184,18 @@ html.hud-window #root {
 }
 
 /* Folded down to a bead: the logo, a few bars, and a way back. */
+/* Folded, the bars are the whole thing, so they sit in the middle of the bead rather than to one
+   side of a button nobody can see. The way back rides over the right edge when pointed at. */
 .voice-hud-folded {
-  gap: 7px;
-  padding: 0 6px 0 10px;
+  position: relative;
+  justify-content: center;
+  padding: 0 12px;
+}
+
+.voice-hud-folded .voice-hud-fold {
+  position: absolute;
+  right: 5px;
+  background: var(--bg-overlay);
 }
 
 .voice-hud-folded .voice-hud-fold {

@@ -10,8 +10,8 @@ import { BrowserWindow, screen } from 'electron'
 import { join } from 'node:path'
 
 /** Room for the pill and for its shadow: open, and folded down to a bead. */
-const OPEN = { width: 322, height: 84 }
-const FOLDED = { width: 112, height: 84 }
+const OPEN = { width: 296, height: 88 }
+const FOLDED = { width: 124, height: 88 }
 /** How far above the bottom of the screen it sits when it has never been moved. */
 const LIFT = 96
 

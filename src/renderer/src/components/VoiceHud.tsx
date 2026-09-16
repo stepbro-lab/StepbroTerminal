@@ -2,14 +2,14 @@ import { useEffect, useRef, useState } from 'react'
 import { ChevronRight } from 'lucide-react'
 import { displayChord, resolveBindings } from '@shared/keybindings'
 import { usePrefs } from '@/stores/prefs'
-import { LOGOS, logoOf } from '@/lib/logos'
 import { t } from '@/lib/i18n'
 import { isMac } from '@/lib/format'
 
 /**
  * The pill that floats while you talk to the terminal. Its own little window, with no App around
- * it: no sessions, no terminals, no host — the logo, a line of text, and a row of bars that move
- * with whoever is speaking.
+ * it: no sessions, no terminals, no host — a line of text and a row of bars that moves with
+ * whoever is speaking. No mark and no logo: it sits on top of somebody's work, and the less of it
+ * there is the less it is in the way.
  *
  * Drag it anywhere and it stays there. Fold it down to a bead when it is in the way: folding is a
  * matter of how much room it takes on screen and nothing else, so it goes on listening either way.
@@ -57,12 +57,10 @@ export function VoiceHud() {
   }
 
   const chord = prefs ? resolveBindings(prefs.keybindings, isMac)['voice-anywhere'] : null
-  const logo = LOGOS[logoOf(prefs?.logo)]
   if (folded) {
     return (
       <div className="voice-hud voice-hud-folded" data-state={state} onDoubleClick={() => fold(false)}>
-        <img className="voice-hud-logo" src={logo.src} alt="" draggable={false} />
-        <Bars state={state} count={7} />
+        <Bars state={state} count={9} />
         <button className="voice-hud-fold" title={t('Unfold')} onClick={() => fold(false)}>
           <ChevronRight size={13} />
         </button>
@@ -74,7 +72,6 @@ export function VoiceHud() {
   const hint = state === 'talking' && chord ? t('Press {keys} again to send', { keys: displayChord(chord, isMac) }) : undefined
   return (
     <div className="voice-hud" data-state={state} title={hint}>
-      <img className="voice-hud-logo" src={logo.src} alt="" draggable={false} />
       <span className="voice-hud-said">{t(SAID[state] ?? SAID.talking)}</span>
       <Bars state={state} count={16} />
       <button className="voice-hud-fold" title={t('Fold it away; it keeps listening')} onClick={() => fold(true)}>
