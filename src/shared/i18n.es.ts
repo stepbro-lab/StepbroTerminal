@@ -387,6 +387,8 @@ export const es: Record<string, string> = {
   'Add a Gemini key in Settings to talk.': 'Añade una clave de Gemini en Ajustes para hablar.',
   'stepbro terminal needs the microphone to hear you.': 'stepbro terminal necesita el micrófono para oírte.',
   'The voice stopped.': 'La voz se detuvo.',
+  'Google will not let this key talk: its project has no access. Make another one in AI Studio.': 'Google no deja hablar a esta clave: su proyecto no tiene acceso. Crea otra en AI Studio.',
+  'Google did not accept this key. Check it in Settings.': 'Google no aceptó esta clave. Revísala en Ajustes.',
   'Written on {session}. Read it and press Enter.': 'Escrito en {session}. Léelo y pulsa Enter.',
   'Sent to {session}.': 'Enviado a {session}.',
   'Read {session}.': 'Leí {session}.',

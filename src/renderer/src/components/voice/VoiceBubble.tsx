@@ -103,7 +103,7 @@ export function VoiceBubble() {
         <div className="voice-caption" data-error={failed}>
           {doneText && <div className="voice-did">{doneText}</div>}
           {caption && <div className="voice-text">{caption}</div>}
-          {detail === 'no-key' && (
+          {fixableInSettings(detail) && (
             <button
               className="voice-fix"
               onClick={() => {
@@ -134,11 +134,22 @@ function hint(state: string): string {
   return ''
 }
 
-/** What went wrong, in words worth reading; anything unexpected is repeated as it came. */
+/**
+ * What went wrong, in words worth acting on. The service refuses a key in English and in its own
+ * terms, so the two refusals worth knowing apart are said plainly; anything else is repeated as
+ * it came, which beats inventing a reason for it.
+ */
 function errorText(detail: string): string {
   if (detail === 'no-key') return t('Add a Gemini key in Settings to talk.')
   if (detail === 'microphone-denied') return t('stepbro terminal needs the microphone to hear you.')
+  if (/denied access|permission_denied/i.test(detail)) return t('Google will not let this key talk: its project has no access. Make another one in AI Studio.')
+  if (/api.?key|unauthenticated|invalid/i.test(detail)) return t('Google did not accept this key. Check it in Settings.')
   return detail || t('The voice stopped.')
+}
+
+/** Whether what went wrong is something Settings can fix, so the way there is worth offering. */
+function fixableInSettings(detail: string): boolean {
+  return detail === 'no-key' || /denied access|permission_denied|api.?key|unauthenticated|invalid/i.test(detail)
 }
 
 function doneLine(did: NonNullable<ReturnType<typeof useVoice.getState>['did']>): string {
