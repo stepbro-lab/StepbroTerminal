@@ -384,6 +384,8 @@ export const es: Record<string, string> = {
   'stepbro terminal needs the microphone to hear you.': 'stepbro terminal necesita el micrófono para oírte.',
   'The voice stopped.': 'La voz se detuvo.',
   'Read aloud': 'Leer en voz alta',
+  'Read the selection out loud': 'Leer en voz alta lo seleccionado',
+  'There is nothing on screen to read.': 'No hay nada en pantalla que leer.',
   'Reading out loud': 'Lectura en voz alta',
   'Select anything in a terminal, right-click and it reads it to you. Headings, asterisks and boxes are left out, so it reads the words rather than the marks around them.': 'Selecciona lo que sea en un terminal, haz clic derecho y te lo lee. Los títulos, los asteriscos y los recuadros se quedan fuera, así que lee las palabras y no las marcas que las rodean.',
   Pace: 'Ritmo',

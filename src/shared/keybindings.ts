@@ -30,6 +30,7 @@ export type ShortcutId =
   | 'redraw'
   | 'notes'
   | 'voice'
+  | 'read-aloud'
   | 'toggle-sidebar'
   | 'add-project'
   | 'settings'
@@ -69,6 +70,7 @@ export const SHORTCUTS: ShortcutDef[] = [
   { id: 'notes', label: 'Notes', group: 'Find and navigate', default: 'Mod+Shift+N' },
   // Not Mod+Shift+V: inside a terminal that is paste, and the terminal answers it first.
   { id: 'voice', label: 'Talk to stepbro terminal', group: 'App', default: 'Mod+Shift+M' },
+  { id: 'read-aloud', label: 'Read the selection out loud', group: 'App', default: 'Mod+Shift+P' },
   { id: 'redraw', label: 'Redraw the screen', group: 'App', default: 'Mod+Shift+L' },
   { id: 'toggle-sidebar', label: 'Toggle sidebar', group: 'App', default: 'Mod+B' },
   { id: 'add-project', label: 'Add folder', group: 'App', default: 'Mod+Shift+O' },

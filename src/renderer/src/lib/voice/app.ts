@@ -5,6 +5,25 @@ import { createSession, splitWithNewShell } from '@/lib/actions'
 import { defaultTitle, rowPresetId } from '@/lib/sidebarModel'
 import type { VoiceAgent, VoiceApp, VoiceFolder, VoiceSession } from './tools'
 
+/**
+ * What to read out when asked without a word about what: whatever is selected in the pane in
+ * front, and when nothing is, what is on its screen. Reaching a menu means moving the mouse, and
+ * a click on the way there takes the selection with it, so this needs neither.
+ */
+export function selectionOrScreen(): string {
+  const id = useUi.getState().activeId
+  if (!id) return ''
+  const term = registry.get(id)?.term
+  if (!term) return ''
+  const selected = term.getSelection().trim()
+  if (selected) return selected
+  const buf = term.buffer.active
+  const lines: string[] = []
+  for (let i = 0; i < term.rows; i++) lines.push(buf.getLine(buf.viewportY + i)?.translateToString(true) ?? '')
+  while (lines.length && !lines[lines.length - 1].trim()) lines.pop()
+  return lines.join('\n')
+}
+
 /** The voice's view of the running app: the sessions it can see, read and write to. */
 export function liveApp(): VoiceApp {
   return {

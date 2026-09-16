@@ -7,6 +7,7 @@ import { registry } from '@/terminal/TerminalRegistry'
 import { jumpToAttention } from './attention'
 import { useNotes } from '@/stores/notes'
 import { useVoice } from '@/stores/voice'
+import { selectionOrScreen } from './voice/app'
 import { displayChord, matchShortcut, resolveBindings, type Bindings, type ShortcutId, type ShortcutMatch } from '@shared/keybindings'
 import { t } from '@/lib/i18n'
 
@@ -50,6 +51,9 @@ export function runCommand(cmd: Command): void {
     case 'voice':
       // Held rather than toggled; the key coming up ends the turn (see App).
       useVoice.getState().press()
+      break
+    case 'read-aloud':
+      readAloud()
       break
     case 'restart-session':
       if (ui.activeId) restartSession(ui.activeId)
@@ -145,6 +149,16 @@ export function jumpTo(n: number): void {
 }
 
 /** Window-level handler. Returns true when the event was consumed. */
+/** Reads what is selected in the pane in front, or what is on its screen when nothing is. */
+function readAloud(): void {
+  const text = selectionOrScreen()
+  if (!text.trim()) {
+    useUi.getState().toast(t('There is nothing on screen to read.'), 'info')
+    return
+  }
+  useVoice.getState().read(text)
+}
+
 export function handleKeydown(ev: KeyboardEvent): boolean {
   if (capture) {
     capture(ev)
