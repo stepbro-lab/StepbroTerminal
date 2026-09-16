@@ -11,7 +11,7 @@ export interface Toast {
 }
 
 export type PaletteMode = 'all' | 'resume' | 'prompts'
-export type SettingsPage = 'appearance' | 'terminal' | 'agents' | 'workspaces' | 'notifications' | 'shortcuts' | 'advanced'
+export type SettingsPage = 'appearance' | 'terminal' | 'agents' | 'voice' | 'workspaces' | 'notifications' | 'shortcuts' | 'advanced'
 
 interface UiState {
   /** The focused session; always a leaf of the active view. */

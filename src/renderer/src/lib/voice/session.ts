@@ -25,6 +25,8 @@ export interface VoiceOptions {
   model: string
   language: string
   voiceName: string
+  /** The microphone to listen through; the system default when left out. */
+  deviceId?: string
   app: VoiceApp
   on: VoiceHandlers
 }
@@ -54,6 +56,7 @@ export class VoiceConversation {
     // holding a socket open to say so.
     try {
       await this.mic.open({
+        deviceId: this.o.deviceId,
         onBlock: (pcm, level) => {
           this.o.on.level(level)
           if (this.ws?.readyState === WebSocket.OPEN) this.ws.send(audioChunk(pcm16ToBase64(pcm)))
@@ -112,7 +115,7 @@ export class VoiceConversation {
           this.speaker.stop()
           break
         case 'tools':
-          this.answerTools(event.calls)
+          void this.answerTools(event.calls)
           break
         case 'goAway':
           this.fail('The conversation reached its limit. Start it again.')
@@ -123,17 +126,20 @@ export class VoiceConversation {
     }
   }
 
-  private answerTools(calls: LiveCall[]): void {
-    const answers = calls.map((call) => {
-      let outcome: ToolOutcome
-      try {
-        outcome = runTool(this.o.app, call.name, call.args)
-      } catch (e: any) {
-        outcome = { output: `That failed: ${e?.message ?? 'unknown error'}` }
-      }
-      if (outcome.did) this.o.on.did(outcome.did)
-      return { id: call.id, name: call.name, output: outcome.output }
-    })
+  /** Some tools open a terminal, which takes a moment; the model waits for all of them at once. */
+  private async answerTools(calls: LiveCall[]): Promise<void> {
+    const answers = await Promise.all(
+      calls.map(async (call) => {
+        let outcome: ToolOutcome
+        try {
+          outcome = await runTool(this.o.app, call.name, call.args)
+        } catch (e: any) {
+          outcome = { output: `That failed: ${e?.message ?? 'unknown error'}` }
+        }
+        if (outcome.did) this.o.on.did(outcome.did)
+        return { id: call.id, name: call.name, output: outcome.output }
+      })
+    )
     if (this.ws?.readyState === WebSocket.OPEN) this.ws.send(toolResult(answers))
   }
 

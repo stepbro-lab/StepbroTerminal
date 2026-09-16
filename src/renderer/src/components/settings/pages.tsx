@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import type { CustomPreset, LaunchConfig, LaunchPane, Prefs } from '@shared/types'
 import { usePrefs } from '@/stores/prefs'
@@ -9,10 +9,13 @@ import { blankPane, newLaunchConfig, workspaceUrl } from '@/lib/launchConfigs'
 import { ACCENTS } from '@/theme/accents'
 import { DEFAULT_LOGO, LOGOS } from '@/lib/logos'
 import { DEFAULT_VOICE_MODEL } from '@/lib/voice/protocol'
+import { listMics } from '@/lib/voice/audio'
+import { Keys } from '../Keys'
+import { useBinding } from '@/lib/shortcuts'
 import type { LogoId } from '@shared/types'
 import { LANGUAGES } from '@shared/i18n'
 import { AgentLogo } from '../sidebar/AgentLogo'
-import { Footer, Row, Section, Segmented, Slider, SmallButton, TextArea, TextField, Toggle } from './controls'
+import { Footer, Row, Section, Segmented, Select, Slider, SmallButton, TextArea, TextField, Toggle } from './controls'
 import { ResourceSections } from './Resources'
 import { playNotificationSound } from '@/lib/sound'
 import { useUpdates } from '@/stores/updates'
@@ -213,38 +216,6 @@ export function AgentsPage() {
       </Section>
 
       <Section
-        title={t('Voice')}
-        description={t('Talk to stepbro terminal and it writes the prompt for you, on the input line of the session you mean, for you to read and send. It listens and answers through Gemini, so it needs a key.')}
-      >
-        <Row label={t('API key')} hint={t('Kept on this machine, in the app preferences.')}>
-          <TextField value={p.geminiApiKey ?? ''} placeholder="AIza…" mono secret width={300} onChange={(v) => upd({ geminiApiKey: v.trim() || undefined })} />
-          <SmallButton onClick={() => void window.step.invoke('app:openExternal', 'https://aistudio.google.com/apikey')}>{t('Get a key')}</SmallButton>
-        </Row>
-        <Row label={t('Model')} hint={t('Any Gemini model that listens and speaks: their names end in live or native-audio.')}>
-          <TextField
-            value={p.voiceModel ?? ''}
-            placeholder={DEFAULT_VOICE_MODEL}
-            mono
-            width={300}
-            list={['models/gemini-3.8-live', 'models/gemini-3.1-flash-live-preview', 'models/gemini-2.5-flash-native-audio-latest']}
-            onChange={(v) => upd({ voiceModel: v.trim() || undefined })}
-          />
-        </Row>
-        <Row label={t('Its voice')} hint={t('How it sounds. Takes effect the next time you open it.')}>
-          <Segmented
-            value={p.voiceName ?? 'Puck'}
-            options={[
-              { value: 'Puck', label: 'Puck' },
-              { value: 'Kore', label: 'Kore' },
-              { value: 'Aoede', label: 'Aoede' },
-              { value: 'Charon', label: 'Charon' }
-            ]}
-            onChange={(voiceName) => upd({ voiceName })}
-          />
-        </Row>
-      </Section>
-
-      <Section
         title="DeepSeek"
         description={t('Claude Code on DeepSeek models, through the Anthropic-shaped API DeepSeek serves: same hooks, notes and status. With a key, DeepSeek shows up next to the other agents.')}
       >
@@ -318,6 +289,64 @@ function CustomLaunchers({ list, onChange }: { list: CustomPreset[]; onChange: (
         </button>
       </div>
     </div>
+  )
+}
+
+/** Everything about talking to the terminal: the key it speaks through, how it sounds, what it hears. */
+export function VoicePage() {
+  const [p, upd] = usePrefsPage()
+  const chord = useBinding('voice')
+  const [mics, setMics] = useState<Array<{ id: string; label: string }>>([])
+  useEffect(() => {
+    void listMics().then(setMics)
+  }, [])
+  return (
+    <>
+      <Section title="Gemini" description={t('It listens and answers through Gemini, so it needs a key. The key stays on this machine.')}>
+        <Row label={t('API key')} hint={t('Kept on this machine, in the app preferences.')}>
+          <TextField value={p.geminiApiKey ?? ''} placeholder="AIza…" mono secret width={300} onChange={(v) => upd({ geminiApiKey: v.trim() || undefined })} />
+          <SmallButton onClick={() => void window.step.invoke('app:openExternal', 'https://aistudio.google.com/apikey')}>{t('Get a key')}</SmallButton>
+        </Row>
+        <Row label={t('Model')} hint={t('Any Gemini model that listens and speaks: their names end in live or native-audio.')}>
+          <TextField
+            value={p.voiceModel ?? ''}
+            placeholder={DEFAULT_VOICE_MODEL}
+            mono
+            width={300}
+            list={['models/gemini-3.8-live', 'models/gemini-3.1-flash-live-preview', 'models/gemini-2.5-flash-native-audio-latest']}
+            onChange={(v) => upd({ voiceModel: v.trim() || undefined })}
+          />
+        </Row>
+        <Row label={t('Its voice')} hint={t('How it sounds. Takes effect the next time you open it.')}>
+          <Segmented
+            value={p.voiceName ?? 'Puck'}
+            options={[
+              { value: 'Puck', label: 'Puck' },
+              { value: 'Kore', label: 'Kore' },
+              { value: 'Aoede', label: 'Aoede' },
+              { value: 'Charon', label: 'Charon' }
+            ]}
+            onChange={(voiceName) => upd({ voiceName })}
+          />
+        </Row>
+      </Section>
+      <Section title={t('Microphone')} description={t('Which microphone it listens through. Names only appear once you have let it listen at least once.')}>
+        <Row label={t('Input')} hint={mics.length ? undefined : t('No microphone found on this machine.')}>
+          <Select
+            value={p.voiceInput && mics.some((m) => m.id === p.voiceInput) ? p.voiceInput : ''}
+            options={[{ value: '', label: t('System default') }, ...mics.map((m) => ({ value: m.id, label: m.label }))]}
+            width={300}
+            onChange={(voiceInput) => upd({ voiceInput: voiceInput || undefined })}
+          />
+        </Row>
+      </Section>
+
+      <Section title={t('What it can do')} description={t('It writes prompts on the input line of the session you mean, for you to read and send. It never sends one on its own, and it can open terminals, split panes and read what is on screen.')}>
+        <Row label={t('Open it')} hint={t('Or the button beside the notes, at the top of the window.')}>
+          {chord ? <Keys chord={chord} /> : <span className="text-[12.5px] text-muted">{t('No key set')}</span>}
+        </Row>
+      </Section>
+    </>
   )
 }
 

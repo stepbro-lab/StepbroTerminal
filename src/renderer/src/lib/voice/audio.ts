@@ -84,8 +84,23 @@ class Capture extends AudioWorkletProcessor {
 registerProcessor('step-capture', Capture)
 `
 
+/**
+ * The microphones this machine has. Their names only arrive once the person has allowed the
+ * microphone at least once; before that the browser hands back blank labels, and a numbered
+ * stand-in is the best that can be said about them.
+ */
+export async function listMics(): Promise<Array<{ id: string; label: string }>> {
+  if (!navigator.mediaDevices?.enumerateDevices) return []
+  const devices = await navigator.mediaDevices.enumerateDevices()
+  return devices
+    .filter((d) => d.kind === 'audioinput' && d.deviceId !== 'default' && d.deviceId !== 'communications')
+    .map((d, i) => ({ id: d.deviceId, label: d.label || `Microphone ${i + 1}` }))
+}
+
 export interface MicOptions {
   onBlock: (pcm: Int16Array, level: number) => void
+  /** The microphone to listen through; the system default when left out. */
+  deviceId?: string
 }
 
 /** The microphone, opened and converted; close it to hang up and free the device light. */
@@ -99,7 +114,15 @@ export class Mic {
   async open(o: MicOptions): Promise<void> {
     // Echo cancellation is what keeps the model from hearing itself through the speakers.
     this.stream = await navigator.mediaDevices.getUserMedia({
-      audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+      audio: {
+        channelCount: 1,
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+        // Named rather than demanded: a microphone that has been unplugged should not stop the
+        // conversation, it should fall back to whatever the machine is using now.
+        ...(o.deviceId ? { deviceId: { ideal: o.deviceId } } : {})
+      }
     })
     const ctx = new AudioContext()
     this.ctx = ctx

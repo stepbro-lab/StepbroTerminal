@@ -25,6 +25,8 @@ export interface VoiceStore {
   show: () => void
   hide: () => void
   setMuted: (muted: boolean) => void
+  /** Says something to it in writing, for when speaking out loud is not on. */
+  say: (text: string) => void
 }
 
 export const useVoice = create<VoiceStore>((set, get) => ({
@@ -55,6 +57,7 @@ export const useVoice = create<VoiceStore>((set, get) => ({
       model: prefs?.voiceModel?.trim() || DEFAULT_VOICE_MODEL,
       language: prefs?.language ?? 'en',
       voiceName: prefs?.voiceName?.trim() || 'Puck',
+      deviceId: prefs?.voiceInput || undefined,
       app: liveApp(),
       on: {
         state: (state, detail) => set({ state, detail: detail ?? '' }),
@@ -77,5 +80,12 @@ export const useVoice = create<VoiceStore>((set, get) => ({
   setMuted: (muted) => {
     live?.setMuted(muted)
     set({ muted })
+  },
+
+  say: (text) => {
+    const said = text.trim()
+    if (!said) return
+    live?.say(said)
+    set({ heard: said, said: '' })
   }
 }))
