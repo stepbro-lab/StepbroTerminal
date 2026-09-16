@@ -11,6 +11,7 @@ import { addDroppedFolders, openWorkspaceByKey } from '@/lib/actions'
 import { Sidebar, useSidebarModel } from '@/components/sidebar/Sidebar'
 import { WindowCorner } from '@/components/Chrome'
 import { useVoice } from '@/stores/voice'
+import { SelectionRead } from '@/components/pane/SelectionRead'
 import { TerminalPane } from '@/components/pane/TerminalPane'
 import { CommandPalette } from '@/components/CommandPalette'
 import { SettingsView } from '@/components/settings/SettingsView'
@@ -213,6 +214,7 @@ export default function App() {
       </div>
       {settingsOpen && <SettingsView />}
       <WindowCorner />
+      <SelectionRead />
       <CommandPalette />
       <NotesPanel />
       <NoteFlight />
