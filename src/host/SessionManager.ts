@@ -28,7 +28,7 @@ import { findAncestor, processTable } from './procTree'
 import { log } from './log'
 import { CpuMeter, readProcesses, subtree } from './procStats'
 import { waitingForApproval } from './screenPrompts'
-import { conptyReply, isControlOnly, stripProbeReplies } from './conptyReply'
+import { conptyReply, hasQuery, isControlOnly, stripProbeReplies, stripStaleReplies } from './conptyReply'
 import { agentOf } from './handoff'
 import { pacePieces } from './pace'
 import { isOwnEndpoint, previewUrlIn } from './previewUrl'
@@ -47,6 +47,9 @@ export interface SessionManagerOpts {
   scrollback: number
   baseEnv: NodeJS.ProcessEnv
 }
+
+/** How long after asking the terminal about itself an answer is still worth passing on. */
+const REPLY_WINDOW_MS = 2000
 
 interface Live {
   s: Session
@@ -75,6 +78,8 @@ interface Live {
   runOnStart?: string
   /** ConPTY is still probing the terminal (nothing printable yet); the host answers and views must not. */
   probing: boolean
+  /** When the program last asked the terminal about itself; an answer after that is worth passing on. */
+  askedAt?: number
 }
 
 /**
@@ -405,6 +410,16 @@ export class SessionManager extends EventEmitter {
       text = stripProbeReplies(text)
       if (!text) return
       bytes = Buffer.from(text, 'utf8')
+    } else if (Date.now() - (l.askedAt ?? 0) > REPLY_WINDOW_MS) {
+      // Nothing asked the terminal anything recently, so an answer arriving now is one the
+      // window worked out for output it was catching up on, long after the program gave up
+      // waiting. Passed on, the program reads it as typed text.
+      const kept = stripStaleReplies(text)
+      if (kept !== text) {
+        if (!kept) return
+        text = kept
+        bytes = Buffer.from(text, 'utf8')
+      }
     }
     const line = l.lines.feed(bytes)
     if (line) {
@@ -839,8 +854,12 @@ export class SessionManager extends EventEmitter {
     // Answer ConPTY's startup probes so the shell does not sit blocked for ~3s. The window closes
     // on the first printable output; while it is open, input() also drops the replies a view sends.
     l.probing = true
+    l.askedAt = Date.now()
     p.onData((data) => {
       if (l.pty !== p) return
+      // Whenever the program asks the terminal about itself, an answer becomes worth passing on
+      // again: it is waiting for one, wherever it is in its life.
+      if (hasQuery(data)) l.askedAt = Date.now()
       if (l.probing) {
         // Answer ConPTY's probes only while nothing printable has arrived yet: the shell is still
         // blocked waiting, and ConPTY consumes the reply. The moment real output shows (the prompt),

@@ -44,3 +44,26 @@ const PROBE_REPLIES = /\x1b\[\?[\d;]*c|\x1b\[\d+;\d+R/g
 export function stripProbeReplies(input: string): string {
   return input.replace(PROBE_REPLIES, '')
 }
+
+/**
+ * A program asking the terminal about itself: which colours it draws in (OSC 10, 11 and 12, sent
+ * with a "?"), what kind of terminal it is, where the cursor sits. Programs ask at startup and
+ * wait a moment for an answer.
+ */
+const QUERIES = /\x1b\][\d;]*;\?(\x07|\x1b\\)|\x1b\[>?0?c|\x1b\[6n/
+
+export function hasQuery(chunk: string): boolean {
+  return QUERIES.test(chunk)
+}
+
+/**
+ * Every answer a terminal gives about itself, including the colours it draws in. None of these
+ * is anything a person types or a program sends as input, so dropping one costs nothing; keeping
+ * a late one costs the program reading it as though it had been typed, which is how
+ * "]11;rgb:1616/1616/1919" ends up sitting in an agent's prompt.
+ */
+const REPLIES = /\x1b\[\?[\d;]*c|\x1b\[\d+;\d+R|\x1b\][\d;]*;rgb:[\da-fA-F/]*(\x07|\x1b\\)/g
+
+export function stripStaleReplies(input: string): string {
+  return input.replace(REPLIES, '')
+}

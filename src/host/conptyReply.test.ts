@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { conptyReply, isControlOnly, stripProbeReplies } from './conptyReply'
+import { conptyReply, hasQuery, isControlOnly, stripProbeReplies, stripStaleReplies } from './conptyReply'
 
 describe('conptyReply', () => {
   it('answers the device-attributes probe', () => {
@@ -45,5 +45,55 @@ describe('stripProbeReplies', () => {
     expect(stripProbeReplies('\x1b[?1;2cls\r')).toBe('ls\r')
     expect(stripProbeReplies('echo hola\r')).toBe('echo hola\r')
     expect(stripProbeReplies('\x1b[A')).toBe('\x1b[A')
+  })
+})
+
+const ESC = String.fromCharCode(27)
+const BEL = String.fromCharCode(7)
+const ST = ESC + String.fromCharCode(92)
+
+describe('hasQuery', () => {
+  it('sees a program asking what colours the terminal draws in', () => {
+    expect(hasQuery(`${ESC}]10;?${ST}`)).toBe(true)
+    expect(hasQuery(`${ESC}]11;?${BEL}`)).toBe(true)
+  })
+
+  it('sees it asking what kind of terminal it is, and where the cursor sits', () => {
+    expect(hasQuery(`${ESC}[c`)).toBe(true)
+    expect(hasQuery(`${ESC}[6n`)).toBe(true)
+  })
+
+  it('does not mistake ordinary output for a question', () => {
+    expect(hasQuery('Ask Codex to do anything')).toBe(false)
+    expect(hasQuery(`${ESC}[1;32mgreen${ESC}[0m`)).toBe(false)
+    expect(hasQuery(`${ESC}]0;a window title${BEL}`)).toBe(false)
+  })
+})
+
+describe('stripStaleReplies', () => {
+  it('drops the colours a terminal reports, which is what lands in an agent prompt', () => {
+    const reply = `${ESC}]10;rgb:e5e5/e2e2/e1e1${ST}${ESC}]11;rgb:1616/1616/1919${ST}`
+    expect(stripStaleReplies(reply)).toBe('')
+  })
+
+  it('drops them however they are terminated', () => {
+    expect(stripStaleReplies(`${ESC}]11;rgb:0000/0000/0000${BEL}`)).toBe('')
+  })
+
+  it('still drops what the probe filter dropped', () => {
+    expect(stripStaleReplies(`${ESC}[?1;2c`)).toBe('')
+    expect(stripStaleReplies(`${ESC}[24;80R`)).toBe('')
+  })
+
+  it('leaves typing alone, including anything that merely looks technical', () => {
+    expect(stripStaleReplies('npm run dev')).toBe('npm run dev')
+    expect(stripStaleReplies('rgb:1616/1616/1919')).toBe('rgb:1616/1616/1919')
+    // Arrow keys and Enter are input, not answers.
+    expect(stripStaleReplies(`${ESC}[A`)).toBe(`${ESC}[A`)
+    expect(stripStaleReplies(String.fromCharCode(13))).toBe(String.fromCharCode(13))
+  })
+
+  it('keeps the rest of a chunk that carried an answer along with it', () => {
+    expect(stripStaleReplies(`${ESC}]11;rgb:1616/1616/1919${ST}ls`)).toBe('ls')
   })
 })
