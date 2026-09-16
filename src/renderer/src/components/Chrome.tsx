@@ -1,10 +1,12 @@
 import { useEffect } from 'react'
-import { Copy, Minus, PanelLeft, Square, X } from 'lucide-react'
+import { AudioLines, Copy, Minus, PanelLeft, Square, X } from 'lucide-react'
 import { usePrefs } from '@/stores/prefs'
 import { useUi } from '@/stores/ui'
 import { ActivityPulse } from './ActivityPulse'
 import { UpdatePill } from './UpdatePill'
 import { NotesButton } from './notes/NotesButton'
+import { useVoice } from '@/stores/voice'
+import { titled } from '@/lib/shortcuts'
 import { t } from '@/lib/i18n'
 
 const platform = window.step.platform
@@ -30,6 +32,8 @@ function ChromeButtons() {
   const prefs = usePrefs((s) => s.prefs)
   const setPrefs = usePrefs((s) => s.set)
   const collapsed = prefs?.sidebarCollapsed ?? false
+  const talking = useVoice((s) => s.open)
+  const toggleVoice = useVoice((s) => s.toggle)
   return (
     <div className="no-drag flex items-center gap-0.5">
       <button className="icon-btn" data-on={!collapsed} title={t('Toggle sidebar')} onClick={() => void setPrefs({ sidebarCollapsed: !collapsed })}>
@@ -37,6 +41,9 @@ function ChromeButtons() {
       </button>
       <ActivityPulse />
       <UpdatePill />
+      <button className="icon-btn" data-on={talking} title={titled(t('Talk to stepbro terminal'), 'voice')} onClick={toggleVoice}>
+        <AudioLines size={15} />
+      </button>
       <NotesButton />
     </div>
   )

@@ -67,7 +67,8 @@ export const SHORTCUTS: ShortcutDef[] = [
   { id: 'palette', label: 'Command palette', group: 'Find and navigate', default: 'Mod+K' },
   { id: 'prompt-history', label: 'Prompt history', group: 'Find and navigate', default: 'Mod+Shift+H' },
   { id: 'notes', label: 'Notes', group: 'Find and navigate', default: 'Mod+Shift+N' },
-  { id: 'voice', label: 'Talk to stepbro terminal', group: 'App', default: 'Mod+Shift+V' },
+  // Not Mod+Shift+V: inside a terminal that is paste, and the terminal answers it first.
+  { id: 'voice', label: 'Talk to stepbro terminal', group: 'App', default: 'Mod+Shift+M' },
   { id: 'redraw', label: 'Redraw the screen', group: 'App', default: 'Mod+Shift+L' },
   { id: 'toggle-sidebar', label: 'Toggle sidebar', group: 'App', default: 'Mod+B' },
   { id: 'add-project', label: 'Add folder', group: 'App', default: 'Mod+Shift+O' },
