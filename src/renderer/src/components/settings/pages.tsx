@@ -296,6 +296,7 @@ function CustomLaunchers({ list, onChange }: { list: CustomPreset[]; onChange: (
 export function VoicePage() {
   const [p, upd] = usePrefsPage()
   const chord = useBinding('voice')
+  const setPage = useUi((s) => s.setSettingsPage)
   const [mics, setMics] = useState<Array<{ id: string; label: string }>>([])
   useEffect(() => {
     // Asked again whenever something is plugged in or unplugged, and once the names arrive:
@@ -368,7 +369,10 @@ export function VoicePage() {
 
       <Section title={t('What it can do')} description={t('It writes prompts on the input line of the session you mean, for you to read and send. It never sends one on its own, and it can open terminals, split panes and read what is on screen.')}>
         <Row label={t('Hold to talk')} hint={t('Hold the key while you speak and let go when you finish, or hold the button beside the notes. A single F key is easiest to hold: set one in Shortcuts.')}>
-          {chord ? <Keys chord={chord} /> : <span className="text-[12.5px] text-muted">{t('No key set')}</span>}
+          {/* The keys are worth pressing on: a shortcut shown is a shortcut somebody will try to change. */}
+          <button className="key-cap-btn" title={t('Change it in Shortcuts')} onClick={() => setPage('shortcuts')}>
+            {chord ? <Keys chord={chord} /> : <span className="text-[12.5px] text-muted">{t('No key set')}</span>}
+          </button>
         </Row>
       </Section>
     </>

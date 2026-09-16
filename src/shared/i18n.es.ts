@@ -403,6 +403,7 @@ export const es: Record<string, string> = {
   'Hold to talk': 'Mantén pulsado para hablar',
   'Hold the key while you speak and let go when you finish, or hold the button beside the notes. A single F key is easiest to hold: set one in Shortcuts.': 'Mantén la tecla mientras hablas y suéltala al terminar, o mantén pulsado el botón junto a las notas. Una tecla F suelta es la más cómoda de mantener: ponla en Atajos.',
   'No key set': 'Sin tecla asignada',
+  'Change it in Shortcuts': 'Cambiarlo en Atajos',
   'Google will not let this key talk: its project has no access. Make another one in AI Studio.': 'Google no deja hablar a esta clave: su proyecto no tiene acceso. Crea otra en AI Studio.',
   'Google did not accept this key. Check it in Settings.': 'Google no aceptó esta clave. Revísala en Ajustes.',
   // ---- settings: agents, DeepSeek ----
