@@ -65,6 +65,9 @@ interface Live {
   burstStart: number
   /** When the program last printed anything: a spinner still turning means it is not ready to be typed into. */
   lastOutputAt: number
+  /** The size the pty was last told about, which is not always what the session record says. */
+  ptyCols?: number
+  ptyRows?: number
   logFd?: number
   logBytes: number
   paused: boolean
@@ -431,21 +434,30 @@ export class SessionManager extends EventEmitter {
     l.pty.write(text)
   }
 
+  /**
+   * The window is the authority on how big a terminal is, and says so whenever it fits one. The
+   * emulator and the record are only touched when the size really changed, but the pty is told
+   * whenever what it was last told differs: the two can drift apart, and a program left drawing
+   * at a width the window no longer has stays wrong until someone drags something.
+   */
   resize(id: string, cols: number, rows: number): void {
     const l = this.live.get(id)
     if (!l) return
     if (cols < 2 || rows < 1 || cols > 1000 || rows > 1000) return
-    if (l.s.cols === cols && l.s.rows === rows) return
-    l.s.cols = cols
-    l.s.rows = rows
-    try {
-      l.screen.resize(cols, rows)
-    } catch (e) {
-      log('screen resize failed', id, e)
+    if (l.s.cols !== cols || l.s.rows !== rows) {
+      l.s.cols = cols
+      l.s.rows = rows
+      try {
+        l.screen.resize(cols, rows)
+      } catch (e) {
+        log('screen resize failed', id, e)
+      }
     }
-    if (l.pty) {
+    if (l.pty && (l.ptyCols !== cols || l.ptyRows !== rows)) {
       try {
         l.pty.resize(cols, rows)
+        l.ptyCols = cols
+        l.ptyRows = rows
       } catch (e) {
         log('pty resize failed', id, e)
       }

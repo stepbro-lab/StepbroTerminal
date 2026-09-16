@@ -7,6 +7,7 @@ import type { Prefs } from '@shared/types'
 import { darkTerminal, lightTerminal } from '@/theme/terminalThemes'
 import { InputLine, hintFor } from '@/lib/flagHints'
 import { imagePaste, imagePathText, newlineSequence } from '@/lib/agentKeys'
+import { FitHold } from './fitHold'
 
 interface Entry {
   id: string
@@ -345,7 +346,7 @@ class TerminalRegistry {
   fit(id: string): void {
     const e = this.entries.get(id)
     if (!e?.mounted) return
-    if (this.fitsHeld) {
+    if (this.holds.isHeld) {
       this.fitLater.add(id)
       return
     }
@@ -354,24 +355,29 @@ class TerminalRegistry {
 
   // ---- holding fits while the layout is in motion ----
 
-  private fitsHeld = false
   private fitLater = new Set<string>()
 
   /**
    * While the sidebar is dragged or slides shut, every frame changes the cards' width, and a
    * terminal that refits on each one reflows its text and resizes the shell dozens of times a
    * second. Held, the terminals keep their columns and the card simply clips them; released,
-   * whichever ones changed size fit once.
+   * every mounted one fits again.
+   *
+   * Every mounted one, rather than only those that asked while held, because the cost of a fit
+   * that changes nothing is nothing, and the cost of missing one is a program left drawing at a
+   * width the card no longer has.
    */
+  private holds = new FitHold(() => {
+    this.fitLater.clear()
+    for (const e of this.entries.values()) if (e.mounted) this.fitNow(e)
+  })
+
   holdFits(): void {
-    this.fitsHeld = true
+    this.holds.hold()
   }
 
   releaseFits(): void {
-    this.fitsHeld = false
-    const pending = [...this.fitLater]
-    this.fitLater.clear()
-    for (const id of pending) this.fit(id)
+    this.holds.release()
   }
 
   focus(id: string): void {
@@ -504,7 +510,11 @@ class TerminalRegistry {
       e.fit.fit()
     } catch {
       /* container not laid out yet */
+      return
     }
+    // xterm only announces a size that changed, so a size the host missed would stay missed.
+    // Saying it again here costs a message and is what makes a wrong width heal by itself.
+    window.step.send('host:resize', e.id, e.term.cols, e.term.rows)
   }
 
   private ack(e: Entry, n: number): void {
