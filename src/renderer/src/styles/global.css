@@ -214,6 +214,10 @@ button:disabled {
   box-shadow: var(--shadow-card);
   overflow: hidden;
 }
+/* A Mac's window corners are continuous, not circular; the card's follow them. */
+:root[data-squircle] .card {
+  corner-shape: squircle;
+}
 
 .xterm {
   padding: 0;

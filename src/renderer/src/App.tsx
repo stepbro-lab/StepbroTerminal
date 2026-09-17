@@ -10,7 +10,7 @@ import { pruneLayout, type LayoutNode } from '@/lib/layout'
 import { addDroppedFolders, openWorkspaceByKey } from '@/lib/actions'
 import { useSidebarModel } from '@/lib/useSidebarModel'
 import { Sidebar } from '@/components/sidebar/Sidebar'
-import { TopBar } from '@/components/Chrome'
+import { TopBar, useWindowCorners } from '@/components/Chrome'
 import { useVoice } from '@/stores/voice'
 import { SelectionRead } from '@/components/pane/SelectionRead'
 import { TerminalPane } from '@/components/pane/TerminalPane'
@@ -27,6 +27,7 @@ import { useHandoff } from '@/stores/handoff'
 import { HandoffFlight } from '@/components/HandoffFlight'
 
 export default function App() {
+  useWindowCorners()
   const prefs = usePrefs((s) => s.prefs)
   const dark = usePrefs((s) => s.dark)
   const sessions = useData((s) => s.sessions)

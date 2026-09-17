@@ -70,7 +70,9 @@
   --font-ui: 'Hanken Grotesk Variable', 'Hanken Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI Variable Text', 'Segoe UI', sans-serif;
   --font-mono: 'JetBrains Mono', 'Geist Mono', 'SF Mono', 'Cascadia Mono', Menlo, Consolas, monospace;
   /* Soft corners throughout: cards and dialogs round wide, rows and fields a little, buttons all the way. */
-  --radius-card: 16px;
+  /* The card inside the frame rounds parallel to the window's own corners: their radius less the
+     frame, in CSS pixels. --window-radius and --zoom come from useWindowCorners (Chrome.tsx). */
+  --radius-card: max(0px, calc(var(--window-radius, 0px) / var(--zoom, 1) - var(--frame)));
   --radius-row: 9px;
   --radius-input: 10px;
   --radius-pop: 14px;
