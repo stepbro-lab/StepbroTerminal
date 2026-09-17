@@ -35,6 +35,12 @@ export function railStatus(row: SidebarSession): RailStatus {
   }
 }
 
+/**
+ * The floating session rail is off for now: the sidebar is back while the rail's design is
+ * finished. Its component, styles and motion are all still here; true brings it back.
+ */
+export const SESSION_RAIL = false
+
 /** How wide the folded rail is, so what sits under its corner can keep out of its way. */
 export const RAIL_INSET = 84
 

@@ -3,6 +3,7 @@ import { NotebookPen } from 'lucide-react'
 import gsap from 'gsap'
 import { useNotes } from '@/stores/notes'
 import { Flight, flightText, type FlightSpec } from '../Flight'
+import { OPEN_BAR } from '../Chrome'
 
 /** When an agent saves a note, its first words fly from that session's pane to the Notes button. */
 export function NoteFlight() {
@@ -34,6 +35,15 @@ export function NoteFlight() {
   useEffect(() => {
     if (arrived && !spec) landed()
   }, [arrived, spec, landed])
+  // The Notes button lives in the bar along the top edge: it opens for the flight and stays open until it lands.
+  useEffect(() => {
+    if (spec) window.dispatchEvent(new Event(OPEN_BAR))
+  }, [spec])
 
-  return spec ? <Flight spec={spec} onDone={landed} /> : null
+  return spec ? (
+    <>
+      <Flight spec={spec} onDone={landed} />
+      <span data-bar-keep hidden />
+    </>
+  ) : null
 }

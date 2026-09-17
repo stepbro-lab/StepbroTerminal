@@ -66,8 +66,10 @@
   --radius-row: 9px;
   --radius-input: 10px;
   --radius-pop: 14px;
-  /* The window's top row on every system: where its buttons show, and the row the session rail sits in. */
+  /* The open bar along the window's top edge, where its buttons show. */
   --chrome-h: 36px;
+  /* The even frame around the terminal, on all four sides. */
+  --frame: 8px;
   --row-h: 27px;
   --ease: cubic-bezier(0.2, 0, 0, 1);
 }
