@@ -45,6 +45,41 @@ export const OPEN_BAR = 'step:open-bar'
 const OPEN: SpringConfig = { stiffness: 520, damping: 44 }
 const CLOSE: SpringConfig = { stiffness: 420, damping: 42 }
 
+/**
+ * The window's own corners, in DIP, and their shape: the card inside the frame rounds by the
+ * window's radius less the frame, so the two curves run parallel. A Mac since macOS 26 draws
+ * continuous corners, a squircle about 30 DIP across (measured on macOS 27); before that, a
+ * 10 DIP circle. Windows 11 rounds by 8 DIP, Windows 10 not at all; a frameless window on Linux
+ * is square. Maximized on Windows and Linux, and in full screen anywhere, the corners are square.
+ */
+function windowCorner(maximized: boolean, fullscreen: boolean): { radius: number; squircle: boolean } {
+  if (fullscreen) return { radius: 0, squircle: false }
+  const version = window.step.osVersion.split('.').map(Number)
+  if (mac) return version[0] >= 26 ? { radius: 30, squircle: true } : { radius: 10, squircle: false }
+  if (platform === 'win32') return { radius: !maximized && version[2] >= 22000 ? 8 : 0, squircle: false }
+  return { radius: 0, squircle: false }
+}
+
+/**
+ * Keeps --window-radius and --zoom on the root in step with the window, for the card's corners
+ * (see --radius-card in tokens.css). The page's zoom counts: the frame is in CSS pixels and the
+ * window's corners are not, and in a frameless window the outer width is the window's in DIP.
+ */
+export function useWindowCorners(): void {
+  const maximized = useUi((s) => s.maximized)
+  const fullscreen = useUi((s) => s.fullscreen)
+  useEffect(() => {
+    const root = document.documentElement
+    const corner = windowCorner(maximized, fullscreen)
+    root.style.setProperty('--window-radius', `${corner.radius}px`)
+    root.toggleAttribute('data-squircle', corner.squircle)
+    const zoom = (): void => root.style.setProperty('--zoom', String(window.outerWidth / window.innerWidth || 1))
+    zoom()
+    window.addEventListener('resize', zoom)
+    return () => window.removeEventListener('resize', zoom)
+  }, [maximized, fullscreen])
+}
+
 /** Shows or hides the sidebar. */
 function SidebarToggle() {
   const collapsed = usePrefs((s) => s.prefs?.sidebarCollapsed ?? false)
