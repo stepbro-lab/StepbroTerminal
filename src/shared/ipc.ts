@@ -103,10 +103,12 @@ export interface SendMap {
   'win:minimize': () => void
   'win:maximize': () => void
   'win:close': () => void
+  /** The bar along the top edge opened, this many CSS pixels tall: report the pointer crossing it. 0 when it closed. */
+  'win:bar': (height: number) => void
+  /** Show or hide a Mac's traffic lights, which only the open bar has room for. */
+  'win:buttons': (visible: boolean) => void
   'win:setActiveSession': (id: string | null) => void
   'win:setTitle': (title: string) => void
-  /** The pointer entered the window's top-left corner, this many DIP wide and tall: show the window's buttons there. */
-  'win:cornerEnter': (width: number, height: number) => void
   'clipboard:write': (text: string) => void
   'workspace:set': (state: WorkspaceState) => void
   /** The preview pane beside a session has its browser view up, with this webContents id; and it is gone. */
@@ -149,10 +151,10 @@ export interface EventMap {
   'win:maximized': (maximized: boolean) => void
   /** macOS: the window went full screen, where the traffic lights leave the bar. */
   'win:fullscreen': (fullscreen: boolean) => void
-  /** Whether the pointer is in the window's top-left corner, where its buttons show while it is. */
-  'win:cornerHover': (over: boolean) => void
-  /** Windows: the pointer rested on the window's left edge, the part the page never sees. */
-  'win:edgeRest': () => void
+  /** While the top bar is open: the pointer went into it (true) or left it (false). */
+  'win:barPointer': (inside: boolean) => void
+  /** Windows: the pointer is on the window's top edge, the part the page never sees. */
+  'win:topEdge': () => void
   /** A folder handed to the app from outside: dropped on its icon, or given on the command line. */
   'ui:openFolder': (path: string) => void
   /** A step://workspace/<name> link: open that workspace. */

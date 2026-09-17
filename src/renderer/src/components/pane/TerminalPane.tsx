@@ -2,7 +2,6 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { AlertTriangle } from 'lucide-react'
 import type { Session } from '@shared/types'
 import { useData } from '@/stores/data'
-import { usePrefs } from '@/stores/prefs'
 import { activeLayout, useUi, type DropZone, type LayoutNode } from '@/stores/ui'
 import { useTerminalMount } from '@/terminal/useTerminalMount'
 import { registry } from '@/terminal/TerminalRegistry'
@@ -11,8 +10,7 @@ import { canResume, defaultTitle, rowPresetId } from '@/lib/sidebarModel'
 import { AgentLogo } from '../sidebar/AgentLogo'
 import { leaves, zoneFor } from '@/lib/layout'
 import { movePanes, rememberPanes, shapeOf } from '@/lib/paneMotion'
-import { RAIL_INSET, topRightLeaf } from '@/lib/rail'
-import { SidebarPeek, TopStrip } from '../Chrome'
+import { RAIL_INSET, SESSION_RAIL, topRightLeaf } from '@/lib/rail'
 import { SessionRail } from '../SessionRail'
 import { CardHeader } from './CardHeader'
 import { SearchBar } from './SearchBar'
@@ -33,11 +31,9 @@ export function TerminalPane() {
   const sessions = useData((s) => s.sessions)
   const connected = hostState.kind === 'connected'
   const live = leaves(layout).filter((id) => sessions[id])
-  // With the sidebar folded away the session rail takes its place in the top-right corner, and a
-  // lone pane fills the window edge to edge; panes side by side keep their cards, so they read
-  // as the separate things they are.
-  const immersive = usePrefs((s) => s.prefs?.sidebarCollapsed ?? false)
-  const bare = immersive && live.length <= 1
+  // A lone pane has no header: the sidebar names it (or the floating session rail, while that is
+  // off, see SESSION_RAIL). Panes side by side keep theirs, so they read as the separate things they are.
+  const bare = live.length <= 1
 
   // Panes travel when the arrangement changes shape: remembered just before React re-lays them
   // out (the store tells us first), moved right after it has. A gutter drag only changes proportions.
@@ -54,11 +50,9 @@ export function TerminalPane() {
 
   if (!layout || live.length === 0) {
     return (
-      <main className="pane-area relative flex min-w-0 flex-1 flex-col" data-immersive={immersive} data-bare={bare}>
-        <TopStrip tall={immersive} />
-        {immersive && <SidebarPeek />}
+      <main className="pane-area relative flex min-w-0 flex-1 flex-col">
         <div className="pane-frame relative flex min-h-0 flex-1">
-          {immersive && <SessionRail />}
+          {SESSION_RAIL && <SessionRail />}
           <DropTarget className="card relative flex h-full w-full flex-col">{connected ? <EmptyState /> : <HostBanner />}</DropTarget>
         </div>
       </main>
@@ -68,14 +62,12 @@ export function TerminalPane() {
   const sidePanel = side && sessions[side.sessionId] ? (side.kind === 'preview' ? <PreviewPane key={side.url} url={side.url} sessionId={side.sessionId} /> : <ChangesPane sessionId={side.sessionId} />) : null
 
   return (
-    <main className="pane-area relative flex min-w-0 flex-1 flex-col" data-immersive={immersive} data-bare={bare}>
-      <TopStrip tall={immersive} />
-      {immersive && <SidebarPeek />}
+    <main className="pane-area relative flex min-w-0 flex-1 flex-col">
       <div className="pane-frame flex min-h-0 flex-1 gap-2">
         {/* The rail hangs over the terminals' own corner, left of any side panel. */}
         <div className="relative flex min-w-0 flex-1">
-          {immersive && <SessionRail />}
-          <LayoutView node={layout} path={[]} connected={connected} multi={live.length > 1} bare={bare} underRail={immersive && !bare ? topRightLeaf(layout) : null} />
+          {SESSION_RAIL && <SessionRail />}
+          <LayoutView node={layout} path={[]} connected={connected} multi={live.length > 1} bare={bare} underRail={SESSION_RAIL && !bare ? topRightLeaf(layout) : null} />
         </div>
         {sidePanel && <div className="side-panel flex min-w-0 flex-[0_0_44%]">{sidePanel}</div>}
       </div>
@@ -198,7 +190,7 @@ function DropHighlight({ zone }: { zone: DropZone }) {
 }
 
 /**
- * `bare`: the one pane of a window with no sidebar, drawn without a header; the rail names it.
+ * `bare`: the window's only pane, drawn without a header; the sidebar names it.
  * `underRail`: the rail hangs over this pane's corner, so its header keeps its buttons out from under it.
  */
 function PaneCard({ id, connected, multi, bare, underRail }: { id: string; connected: boolean; multi: boolean; bare: boolean; underRail: boolean }) {
@@ -217,17 +209,17 @@ function PaneCard({ id, connected, multi, bare, underRail }: { id: string; conne
       data-pane
       data-flip-id={id}
       className="card relative flex min-h-0 min-w-0 flex-1 flex-col"
-      style={multi && focused ? { boxShadow: '0 0 0 1px var(--accent-soft), var(--shadow-card)' } : undefined}
+      style={multi && focused ? { boxShadow: '0 0 0 1px var(--accent-soft)' } : undefined}
       onMouseDownCapture={focusMe}
       {...handlers}
     >
       {!bare && <CardHeader session={session} split={multi} dim={multi && !focused} inset={underRail ? RAIL_INSET : 0} />}
       {bare && searchOpen && focused && (
-        <div className="absolute left-3 top-1 z-20 flex h-8 items-center rounded-full px-2" style={{ background: 'var(--bg-elevated)', boxShadow: 'var(--shadow-chip)' }}>
+        <div className="absolute left-3 top-2 z-20 flex h-8 items-center rounded-full px-2" style={{ background: 'var(--bg-elevated)', boxShadow: 'var(--shadow-chip)' }}>
           <SearchBar id={session.id} onClose={() => setSearchOpen(false)} />
         </div>
       )}
-      <div className={`relative min-h-0 flex-1 overflow-hidden ${bare ? 'px-4 pb-3 pt-1' : 'px-3 pb-2.5 pt-2'}`}>
+      <div className={`relative min-h-0 flex-1 overflow-hidden ${bare ? 'p-3.5' : 'px-3 pb-2.5 pt-2'}`}>
         {/* The mount node stays in the tree while the host reconnects, so xterm is never orphaned. */}
         <div
           ref={mountRef}
@@ -273,7 +265,7 @@ function ArchivedView({ session }: { session: Session }) {
   const color = presets.find((p) => p.id === presetId)?.color ?? 'var(--text-muted)'
   const resumes = canResume(session)
   return (
-    <div className="fade-in absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 p-8 text-center" style={{ background: 'var(--bg-card)' }}>
+    <div className="fade-in absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 p-8 text-center" style={{ background: 'var(--card-fill, var(--bg-card))', backdropFilter: 'blur(14px)' }}>
       <span style={{ color }}>
         <AgentLogo presetId={presetId} size={40} />
       </span>

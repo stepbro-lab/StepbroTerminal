@@ -164,7 +164,7 @@ async function boot(): Promise<void> {
       ctx.prefs = { ...ctx.prefs, ...partial }
       savePrefs(ctx.prefs)
       ctx.emit('prefs:update', ctx.prefs)
-      if (themeChanged && ctx.win) applyWindowTheme(ctx.win, ctx.prefs)
+      if ((themeChanged || partial.frameOpacity !== undefined || partial.contentOpacity !== undefined) && ctx.win) applyWindowTheme(ctx.win, ctx.prefs)
       if (shellChanged) ctx.refreshPresets()
       if (partial.addedProjects || partial.hiddenProjects) ctx.emitProjects()
       if (partial.keybindings) buildAppMenu(ctx)

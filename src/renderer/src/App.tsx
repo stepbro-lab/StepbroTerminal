@@ -8,8 +8,9 @@ import { terminalContextMenu } from '@/lib/terminalMenu'
 import { defaultTitle } from '@/lib/sidebarModel'
 import { pruneLayout, type LayoutNode } from '@/lib/layout'
 import { addDroppedFolders, openWorkspaceByKey } from '@/lib/actions'
-import { Sidebar, useSidebarModel } from '@/components/sidebar/Sidebar'
-import { WindowCorner } from '@/components/Chrome'
+import { useSidebarModel } from '@/lib/useSidebarModel'
+import { Sidebar } from '@/components/sidebar/Sidebar'
+import { TopBar, useWindowCorners } from '@/components/Chrome'
 import { useVoice } from '@/stores/voice'
 import { SelectionRead } from '@/components/pane/SelectionRead'
 import { TerminalPane } from '@/components/pane/TerminalPane'
@@ -26,6 +27,7 @@ import { useHandoff } from '@/stores/handoff'
 import { HandoffFlight } from '@/components/HandoffFlight'
 
 export default function App() {
+  useWindowCorners()
   const prefs = usePrefs((s) => s.prefs)
   const dark = usePrefs((s) => s.dark)
   const sessions = useData((s) => s.sessions)
@@ -81,12 +83,6 @@ export default function App() {
       s.on('ui:handoff', (h) => useHandoff.getState().arrive(h)),
       s.on('win:maximized', (m) => useUi.getState().setMaximized(m)),
       s.on('win:fullscreen', (f) => useUi.getState().setFullscreen(f)),
-      s.on('win:cornerHover', (over) => useUi.getState().setCornerHover(over)),
-      // The frame's part of the left edge: brings the sidebar out the way the page's own edge does.
-      s.on('win:edgeRest', () => {
-        const ui = useUi.getState()
-        if (usePrefs.getState().prefs?.sidebarCollapsed && !ui.settingsOpen) ui.setSidebarPeek(true)
-      }),
       s.on('ui:openFolder', (p) => void addDroppedFolders([p])),
       s.on('ui:openWorkspace', (k) => void openWorkspaceByKey(k)),
       // The key the system holds, pressed while another program was in front.
@@ -183,7 +179,7 @@ export default function App() {
     return () => window.clearInterval(t)
   }, [sessions])
 
-  // ---- keep the sidebar model available to keyboard jumps, pick a sensible active session ----
+  // ---- keep the session model available to keyboard jumps, pick a sensible active session ----
   useEffect(() => {
     setSidebarModelRef(model)
   }, [model])
@@ -208,14 +204,15 @@ export default function App() {
   }, [activeId, sessions])
 
   return (
-    <div className="relative flex h-full w-full flex-col overflow-hidden">
+    // The window is a thin, even frame with the terminal inside it; the top edge grows into the bar.
+    <div className="app-frame relative flex h-full w-full flex-col overflow-hidden" data-frame>
       {/* The workspace stays mounted behind Settings so terminals keep their state and size. */}
       <div className="flex min-h-0 flex-1" style={{ display: settingsOpen ? 'none' : undefined }}>
         <Sidebar />
         <TerminalPane />
       </div>
       {settingsOpen && <SettingsView />}
-      <WindowCorner />
+      <TopBar />
       <SelectionRead />
       <CommandPalette />
       <NotesPanel />

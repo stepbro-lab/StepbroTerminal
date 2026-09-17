@@ -369,7 +369,13 @@ class TerminalRegistry {
    */
   private holds = new FitHold(() => {
     this.fitLater.clear()
-    for (const e of this.entries.values()) if (e.mounted) this.fitNow(e)
+    // A hold usually ends inside an animation frame, at the end of a tween. A fit there would
+    // clear a WebGL canvas right away and redraw it only in the next frame, and the text would
+    // blink; fitted from a task of its own, the redraw comes in the frame that shows the new size.
+    window.setTimeout(() => {
+      if (this.holds.isHeld) return
+      for (const e of this.entries.values()) if (e.mounted) this.fitNow(e)
+    }, 0)
   })
 
   holdFits(): void {
@@ -444,6 +450,9 @@ class TerminalRegistry {
       this.prefs.ligatures !== prefs.ligatures
     // The accent washes the card's colour, and the terminal paints the same colour, so it follows too.
     const themeChanged = this.dark !== dark || !!this.prefs && this.prefs.accent !== prefs.accent
+    // Whether the terminal paints its background at all follows the card's opacity (see seeThrough);
+    // a new theme object is what makes the renderer look again.
+    const fillChanged = !!this.prefs && (this.prefs.contentOpacity !== prefs.contentOpacity || this.prefs.frameOpacity !== prefs.frameOpacity)
     const gpuChanged = !!this.prefs && this.prefs.gpuRendering !== prefs.gpuRendering
     this.prefs = prefs
     this.dark = dark
@@ -465,7 +474,7 @@ class TerminalRegistry {
       }
       e.term.options.cursorStyle = prefs.cursorStyle
       e.term.options.cursorBlink = prefs.cursorBlink
-      if (themeChanged) e.term.options.theme = themeFor(dark)
+      if (themeChanged || fillChanged) e.term.options.theme = themeFor(dark)
       if (this.prefs && e.term.options.scrollback !== prefs.scrollback) e.term.options.scrollback = prefs.scrollback
       if ((fontChanged || themeChanged) && e.mounted) {
         if (e.webgl) {
@@ -493,12 +502,20 @@ class TerminalRegistry {
       }
       if (!e.mounted || e.webgl) return
       const addon = new this.webglCtor() as IDisposable & { onContextLoss: (cb: () => void) => IDisposable }
+      e.term.loadAddon(addon as any)
+      paintNoBackdropWhenSeeThrough(addon)
+      const drawNow = drawOnCanvasResize(e.term)
+      const webgl = {
+        dispose: () => {
+          drawNow.disconnect()
+          addon.dispose()
+        }
+      }
       addon.onContextLoss(() => {
-        addon.dispose()
+        webgl.dispose()
         e.webgl = null
       })
-      e.term.loadAddon(addon as any)
-      e.webgl = addon
+      e.webgl = webgl
     } catch {
       this.webglSupported = false
     }
@@ -738,7 +755,7 @@ function fittedSize(family: string, size: number): number {
  * a darker or lighter rectangle inside a tinted card. Resolved through a canvas, because the
  * computed value of a colour-mix is a colour() the terminal cannot read.
  */
-function cardBackground(): string | null {
+function cardBackground(): [number, number, number] | null {
   const probe = document.createElement('div')
   probe.style.cssText = 'position:absolute;width:0;height:0;visibility:hidden;pointer-events:none;background:var(--bg-card)'
   document.body.appendChild(probe)
@@ -750,20 +767,83 @@ function cardBackground(): string | null {
   ctx.fillRect(0, 0, 1, 1)
   const [r, g, b, a] = ctx.getImageData(0, 0, 1, 1).data
   if (a === 0) return null
-  return '#' + [r, g, b].map((n) => n.toString(16).padStart(2, '0')).join('')
+  return [r, g, b]
+}
+
+/** How opaque the card is over a translucent window; 1 when the window is solid. */
+function cardOpacity(): number {
+  const root = document.documentElement
+  if (!root.hasAttribute('data-translucent')) return 1
+  const v = Number(getComputedStyle(root).getPropertyValue('--content-opacity'))
+  return Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : 1
+}
+
+/** The terminal lets what is behind it through: its card is less than opaque. */
+function seeThrough(): boolean {
+  return cardOpacity() < 1
 }
 
 /** The palette for the mode, painted on the card's own colour. */
 function themeFor(dark: boolean): ITheme {
   const base = dark ? darkTerminal : lightTerminal
-  const background = cardBackground()
-  return background ? { ...base, background, cursorAccent: background } : base
+  const rgb = cardBackground()
+  if (!rgb) return base
+  const background = '#' + rgb.map((n) => n.toString(16).padStart(2, '0')).join('')
+  return { ...base, background, cursorAccent: background }
+}
+
+/**
+ * On a see-through card the terminal paints no background, and the card's own fill shows
+ * through; painting it again would stack the two and the text area would come out more solid
+ * than its card. xterm's way to that, allowTransparency, draws every glyph onto a clear canvas,
+ * where macOS gives text none of its smoothing: it came out thin and washed out. So the terminal
+ * keeps its solid background colour, and its glyphs are drawn on it exactly as on a solid card;
+ * only the one rectangle the WebGL renderer clears the screen with, in that colour, is made clear.
+ * Cells with a colour of their own still paint it.
+ *
+ * That rectangle's colour is private to the renderer, so its colour cache is wrapped, once, on
+ * the class every terminal's renderer shares. Without the names it reaches for, nothing changes
+ * and the terminal simply stays solid on its card.
+ */
+function paintNoBackdropWhenSeeThrough(addon: unknown): void {
+  type Rect = { _bgFloat?: Float32Array; _themeService?: { colors: unknown }; _updateCachedColors?: (colors: unknown) => void; _updateViewportRectangle?: () => void }
+  const rect = (addon as { _renderer?: { _rectangleRenderer?: { value?: Rect } } })._renderer?._rectangleRenderer?.value
+  if (!rect?._updateCachedColors || !rect._updateViewportRectangle || !rect._themeService) return
+  const proto = Object.getPrototypeOf(rect) as Rect & { __stepSeeThrough?: boolean }
+  if (!proto.__stepSeeThrough) {
+    const cache = proto._updateCachedColors!
+    proto._updateCachedColors = function (this: Rect, colors: unknown) {
+      cache.call(this, colors)
+      if (seeThrough()) this._bgFloat?.fill(0)
+    }
+    proto.__stepSeeThrough = true
+  }
+  rect._updateCachedColors(rect._themeService.colors)
+  rect._updateViewportRectangle()
 }
 
 function fontStack(family: string | undefined): string {
   const f = (family || 'JetBrains Mono').trim()
   const quoted = /\s/.test(f) && !f.startsWith('"') && !f.startsWith("'") ? `"${f}"` : f
   return `${quoted}, "JetBrains Mono", "Geist Mono", "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace`
+}
+
+/**
+ * The WebGL renderer watches its canvas's size in device pixels. When that changes it clears the
+ * canvas and asks to be drawn on the next frame, which leaves one frame with no text in it: a
+ * blink, each time a terminal grows at a zoom where its size in CSS pixels does not come out to
+ * whole device pixels (the top bar closing, at 120%). This observer is made after the renderer's,
+ * so it runs right after it in the same frame and draws what was asked for there and then.
+ * It reaches into xterm's render debouncer, which has no public way to draw now; without it,
+ * the blink simply comes back.
+ */
+function drawOnCanvasResize(term: Terminal): ResizeObserver {
+  const observer = new ResizeObserver(() => {
+    const core = (term as unknown as { _core?: { _renderService?: { _renderDebouncer?: { _innerRefresh?: () => void } } } })._core
+    core?._renderService?._renderDebouncer?._innerRefresh?.()
+  })
+  for (const canvas of term.element?.querySelectorAll('.xterm-screen canvas') ?? []) observer.observe(canvas, { box: 'device-pixel-content-box' })
+  return observer
 }
 
 export const registry = new TerminalRegistry()

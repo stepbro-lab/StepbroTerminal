@@ -8,10 +8,10 @@ import { readTranscriptDetails, transcriptPath } from './claude/transcript'
 import { buildLaunchSpec } from './presets/launchSpec'
 import { gitChanges, gitDiff, gitRevert } from './git'
 import { loadWorkspace, saveWorkspace } from './prefs'
-import { cornerEnter } from './window'
 import { globalKeyHeld } from './globalKeys'
 import type { Ctx } from './context'
 import { t } from './i18n'
+import { barWatch, windowButtons } from './window'
 
 type Handler<K extends keyof InvokeMap> = (...args: Parameters<InvokeMap[K]>) => ReturnType<InvokeMap[K]> | Promise<ReturnType<InvokeMap[K]>>
 type Listener<K extends keyof SendMap> = (...args: Parameters<SendMap[K]>) => void
@@ -129,11 +129,12 @@ export function registerIpc(ctx: Ctx): void {
     else ctx.win.maximize()
   })
   on('win:close', () => ctx.win?.close())
+  on('win:bar', (height) => barWatch(ctx.win, height))
+  on('win:buttons', (visible) => windowButtons(ctx.win, visible))
   on('win:setActiveSession', (id) => {
     ctx.activeId = id
   })
   on('win:setTitle', (title) => ctx.win?.setTitle(title ? `${title} — stepbro terminal` : 'stepbro terminal'))
-  on('win:cornerEnter', (width, height) => cornerEnter(ctx.win, width, height))
   on('clipboard:write', (text) => clipboard.writeText(text))
   handle('clipboard:kind', () => {
     const formats = clipboard.availableFormats()

@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import type { Prefs } from '@shared/types'
 import { applyAccent } from '@/theme/accents'
 import { setCurrentLanguage } from '@/lib/i18n'
+import { isTranslucent } from '@shared/frame'
 
 interface PrefsState {
   prefs: Prefs | null
@@ -21,6 +22,12 @@ function computeDark(prefs: Prefs | null, systemDark: boolean): boolean {
 function applyThemeAttr(dark: boolean, prefs?: Prefs | null): void {
   document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light')
   document.documentElement.setAttribute('data-platform', window.step.platform)
+  // The main process puts the blurred desktop behind the window; the page lays the frame and the
+  // terminal over it at their opacity (see global.css).
+  const root = document.documentElement
+  root.toggleAttribute('data-translucent', !!prefs && isTranslucent(prefs, window.step.platform, window.step.osVersion))
+  root.style.setProperty('--frame-opacity', String(prefs?.frameOpacity ?? 1))
+  root.style.setProperty('--content-opacity', String(prefs?.contentOpacity ?? 1))
   applyAccent(prefs?.accent ?? 'blue', dark)
 }
 

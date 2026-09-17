@@ -35,8 +35,24 @@ export function railStatus(row: SidebarSession): RailStatus {
   }
 }
 
+/**
+ * The floating session rail is off for now: the sidebar is back while the rail's design is
+ * finished. Its component, styles and motion are all still here; true brings it back.
+ */
+export const SESSION_RAIL = false
+
 /** How wide the folded rail is, so what sits under its corner can keep out of its way. */
-export const RAIL_INSET = 84
+export const RAIL_INSET = 96
+
+let pointerOnRailAt = -Infinity
+/** The pointer is on the session rail now. */
+export function notePointerOnRail(): void {
+  pointerOnRailAt = performance.now()
+}
+/** Milliseconds since the pointer was last on the session rail. */
+export function sincePointerOnRail(): number {
+  return performance.now() - pointerOnRailAt
+}
 
 /** The pane the rail hangs over: rightmost among panes side by side, topmost among stacked ones. */
 export function topRightLeaf(node: LayoutNode): string {
