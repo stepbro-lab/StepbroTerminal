@@ -44,6 +44,7 @@ export function SessionRow({ row, insert, onDragOver, onDrop }: Props) {
       // The pin gets a column only when it is there; otherwise the logo would slide into its place and leave the edge empty.
       className={`group row gap-2 pl-[22px] ${row.pinned ? 'grid-cols-[16px_minmax(0,1fr)_auto_16px]' : 'grid-cols-[16px_minmax(0,1fr)_16px]'}`}
       data-active={active}
+      data-archived={archived || undefined}
       data-insert={insert}
       title={row.session.projectPath}
       draggable={!archived}
@@ -81,7 +82,6 @@ export function SessionRow({ row, insert, onDragOver, onDrop }: Props) {
         <AgentLogo presetId={row.presetId} size={13} />
         <span
           className="pointer-events-none absolute inset-y-0 right-full flex items-center gap-0.5 pl-3 pr-1 opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100"
-          style={{ background: `linear-gradient(to right, transparent, ${active ? 'var(--bg-active)' : 'var(--bg-hover)'} 12px)` }}
         >
           {archived ? (
             <>

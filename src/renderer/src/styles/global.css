@@ -89,29 +89,32 @@ button:disabled {
   color: var(--text);
 }
 
-/* ---- the sidebar's add button: small, round and raised off the surface ---- */
+/* ---- the sidebar: folders and their sessions, straight on the frame ---- */
+/* It sits on the frame, which may be the blurred desktop, so its fills are the theme's text or
+   card colour laid thinly over whatever is behind (--side-hover, --side-active in tokens.css)
+   rather than solid colours of their own. */
 .fab {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   border-radius: 999px;
-  background: var(--bg-elevated);
-  color: var(--text);
+  background: var(--side-hover);
+  color: var(--text-secondary);
   transition:
     background-color 120ms var(--ease),
+    color 120ms var(--ease),
     transform 140ms var(--ease);
 }
 .fab:hover {
-  background: var(--bg-hover);
-  transform: translateY(-1px);
+  background: var(--side-press);
+  color: var(--text);
 }
 .fab:active {
-  transform: translateY(0) scale(0.97);
+  transform: scale(0.96);
 }
 
-/* ---- sidebar rows ---- */
 .row {
   position: relative;
   cursor: pointer;
@@ -128,7 +131,7 @@ button:disabled {
     color 100ms var(--ease);
 }
 .row:hover {
-  background: var(--bg-hover);
+  background: var(--side-hover);
   color: var(--text-secondary);
 }
 .row[data-tone='fg'],
@@ -137,20 +140,27 @@ button:disabled {
 }
 .row[data-active='true'],
 .row[data-active='true']:hover {
-  background: var(--bg-active);
+  background: var(--side-active);
   color: var(--text);
+}
+/* A session's actions come in over the end of its title; the title fades out under them. */
+[data-session-row]:hover .row-title {
+  mask-image: linear-gradient(to left, transparent 30px, #000 46px);
+}
+[data-session-row][data-archived]:hover .row-title {
+  mask-image: linear-gradient(to left, transparent 52px, #000 68px);
 }
 /* Sessions that share a split view sit inside one box; the box of the view on screen is a touch stronger. */
 .view-box {
   position: relative;
   margin: 2px -3px;
   padding: 2px;
-  border: 1px solid var(--border);
+  border: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
   border-radius: calc(var(--radius-row) + 3px);
-  background: color-mix(in srgb, var(--bg-hover) 50%, transparent);
+  background: color-mix(in srgb, var(--text) 3%, transparent);
 }
 .view-box[data-on='true'] {
-  border-color: var(--border-strong);
+  border-color: color-mix(in srgb, var(--text) 16%, transparent);
 }
 /* Pulls the group apart; shows while the pointer is over the box. */
 .view-box-ungroup {
@@ -186,7 +196,6 @@ button:disabled {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  box-shadow: 0 0 0 1.5px var(--bg-sidebar);
 }
 :is(.row, .view-box)[data-insert='before']::after {
   top: -2px;
@@ -207,12 +216,15 @@ button:disabled {
 }
 
 /* ---- terminal card ---- */
+/* Flat on the frame: no border, no shadow; the change of surface is the edge. */
 .card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
+  background: var(--card-fill, var(--bg-card));
   border-radius: var(--radius-card);
-  box-shadow: var(--shadow-card);
   overflow: hidden;
+}
+/* A Mac's window corners are continuous, not circular; the card's follow them. */
+:root[data-squircle] .card {
+  corner-shape: squircle;
 }
 
 .xterm {
@@ -375,11 +387,11 @@ kbd {
   transition: background-color 100ms var(--ease);
 }
 .nav-row:hover {
-  background: var(--bg-hover);
+  background: var(--side-hover);
   color: var(--text);
 }
 .nav-row[data-on='true'] {
-  background: var(--bg-active);
+  background: var(--side-active);
   color: var(--text);
 }
 .nav-row svg {
@@ -711,48 +723,110 @@ kbd {
   margin-left: -5px;
 }
 
-/* ---- the window's corner: its buttons, out of sight until the pointer comes to them ---- */
-.corner {
+/* ---- the frame around the terminal, and the bar its top edge grows into ---- */
+/* The window is a thin, even frame with the terminal inside. --bar goes from 0 to 1 as the top
+   edge opens into a bar (see TopBar in Chrome.tsx), and the frame's top grows by --bar-push, up
+   to the difference between the two, pushing everything inside down. */
+.app-frame {
+  padding: calc(var(--frame) + var(--bar-push, 0px)) var(--frame) var(--frame);
+  background: var(--bg-sidebar);
+}
+/* A translucent window: the system blurs the desktop behind it (applyWindowTheme in
+   main/window.ts), and the page lays the frame and the cards over the blur, each washed with its
+   own colour at the opacity set for it in Settings. The terminal paints the card's fill too. */
+:root[data-translucent],
+:root[data-translucent] body,
+:root[data-translucent] #root {
+  background: transparent;
+}
+:root[data-translucent] {
+  --card-fill: color-mix(in srgb, var(--bg-card) calc(var(--content-opacity) * 100%), transparent);
+}
+:root[data-translucent] .app-frame {
+  background: color-mix(in srgb, var(--bg-sidebar) calc(var(--frame-opacity) * 100%), transparent);
+}
+/* The strip the pointer touches to open the bar: the frame's top edge and a little of the card under it. */
+.bar-edge {
   position: absolute;
-  left: 0;
   top: 0;
-  z-index: 40;
+  left: 0;
+  right: 0;
+  z-index: 39;
+  height: calc(var(--frame) + 4px);
+}
+.topbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 38;
   display: flex;
   align-items: center;
-  gap: 10px;
   height: var(--chrome-h);
-  padding-left: 12px;
-  padding-right: 10px;
-  opacity: 0;
-  transition: opacity 160ms var(--ease);
+  pointer-events: none;
 }
-.corner[data-over='true'] {
-  opacity: 1;
+.topbar[data-open='true'] {
+  pointer-events: auto;
 }
-/* Windows and Linux: minimize, maximize and close, flat, the way their title bars draw them; close turns red. */
+/* The buttons come in once the edge has made most of the room for them, dropping into place. */
+.topbar-buttons,
+.caption {
+  opacity: clamp(0, calc((var(--bar, 0) - 0.45) / 0.55), 1);
+  transform: translateY(calc((1 - min(var(--bar, 0), 1)) * -5px));
+}
+.topbar-buttons {
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+/* Windows and Linux: minimize, maximize and close at the right end. */
 .caption {
   display: flex;
   align-items: center;
+  height: 100%;
+  margin-left: auto;
 }
 .caption-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 24px;
-  border-radius: 7px;
-  color: var(--text-muted);
-  transition:
-    background-color 120ms var(--ease),
-    color 120ms var(--ease);
-}
-.caption-btn:hover {
-  background: var(--bg-hover);
   color: var(--text);
 }
-.caption-btn[data-k='close']:hover {
+/* Windows: flush with the corner, 46 wide, the glyphs of its own icon font; close turns red. */
+.caption[data-os='win'] .caption-btn {
+  width: 46px;
+  height: 100%;
+  font-family: 'Segoe Fluent Icons', 'Segoe MDL2 Assets';
+  font-size: 10px;
+  transition: background-color 100ms linear;
+}
+.caption[data-os='win'] .caption-btn:hover {
+  background: color-mix(in srgb, var(--text) 9%, transparent);
+}
+.caption[data-os='win'] .caption-btn:active {
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+}
+.caption[data-os='win'] .caption-btn[data-k='close']:hover {
   background: #c42b1c;
   color: #fff;
+}
+.caption[data-os='win'] .caption-btn[data-k='close']:active {
+  background: #b22a1c;
+  color: #fff;
+}
+/* Linux: round buttons with a soft fill, the way GNOME draws them. */
+.caption[data-os='linux'] {
+  gap: 10px;
+  padding-right: 12px;
+}
+.caption[data-os='linux'] .caption-btn {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+}
+.caption[data-os='linux'] .caption-btn:hover {
+  background: color-mix(in srgb, var(--text) 14%, transparent);
 }
 
 /* Offered where a selection ended: pressing it must not take the selection with it. */
@@ -795,221 +869,169 @@ kbd {
   color: var(--danger);
 }
 
-/* ---- the folded sidebar out over the terminal for a look, in from the left and back the same way ---- */
-aside[data-peek] {
+/* ---- the session rail: the folder's sessions, floating in the top-right corner ---- */
+/* The motion lives in SessionRail.tsx, which writes the springs out as variables: --q (0 at rest,
+   1 open) and --y for each row, --m for the well, --fq for the footer, --span for the height of
+   what is in the well. At rest a row is a 44 by 6 tally mark with its agent's mark to its left; open,
+   a 208 by 34 pill with the mark and the title inside. */
+.rail {
+  --m: 0;
+  --span: 0px;
+  --foot-y: 0px;
   position: absolute;
-  left: 0;
   top: 0;
-  bottom: 0;
-  z-index: 38;
-  width: var(--sidebar-w) !important;
-  background: var(--bg-sidebar);
-  border-radius: 0 var(--radius-card) var(--radius-card) 0;
-  box-shadow:
-    var(--shadow-pop),
-    0 0 0 1px var(--border);
+  right: 0;
+  z-index: 30;
+  /* Its box is where the pointer keeps it open: the marks at rest, the well once open. */
+  width: calc(88px + 148px * var(--m));
+  height: calc(28px + var(--span) + 6px * var(--m));
 }
-aside[data-peek='in'] {
-  animation: peek-in 260ms var(--ease) both;
-}
-aside[data-peek='out'] {
-  animation: peek-out 220ms var(--ease) both;
+.rail-well {
+  position: absolute;
+  top: calc(14px - 8px * var(--m));
+  right: calc(14px - 8px * var(--m));
+  width: calc(62px + 162px * var(--m));
+  height: calc(var(--span) + 16px * var(--m));
+  /* Open, the pills' radius (17) plus the well's padding (8), so the curves run parallel. */
+  border-radius: calc(4px + 21px * var(--m));
+  background: var(--rail-well);
+  opacity: clamp(0, calc(var(--m) * 3), 1);
   pointer-events: none;
 }
-@keyframes peek-in {
-  from {
-    transform: translateX(-100%);
-  }
-  to {
-    transform: none;
-  }
-}
-@keyframes peek-out {
-  from {
-    transform: none;
-  }
-  to {
-    transform: translateX(-100%);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  aside[data-peek='in'],
-  aside[data-peek='out'] {
-    animation-duration: 1ms;
-  }
-}
-
-/* ---- the pane area with the sidebar folded ---- */
-.pane-frame {
-  padding: 0 8px 8px 0;
-  transition: padding 280ms var(--ease);
-}
-/* No sidebar to keep the cards off the left edge, so the frame does. */
-.pane-area[data-immersive='true'] .pane-frame {
-  padding: 0 8px 8px;
-}
-/* A lone pane fills the window edge to edge: no card around it, no frame, one surface. */
-.pane-area .card {
-  transition: border-radius 280ms var(--ease);
-}
-.pane-area[data-bare='true'] {
-  background: var(--bg-card);
-}
-.pane-area[data-bare='true'] .pane-frame {
-  padding: 0;
-}
-.pane-area[data-bare='true'] .card {
-  border-radius: 0;
-  border-color: transparent;
-  box-shadow: none;
-}
-.pane-area[data-bare='true'] .side-panel {
-  box-shadow: -1px 0 0 var(--border);
-}
-
-/* ---- the session rail: the folder's sessions, folded into the top-right corner ---- */
-.rail {
-  position: absolute;
-  /* Up into the top row, which is above the rail's own box. */
-  top: calc(6px - var(--chrome-h));
-  right: 8px;
-  z-index: 30;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 6px 8px;
-  border-radius: 14px;
-  transition:
-    background-color 200ms var(--ease),
-    box-shadow 200ms var(--ease);
-}
-.rail[data-open='true'] {
-  background: var(--bg-overlay);
-  box-shadow:
-    0 0 0 1px var(--border) inset,
-    var(--shadow-chip);
-}
 .rail-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  height: 16px;
-  transition: height 320ms var(--ease);
+  --q: 0;
+  --y: 0px;
+  --rest: var(--rail-bar);
+  --open: var(--rail-pill);
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: calc(44px + 164px * var(--q));
+  height: calc(6px + 28px * var(--q));
+  border-radius: 999px;
+  transform: translateY(var(--y));
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
 }
-.rail[data-open='true'] .rail-row {
-  height: 30px;
+/* The fill is its own layer, so a waiting session can breathe without its title fading with it. */
+.rail-row::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: color-mix(in srgb, var(--open) clamp(0%, calc(var(--q) * 100%), 100%), var(--rest));
 }
-.rail-mark {
-  display: inline-flex;
-  width: 14px;
-  justify-content: center;
-  color: var(--text-muted);
-  transition: color 200ms var(--ease);
-}
-.rail-row[data-active='true'] .rail-mark,
+/* Hovered, a pill keeps its fill, so it stays as clear of the well as the rest; its title and mark darken. */
+.rail-row:hover,
 .rail-row:hover .rail-mark {
   color: var(--text);
 }
-/* The bar: a tally mark at rest, a pill with the title in it when the rail is open. */
-.rail-bar {
-  position: relative;
-  display: flex;
-  align-items: center;
-  overflow: hidden;
-  width: 38px;
-  height: 6px;
-  border-radius: 999px;
-  background: var(--border-strong);
-  transition:
-    width 320ms var(--ease),
-    height 320ms var(--ease),
-    background-color 200ms var(--ease),
-    opacity 200ms var(--ease);
-}
-.rail-row[data-active='true'] .rail-bar {
-  background: var(--accent);
-}
-.rail-row[data-status='gone'] .rail-bar {
-  opacity: 0.45;
-}
-.rail-row[data-status='attention'] .rail-bar {
-  background: var(--attention);
-  animation: rail-breathe 1.6s ease-in-out infinite;
-}
-.rail-row[data-status='error'] .rail-bar {
-  background: var(--danger);
-}
-.rail[data-open='true'] .rail-bar {
-  width: 224px;
-  height: 30px;
-  padding: 0 12px;
-  background: var(--bg-elevated);
-}
-.rail[data-open='true'] .rail-row:hover .rail-bar {
-  background: var(--bg-hover);
-}
-.rail[data-open='true'] .rail-row[data-active='true'] .rail-bar {
-  background: var(--bg-active);
-  box-shadow: 0 0 0 1px var(--accent-soft) inset;
-}
-.rail[data-open='true'] .rail-row[data-status='attention'] .rail-bar {
-  background: color-mix(in srgb, var(--attention) 22%, var(--bg-elevated));
-  animation: none;
-}
-.rail-title {
-  min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  font-size: 12.5px;
-  font-weight: 500;
+.rail-row[data-active='true'] {
+  --rest: var(--accent);
   color: var(--text);
-  opacity: 0;
-  transition: opacity 140ms var(--ease);
+  font-weight: 600;
 }
-.rail[data-open='true'] .rail-title {
-  opacity: 1;
-  transition-delay: 120ms;
-}
-/* Light sweeps along the bar while its agent works: the shimmer. */
-.rail-row[data-status='working'] .rail-bar::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  width: 55%;
-  background: linear-gradient(100deg, transparent 0%, color-mix(in srgb, var(--text) 42%, transparent) 50%, transparent 100%);
-  transform: translateX(-100%);
-  animation: rail-shimmer 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-.rail[data-open='true'] .rail-row[data-status='working'] .rail-bar::after {
-  background: linear-gradient(100deg, transparent 0%, color-mix(in srgb, var(--text) 10%, transparent) 50%, transparent 100%);
-}
-.rail-foot {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  max-height: 0;
-  overflow: hidden;
-  opacity: 0;
-  transition:
-    max-height 320ms var(--ease),
-    opacity 160ms var(--ease);
-}
-.rail[data-open='true'] .rail-foot {
-  max-height: 80px;
-  opacity: 1;
-  margin-top: 2px;
-  padding-top: 6px;
-  box-shadow: 0 -1px 0 var(--border);
-}
-.rail-more .rail-title {
+.rail-row[data-status='gone'] {
+  --rest: color-mix(in srgb, var(--rail-bar) 45%, transparent);
   color: var(--text-muted);
 }
+.rail-row[data-status='attention'] {
+  --rest: var(--attention);
+  --open: color-mix(in srgb, var(--attention) 20%, var(--rail-pill));
+}
+.rail-row[data-status='attention']::before {
+  animation: rail-breathe 1.6s ease-in-out infinite;
+}
+.rail-row[data-status='error'] {
+  --rest: var(--danger);
+  --open: color-mix(in srgb, var(--danger) 14%, var(--rail-pill));
+}
+/* The agent's mark: 8 px to the left of the bar at rest, 14 px inside the pill open. */
+.rail-mark {
+  position: absolute;
+  top: calc(50% - 7px);
+  left: -7px;
+  display: flex;
+  width: 14px;
+  height: 14px;
+  color: var(--text-muted);
+  transform: translateX(calc(-8px + 28px * var(--q))) scale(calc(0.57 + 0.43 * var(--q)));
+}
+.rail-row[data-active='true'] .rail-mark {
+  color: var(--text);
+}
+.rail-title {
+  position: absolute;
+  top: 50%;
+  left: 34px;
+  right: 14px;
+  overflow: hidden;
+  line-height: 18px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  text-align: left;
+  transform: translateY(-50%);
+  opacity: clamp(0, calc((var(--q) - 0.5) * 2), 1);
+  pointer-events: none;
+}
+/* Light sweeps along the bar while its agent works: the shimmer. */
+.rail-row[data-status='working']::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  background: linear-gradient(100deg, transparent 0%, color-mix(in srgb, var(--text) calc(42% - 36% * min(var(--q), 1)), transparent) 50%, transparent 100%) no-repeat;
+  background-size: 55% 100%;
+  animation: rail-shimmer 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  pointer-events: none;
+}
+.rail-foot {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  display: flex;
+  gap: 4px;
+  width: 208px;
+  height: 34px;
+  transform: translateY(var(--foot-y));
+  opacity: clamp(0, calc((var(--fq, 0) - 0.6) / 0.4), 1);
+  pointer-events: none;
+}
+.rail[data-open='true'] .rail-foot {
+  pointer-events: auto;
+}
+.rail-foot-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 0 12px;
+  border-radius: 999px;
+  color: var(--text-muted);
+  font-size: 12.5px;
+  font-weight: 500;
+  transition:
+    background-color 120ms var(--ease),
+    color 120ms var(--ease);
+}
+.rail-foot-btn:first-child {
+  flex: 1;
+}
+.rail-foot-btn:hover {
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+  color: var(--text);
+}
+.rail-folder {
+  max-width: 50%;
+}
 @keyframes rail-shimmer {
+  from {
+    background-position: -120% 0;
+  }
   to {
-    transform: translateX(280%);
+    background-position: 220% 0;
   }
 }
 @keyframes rail-breathe {
@@ -1022,20 +1044,12 @@ aside[data-peek='out'] {
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .rail-row,
-  .rail-bar,
-  .rail-title,
-  .rail-foot,
-  .pane-frame {
-    transition: none;
-  }
-  .rail-row[data-status='working'] .rail-bar::after {
+  .rail-row[data-status='working']::after {
     animation: none;
-    transform: none;
-    width: 100%;
-    background: color-mix(in srgb, var(--text) 18%, transparent);
+    background: color-mix(in srgb, var(--text) 12%, transparent);
+    background-size: 100% 100%;
   }
-  .rail-row[data-status='attention'] .rail-bar {
+  .rail-row[data-status='attention']::before {
     animation: none;
   }
 }
@@ -1056,15 +1070,4 @@ aside[data-peek='out'] {
   font-size: 12.5px;
   font-weight: 550;
   pointer-events: none;
-}
-
-/* The close caption button takes the Windows close red on hover in both themes: our danger token
-   is a pale salmon in dark mode, meant for error text, and looked washed out behind a white X. */
-.win-close:hover {
-  background: #c42b1c;
-  color: #fff;
-}
-.win-close:active {
-  background: #a9261a;
-  color: #fff;
 }

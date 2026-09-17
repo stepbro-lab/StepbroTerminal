@@ -25,6 +25,8 @@ export const defaultPrefs: Prefs = {
   presetUsage: {},
   flagHints: true,
   gpuRendering: true,
+  frameOpacity: 0,
+  contentOpacity: 0.9,
   resumeOnLaunch: true,
   launchConfigs: [],
   keybindings: {},
@@ -53,6 +55,8 @@ export function loadPrefs(): Prefs {
       if (logo in legacy) raw.logo = legacy[logo]
       else if (logo !== 'light' && logo !== 'dark') delete raw.logo
     }
+    // A switch for the translucent frame came before its opacity; it never shipped, but it may be on disk.
+    if (raw && 'translucentFrame' in raw) delete raw.translucentFrame
     return { ...defaultPrefs, ...raw }
   } catch {
     return { ...defaultPrefs }

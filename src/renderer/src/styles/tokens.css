@@ -27,6 +27,15 @@
   --shadow-pop: 0 20px 60px rgba(0, 0, 0, 0.16), 0 2px 8px rgba(0, 0, 0, 0.06);
   --shadow-chip: 0 8px 22px rgba(0, 0, 0, 0.16), 0 1px 2px rgba(0, 0, 0, 0.08);
   --scrim: rgba(28, 27, 27, 0.22);
+  /* The session rail: tally marks at rest; open, pills in a well. Grays made from the theme's own
+     text and card colours, so they carry no tint of their own. */
+  --rail-bar: color-mix(in srgb, var(--text) 16%, var(--bg-card));
+  --rail-well: color-mix(in srgb, var(--text) 6%, var(--bg-card));
+  --rail-pill: var(--bg-card);
+  /* Rows and buttons on the frame, which may be the blurred desktop: thin washes over what is behind. */
+  --side-hover: color-mix(in srgb, var(--text) 6%, transparent);
+  --side-press: color-mix(in srgb, var(--text) 10%, transparent);
+  --side-active: color-mix(in srgb, var(--bg-card) 90%, transparent);
 }
 
 :root[data-theme='dark'] {
@@ -56,18 +65,28 @@
   --shadow-pop: 0 24px 70px rgba(0, 0, 0, 0.6), 0 2px 8px rgba(0, 0, 0, 0.4);
   --shadow-chip: 0 10px 28px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.35);
   --scrim: rgba(0, 0, 0, 0.5);
+  --rail-bar: color-mix(in srgb, var(--text) 22%, var(--bg-card));
+  --rail-well: color-mix(in srgb, var(--text) 5%, var(--bg-card));
+  --rail-pill: color-mix(in srgb, var(--text) 11%, var(--bg-card));
+  --side-hover: color-mix(in srgb, var(--text) 7%, transparent);
+  --side-press: color-mix(in srgb, var(--text) 11%, transparent);
+  --side-active: color-mix(in srgb, var(--text) 12%, transparent);
 }
 
 :root {
   --font-ui: 'Hanken Grotesk Variable', 'Hanken Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI Variable Text', 'Segoe UI', sans-serif;
   --font-mono: 'JetBrains Mono', 'Geist Mono', 'SF Mono', 'Cascadia Mono', Menlo, Consolas, monospace;
   /* Soft corners throughout: cards and dialogs round wide, rows and fields a little, buttons all the way. */
-  --radius-card: 16px;
+  /* The card inside the frame rounds parallel to the window's own corners: their radius less the
+     frame, in CSS pixels. --window-radius and --zoom come from useWindowCorners (Chrome.tsx). */
+  --radius-card: max(0px, calc(var(--window-radius, 0px) / var(--zoom, 1) - var(--frame)));
   --radius-row: 9px;
   --radius-input: 10px;
   --radius-pop: 14px;
-  /* The window's top row on every system: where its buttons show, and the row the session rail sits in. */
+  /* The open bar along the window's top edge, where its buttons show. */
   --chrome-h: 36px;
+  /* The even frame around the terminal, on all four sides. */
+  --frame: 8px;
   --row-h: 27px;
   --ease: cubic-bezier(0.2, 0, 0, 1);
 }

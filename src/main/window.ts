@@ -2,8 +2,21 @@ import { app, BrowserWindow, nativeImage, nativeTheme, screen, shell } from 'ele
 import { appLogoPath, dockLogoPath } from './branding'
 import { join } from 'node:path'
 import type { Prefs } from '@shared/types'
+import { canBlurBehind, isTranslucent } from '@shared/frame'
 
 const BG = { light: '#f6f3f2', dark: '#1c1b1b' }
+const CLEAR = '#00000000'
+/**
+ * What the system draws behind a translucent frame. On a Mac, the most see-through of its
+ * materials in both light and dark (compared side by side on macOS 27; sidebar and under-window
+ * are among the most opaque). On Windows 11, acrylic, which blurs what is behind the window.
+ */
+const VIBRANCY = 'fullscreen-ui' as const
+const MATERIAL = 'acrylic' as const
+/** The open bar along the top edge, in CSS pixels: the same as --chrome-h. */
+const BAR_H = 36
+/** A Mac's traffic lights are 14 DIP circles; the position they are given is their top-left corner. */
+const LIGHT = 14
 
 export function isDark(prefs: Prefs): boolean {
   return prefs.theme === 'system' ? nativeTheme.shouldUseDarkColors : prefs.theme === 'dark'
@@ -22,8 +35,17 @@ export function applyAppIcon(win: BrowserWindow, prefs: Prefs): void {
   else win.setIcon(image)
 }
 
+/** The window shows the blurred desktop behind it (see isTranslucent). */
+function translucent(prefs: Prefs): boolean {
+  return isTranslucent(prefs, process.platform, process.getSystemVersion())
+}
+/** Whether each window has the material behind it now, so a slider dragged through its values does not ask again on every step. */
+const materials = new WeakMap<BrowserWindow, boolean>()
+
 export function createWindow(prefs: Prefs): BrowserWindow {
   const platform = process.platform
+  followTheme(prefs)
+  const clear = translucent(prefs)
   const win = new BrowserWindow({
     width: 1200,
     height: 760,
@@ -31,11 +53,14 @@ export function createWindow(prefs: Prefs): BrowserWindow {
     minHeight: 480,
     show: false,
     title: 'stepbro terminal',
-    backgroundColor: isDark(prefs) ? BG.dark : BG.light,
-    // No frame on any system: the terminal takes the whole window. The window's buttons live in
-    // its top-left corner and show only while the pointer is there: macOS's own traffic lights,
-    // kept hidden until then; on Windows and Linux three lights of ours drawn the same way.
-    ...(platform === 'darwin' ? { titleBarStyle: 'hidden' as const, trafficLightPosition: { x: 12, y: 12 } } : { frame: false }),
+    backgroundColor: clear ? CLEAR : isDark(prefs) ? BG.dark : BG.light,
+    // No title bar on any system: the window is the terminal inside a thin frame. The window's
+    // buttons show only while the pointer is at the top edge, where the frame grows into a bar for
+    // them: a Mac's own traffic lights, hidden until then; on Windows and Linux buttons of ours,
+    // drawn the way those systems draw theirs, since the system's own there cannot be hidden.
+    ...(platform === 'darwin'
+      ? { titleBarStyle: 'hidden' as const, trafficLightPosition: lightsAt(1), ...(clear ? { vibrancy: VIBRANCY } : {}) }
+      : { frame: false, ...(clear ? { backgroundMaterial: MATERIAL } : {}) }),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,
@@ -45,6 +70,7 @@ export function createWindow(prefs: Prefs): BrowserWindow {
       webviewTag: true
     }
   })
+  materials.set(win, clear)
   applyAppIcon(win, prefs)
   if (platform === 'darwin') win.setWindowButtonVisibility(false)
   win.once('ready-to-show', () => win.show())
@@ -59,8 +85,8 @@ export function createWindow(prefs: Prefs): BrowserWindow {
   // In macOS full screen the traffic lights go away with the menu bar.
   win.on('enter-full-screen', () => win.webContents.send('win:fullscreen', true))
   win.on('leave-full-screen', () => win.webContents.send('win:fullscreen', false))
-  watchCorner(win)
-  if (platform === 'win32') watchLeftEdge(win)
+  watchBar(win)
+  if (platform === 'win32') watchTopEdge(win)
   if (process.env['ELECTRON_RENDERER_URL']) {
     void win.loadURL(process.env['ELECTRON_RENDERER_URL'])
   } else {
@@ -69,51 +95,61 @@ export function createWindow(prefs: Prefs): BrowserWindow {
   return win
 }
 
-/** Keeps the window background in step with the theme, so resizes never flash the wrong color. */
+/**
+ * Keeps the window background in step with the theme, so resizes never flash the wrong color;
+ * and the material behind it or not. A translucent window has no color of its own: the system
+ * draws its material behind the page, and the page lays its frame and terminal over it at the
+ * opacity each is set to.
+ */
 export function applyWindowTheme(win: BrowserWindow, prefs: Prefs): void {
-  win.setBackgroundColor(isDark(prefs) ? BG.dark : BG.light)
+  followTheme(prefs)
+  const clear = translucent(prefs)
+  win.setBackgroundColor(clear ? CLEAR : isDark(prefs) ? BG.dark : BG.light)
+  if (materials.get(win) === clear) return
+  materials.set(win, clear)
+  if (process.platform === 'darwin') win.setVibrancy(clear ? VIBRANCY : null)
+  else if (canBlurBehind(process.platform, process.getSystemVersion())) win.setBackgroundMaterial(clear ? MATERIAL : 'none')
 }
 
-// ---- the window's buttons: shown while the pointer is in the top-left corner ----
+/**
+ * The system's own light or dark for this app: the material behind a translucent frame takes
+ * it, and it should be the app's theme rather than the system's when the two differ.
+ */
+function followTheme(prefs: Prefs): void {
+  if (nativeTheme.themeSource !== prefs.theme) nativeTheme.themeSource = prefs.theme
+}
 
-const CORNER_CHECK_MS = 160
-const corners = new WeakMap<BrowserWindow, (width: number, height: number) => void>()
+// ---- the bar along the top edge: open while the pointer is on it ----
+
+const BAR_CHECK_MS = 50
+const bars = new WeakMap<BrowserWindow, (height: number) => void>()
 
 /**
- * The corner is part of the page, so the page sees the pointer arrive and says so. It cannot see
- * it leave: on a Mac the traffic lights are native buttons that take the pointer for themselves
- * once shown, and on every system a drag region sits right beside the corner and swallows what
- * happens over it. So from then on the main process keeps looking at where the cursor is, and
- * hides the buttons again once it has left the corner.
+ * The page opens the bar when the pointer reaches the top edge, but cannot tell when it leaves:
+ * the open bar is where the window drags from, and the system keeps the pointer to itself over a
+ * drag region, as it does over a Mac's traffic lights. So while the bar is open the main process
+ * watches the cursor, and tells the page each time it crosses the bar's lower edge or leaves the
+ * window. The page decides when to close; a zero height ends the watch.
  */
-function watchCorner(win: BrowserWindow): void {
-  let shown = false
-  let zone = { width: 0, height: 0 }
+function watchBar(win: BrowserWindow): void {
+  let height = 0
+  let inside: boolean | null = null
   let timer: NodeJS.Timeout | undefined
-  const inside = (): boolean => {
+  const check = (): void => {
+    if (win.isDestroyed() || !height) return
     const p = screen.getCursorScreenPoint()
     const b = win.getContentBounds()
-    return p.x >= b.x && p.x < b.x + zone.width && p.y >= b.y && p.y < b.y + zone.height
-  }
-  const set = (v: boolean): void => {
-    if (shown === v || win.isDestroyed()) return
-    shown = v
-    if (process.platform === 'darwin') win.setWindowButtonVisibility(v)
-    win.webContents.send('win:cornerHover', v)
-  }
-  const check = (): void => {
-    if (win.isDestroyed()) return
-    if (inside()) {
-      set(true)
-      timer = setTimeout(check, CORNER_CHECK_MS)
-    } else {
-      set(false)
+    const now = p.x >= b.x && p.x < b.x + b.width && p.y >= b.y && p.y < b.y + height
+    if (now !== inside) {
+      inside = now
+      win.webContents.send('win:barPointer', now)
     }
+    timer = setTimeout(check, BAR_CHECK_MS)
   }
-  corners.set(win, (width, height) => {
-    zone = { width, height }
+  bars.set(win, (h) => {
     if (timer) clearTimeout(timer)
-    // Full screen on a Mac has no traffic lights to show; the corner's own buttons still show.
+    height = h
+    inside = null
     check()
   })
   win.on('closed', () => {
@@ -121,45 +157,47 @@ function watchCorner(win: BrowserWindow): void {
   })
 }
 
-/** The renderer saw the pointer enter the corner, which is this big. */
-export function cornerEnter(win: BrowserWindow | null, width: number, height: number): void {
-  if (win) corners.get(win)?.(width, height)
+/** The page opened the bar, this many CSS pixels tall, or closed it with 0. The page may be zoomed; the cursor is in DIP. */
+export function barWatch(win: BrowserWindow | null, height: number): void {
+  if (win && !win.isDestroyed()) bars.get(win)?.(height * win.webContents.getZoomFactor())
 }
 
-// ---- Windows: the left edge of a window that is not maximized ----
+/** A Mac's traffic lights, shown while the bar is open. Nothing to do elsewhere: those buttons are the page's. */
+export function windowButtons(win: BrowserWindow | null, visible: boolean): void {
+  if (!win || process.platform !== 'darwin' || win.isDestroyed()) return
+  win.setWindowButtonVisibility(visible)
+  // The page may be zoomed, and the bar with it: the lights are placed for the bar's size now.
+  // Placed after they show, since a position given while they are hidden does not hold.
+  if (visible) win.setWindowButtonPosition(lightsAt(win.webContents.getZoomFactor()))
+}
+
+/** Where the traffic lights go so they sit centred in the bar, as far from its left edge as from its top. */
+function lightsAt(zoom: number): { x: number; y: number } {
+  const p = Math.round((BAR_H * zoom - LIGHT) / 2)
+  return { x: p, y: p }
+}
+
+// ---- Windows: the top edge of a window that is not maximized ----
 
 const WM_NCMOUSEMOVE = 0x00a0
-/** How wide the edge is, and how long the pointer rests on it; the same numbers as the page's own edge. */
-const EDGE_WIDTH = 100
-const EDGE_DWELL_MS = 120
-const EDGE_TOP = 36
+/** As deep as the frame the page draws around the terminal. */
+const EDGE_DEPTH = 8
+const EDGE_REPEAT_MS = 150
 
 /**
  * A window without a frame keeps a few pixels along each side to resize by, and Windows treats
- * them as the frame: the page never sees the pointer there. Maximized, the border is gone and
- * the page's own edge works; sized, the pointer resting against the left edge lands here. The
- * frame reports the pointer moving over it, and after a moment's rest the page is told.
+ * them as the frame: the page never sees the pointer there, and along the top that is most of
+ * the edge that opens the bar. The frame reports the pointer moving over it, and the page is told.
  */
-function watchLeftEdge(win: BrowserWindow): void {
-  let timer: NodeJS.Timeout | undefined
-  const onEdge = (): boolean => {
+function watchTopEdge(win: BrowserWindow): void {
+  let last = 0
+  win.hookWindowMessage(WM_NCMOUSEMOVE, () => {
     const p = screen.getCursorScreenPoint()
     const b = win.getContentBounds()
-    return p.x >= b.x - 1 && p.x < b.x + EDGE_WIDTH && p.y >= b.y + EDGE_TOP && p.y < b.y + b.height
-  }
-  win.hookWindowMessage(WM_NCMOUSEMOVE, () => {
-    if (!onEdge()) {
-      if (timer) clearTimeout(timer)
-      timer = undefined
-      return
-    }
-    if (timer) return
-    timer = setTimeout(() => {
-      timer = undefined
-      if (!win.isDestroyed() && onEdge()) win.webContents.send('win:edgeRest')
-    }, EDGE_DWELL_MS)
-  })
-  win.on('closed', () => {
-    if (timer) clearTimeout(timer)
+    if (p.y >= b.y + EDGE_DEPTH || p.x < b.x || p.x >= b.x + b.width) return
+    const now = Date.now()
+    if (now - last < EDGE_REPEAT_MS) return
+    last = now
+    if (!win.isDestroyed()) win.webContents.send('win:topEdge')
   })
 }

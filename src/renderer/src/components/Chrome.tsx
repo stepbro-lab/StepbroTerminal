@@ -1,45 +1,105 @@
-import { useEffect } from 'react'
-import { AudioLines, Copy, Minus, PanelLeft, Square, X } from 'lucide-react'
-import { usePrefs } from '@/stores/prefs'
+import { useEffect, useRef, useState } from 'react'
+import { AudioLines, Copy, Minus, PanelLeft, Settings, Square, X } from 'lucide-react'
 import { useUi } from '@/stores/ui'
+import { usePrefs } from '@/stores/prefs'
 import { ActivityPulse } from './ActivityPulse'
 import { UpdatePill } from './UpdatePill'
 import { NotesButton } from './notes/NotesButton'
 import { useVoice } from '@/stores/voice'
 import { titled } from '@/lib/shortcuts'
+import { Spring, type SpringConfig } from '@/lib/spring'
+import { sincePointerOnRail } from '@/lib/rail'
+import { registry } from '@/terminal/TerminalRegistry'
 import { t } from '@/lib/i18n'
 
 const platform = window.step.platform
-/** macOS brings its own traffic lights; Windows and Linux get caption buttons of ours, drawn their way. */
-const ownButtons = platform !== 'darwin'
-/** Room kept clear at the left of the top row for the window's buttons. */
-export const CORNER_INSET = ownButtons ? 112 : 84
-/** The band along the left edge that brings the sidebar out, and how long the pointer rests in it first. */
-const EDGE_WIDTH = 100
-const EDGE_DWELL_MS = 90
+const mac = platform === 'darwin'
+/** The open bar's height, and the frame's depth at rest, in pixels: the same as --chrome-h and --frame. */
+const BAR_H = 36
+const FRAME = 8
+/** How far the bar has opened when a Mac's traffic lights show: by then the terminal's edge is below them. */
+const LIGHTS_AT = 0.55
+/** How long the pointer may be off the bar before it closes, so brushing past the edge does not close it. */
+const LINGER_MS = 220
 /**
- * How far past the sidebar's edge the pointer may wander with the sidebar staying out, and how
- * long it may be beyond that before the sidebar goes back: it goes when the pointer has clearly
- * left for the terminal, not when it strays a little.
+ * The session rail sits just under the top edge, so a trip to it that overshoots lands on the
+ * edge, and the bar opening then pushes the rail away from the pointer. So for a moment after
+ * the pointer was on the rail, and on a Mac anywhere above the rail's corner, the edge waits for
+ * the pointer to rest on it before opening. On Windows and Linux that corner holds the window's
+ * own buttons, which people go for on purpose, so there only the moment after the rail counts.
  */
-const PEEK_REACH = 160
-const PEEK_LINGER_MS = 260
-/** The window's top row, in pixels: the same as --chrome-h. */
-const CHROME_H = 36
+const RAIL_GRACE_MS = 600
+const RAIL_REACH = 48
+const EDGE_REST_MS = 400
 
-/** The buttons that belong to the window rather than to a pane: fold the sidebar, activity, updates, notes. */
-function ChromeButtons() {
-  const prefs = usePrefs((s) => s.prefs)
+/** How long the pointer must rest on the top edge, at `x` (null when unknown), before the bar opens. */
+function edgeRest(x: number | null): number {
+  if (sincePointerOnRail() < RAIL_GRACE_MS) return EDGE_REST_MS
+  const rail = mac && x !== null ? document.querySelector('.rail')?.getBoundingClientRect() : undefined
+  return rail && x! >= rail.left - RAIL_REACH ? EDGE_REST_MS : 0
+}
+
+/** A window event that opens the bar from elsewhere in the page; it closes as usual once nothing holds it. */
+export const OPEN_BAR = 'step:open-bar'
+/** Opens quickly and settles without bouncing: the terminal's edge must not wobble under the buttons. */
+const OPEN: SpringConfig = { stiffness: 520, damping: 44 }
+const CLOSE: SpringConfig = { stiffness: 420, damping: 42 }
+
+/**
+ * The window's own corners, in DIP, and their shape: the card inside the frame rounds by the
+ * window's radius less the frame, so the two curves run parallel. A Mac since macOS 26 draws
+ * continuous corners, a squircle about 30 DIP across (measured on macOS 27); before that, a
+ * 10 DIP circle. Windows 11 rounds by 8 DIP, Windows 10 not at all; a frameless window on Linux
+ * is square. Maximized on Windows and Linux, and in full screen anywhere, the corners are square.
+ */
+function windowCorner(maximized: boolean, fullscreen: boolean): { radius: number; squircle: boolean } {
+  if (fullscreen) return { radius: 0, squircle: false }
+  const version = window.step.osVersion.split('.').map(Number)
+  if (mac) return version[0] >= 26 ? { radius: 30, squircle: true } : { radius: 10, squircle: false }
+  if (platform === 'win32') return { radius: !maximized && version[2] >= 22000 ? 8 : 0, squircle: false }
+  return { radius: 0, squircle: false }
+}
+
+/**
+ * Keeps --window-radius and --zoom on the root in step with the window, for the card's corners
+ * (see --radius-card in tokens.css). The page's zoom counts: the frame is in CSS pixels and the
+ * window's corners are not, and in a frameless window the outer width is the window's in DIP.
+ */
+export function useWindowCorners(): void {
+  const maximized = useUi((s) => s.maximized)
+  const fullscreen = useUi((s) => s.fullscreen)
+  useEffect(() => {
+    const root = document.documentElement
+    const corner = windowCorner(maximized, fullscreen)
+    root.style.setProperty('--window-radius', `${corner.radius}px`)
+    root.toggleAttribute('data-squircle', corner.squircle)
+    const zoom = (): void => root.style.setProperty('--zoom', String(window.outerWidth / window.innerWidth || 1))
+    zoom()
+    window.addEventListener('resize', zoom)
+    return () => window.removeEventListener('resize', zoom)
+  }, [maximized, fullscreen])
+}
+
+/** Shows or hides the sidebar. */
+function SidebarToggle() {
+  const collapsed = usePrefs((s) => s.prefs?.sidebarCollapsed ?? false)
   const setPrefs = usePrefs((s) => s.set)
-  const collapsed = prefs?.sidebarCollapsed ?? false
+  return (
+    <button className="icon-btn no-drag" data-on={!collapsed} title={titled(t('Toggle sidebar'), 'toggle-sidebar')} onClick={() => void setPrefs({ sidebarCollapsed: !collapsed })}>
+      <PanelLeft size={15} />
+    </button>
+  )
+}
+
+/** The buttons that belong to the window rather than to a pane: activity, updates, voice, notes, settings. */
+function ChromeButtons() {
   const voice = useVoice((s) => s.state)
   const press = useVoice((s) => s.press)
   const release = useVoice((s) => s.release)
+  const settingsOpen = useUi((s) => s.settingsOpen)
+  const setSettingsOpen = useUi((s) => s.setSettingsOpen)
   return (
     <div className="no-drag flex items-center gap-0.5">
-      <button className="icon-btn" data-on={!collapsed} title={t('Toggle sidebar')} onClick={() => void setPrefs({ sidebarCollapsed: !collapsed })}>
-        <PanelLeft size={15} />
-      </button>
       <ActivityPulse />
       <UpdatePill />
       <button
@@ -53,155 +113,199 @@ function ChromeButtons() {
         <AudioLines size={15} />
       </button>
       <NotesButton />
+      <button className="icon-btn" data-on={settingsOpen} title={titled(t('Settings'), 'settings')} onClick={() => setSettingsOpen(!settingsOpen)}>
+        <Settings size={15} />
+      </button>
     </div>
   )
 }
 
 /**
- * The window's buttons, in its top-left corner, out of sight until the pointer comes to them: a
- * Mac shows its traffic lights, Windows and Linux the caption buttons they know, minimize,
- * maximize and close, drawn flat the way their own title bars draw them. With the sidebar folded
- * away the window's own buttons join them here, so nothing stays on the screen but the terminal.
- * The page reports the pointer's arrival; the main process watches for it leaving, since the
- * lights and the drag region beside them take the pointer.
+ * Windows and Linux: minimize, maximize and close, drawn the way each system draws its own. On
+ * Windows that is its icon font, the same glyphs its title bars use; close turns red.
  */
-export function WindowCorner() {
-  const over = useUi((s) => s.cornerHover)
+function CaptionButtons() {
   const maximized = useUi((s) => s.maximized)
-  const fullscreen = useUi((s) => s.fullscreen)
-  const collapsed = usePrefs((s) => s.prefs?.sidebarCollapsed ?? false)
-  const settingsOpen = useUi((s) => s.settingsOpen)
-  const peek = useUi((s) => s.sidebarPeek)
-  // While the sidebar is out for a look its own header carries these; two sets would overlap.
-  const withButtons = collapsed && !settingsOpen && !peek
-  const enter = (e: React.MouseEvent<HTMLDivElement>): void => {
-    const r = e.currentTarget.getBoundingClientRect()
-    window.step.send('win:cornerEnter', Math.ceil(r.right), Math.ceil(r.bottom))
-  }
+  const win = platform === 'win32'
   return (
-    <div className="corner no-drag" data-over={over} onMouseEnter={enter}>
-      {ownButtons ? (
-        <div className="caption">
-          <button className="caption-btn" title={t('Minimize')} onClick={() => window.step.send('win:minimize')}>
-            <Minus size={14} />
-          </button>
-          <button className="caption-btn" title={t(maximized ? 'Restore' : 'Maximize')} onClick={() => window.step.send('win:maximize')}>
-            {maximized ? <Copy size={11} /> : <Square size={11} />}
-          </button>
-          <button className="caption-btn" data-k="close" title={t('Close')} onClick={() => window.step.send('win:close')}>
-            <X size={14} />
-          </button>
-        </div>
-      ) : (
-        // The traffic lights are native and sit here on their own; this keeps their room.
-        <div style={{ width: fullscreen ? 0 : 52 }} />
-      )}
-      {withButtons && <ChromeButtons />}
+    <div className="caption no-drag" data-os={win ? 'win' : 'linux'}>
+      <button className="caption-btn" title={t('Minimize')} onClick={() => window.step.send('win:minimize')}>
+        {win ? '\uE921' : <Minus size={14} />}
+      </button>
+      <button className="caption-btn" title={t(maximized ? 'Restore' : 'Maximize')} onClick={() => window.step.send('win:maximize')}>
+        {win ? (maximized ? '\uE923' : '\uE922') : maximized ? <Copy size={11} /> : <Square size={11} />}
+      </button>
+      <button className="caption-btn" data-k="close" title={t('Close')} onClick={() => window.step.send('win:close')}>
+        {win ? '\uE8BB' : <X size={14} />}
+      </button>
     </div>
   )
 }
 
 /**
- * With the sidebar folded away, the left side of the window brings it out for a look, the way
- * Arc and Zen do it: bring the pointer into the band along the edge and the sidebar slides in
- * over the terminal, which stays exactly as it was underneath. It stays out while the pointer is
- * on it or near it, and goes back once the pointer has moved well away or clicked something
- * else. Its own button unfolds it for good. Nothing happens while a button is held, which is a
- * selection, not a visit; and once it has gone back with the pointer still in the band, the
- * pointer has to leave the band and come in again before it counts.
- */
-export function SidebarPeek() {
-  const setPeek = useUi((s) => s.setSidebarPeek)
-  const sidebarWidth = usePrefs((s) => s.prefs?.sidebarWidth ?? 240)
-  useEffect(() => {
-    let dwell = 0
-    let linger = 0
-    let inBand = false
-    let armed = false
-    let lastX = Infinity
-    const out = (): boolean => useUi.getState().sidebarPeek
-    const onAside = (target: EventTarget | null): boolean => !!(target as Element | null)?.closest?.('aside[data-peek]')
-    const goBack = (): void => {
-      window.clearTimeout(linger)
-      window.clearTimeout(dwell)
-      inBand = false
-      armed = false
-      if (out()) setPeek(false)
-    }
-    const onMove = (e: MouseEvent): void => {
-      lastX = e.clientX
-      if (out()) {
-        // Well away from the sidebar for more than a moment, and it goes back.
-        const near = e.clientX < sidebarWidth + PEEK_REACH
-        if (near) {
-          window.clearTimeout(linger)
-          linger = 0
-        } else if (!linger) {
-          linger = window.setTimeout(goBack, PEEK_LINGER_MS)
-        }
-        return
-      }
-      const here = e.clientX < EDGE_WIDTH && e.clientY >= CHROME_H && e.buttons === 0
-      if (!here) armed = true
-      if (here && armed && !inBand) {
-        inBand = true
-        dwell = window.setTimeout(() => setPeek(true), EDGE_DWELL_MS)
-      } else if (!here && inBand) {
-        inBand = false
-        window.clearTimeout(dwell)
-      }
-    }
-    const onDown = (e: MouseEvent): void => {
-      if (out() && !onAside(e.target)) goBack()
-    }
-    // The pointer "leaving" is also what the page sees when it crosses a drag region, the top row
-    // or the sidebar's own header: the system takes the pointer there. So leaving only counts as
-    // going away when the pointer was last seen well away; near the sidebar it is merely resting
-    // on a drag region, or has left the window by the side the sidebar is on, and the sidebar stays.
-    const onLeave = (): void => {
-      window.clearTimeout(dwell)
-      inBand = false
-      if (out() && lastX >= sidebarWidth + PEEK_REACH) goBack()
-    }
-    document.addEventListener('mousemove', onMove)
-    document.addEventListener('mousedown', onDown, true)
-    document.documentElement.addEventListener('mouseleave', onLeave)
-    return () => {
-      document.removeEventListener('mousemove', onMove)
-      document.removeEventListener('mousedown', onDown, true)
-      document.documentElement.removeEventListener('mouseleave', onLeave)
-      window.clearTimeout(dwell)
-      window.clearTimeout(linger)
-      setPeek(false)
-    }
-  }, [setPeek, sidebarWidth])
-  return null
-}
-
-/** The top row of the sidebar: the window's buttons, after the room kept for the window's own. The window drags by it. */
-export function SidebarHeader() {
-  return (
-    <div className="drag flex shrink-0 items-center" style={{ height: 'var(--chrome-h)', width: 'var(--sidebar-w)', paddingLeft: CORNER_INSET, paddingRight: 8 }}>
-      <ChromeButtons />
-    </div>
-  )
-}
-
-/**
- * What sits above the panes: a drag strip and nothing else. Thin beside an open sidebar, whose
- * header carries the window's buttons; tall where the cards fill the window, so the corner and
- * the session rail have a row to sit in and the terminal starts a little below the top edge.
+ * The window's top edge, which grows into a bar while the pointer is on it, the way Helium does
+ * it. At rest the terminal fills the window inside a thin, even frame and no button shows. Bring
+ * the pointer to the top edge and the frame's top grows, pushing the terminal down to make room
+ * for a bar with the window's buttons in it: a Mac's traffic lights appear once there is room for
+ * them (they cannot move, so the bar opens around where they are), and on Windows and Linux ours
+ * sit at the right. The terminals fit their new size once, when the bar has settled, not on
+ * every frame of the way.
  *
- * While the sidebar is out for a look it lies over this strip, and the system adds up drag
- * regions without regard to what is drawn on top: the strip, coming later in the page, would
- * make the buttons in the sidebar's header a place to drag the window by instead of buttons. So
- * for as long as the sidebar is out, the part of the strip under it is cut out of the drag region.
+ * The bar's progress lives in --bar on the frame, and how far it pushes the terminal down in
+ * --bar-push, which the frame's top padding follows (see global.css). The push moves in whole
+ * device pixels: a terminal drawn with WebGL watches its canvas's size in device pixels, and a
+ * canvas nudged by a fraction of one can round to a pixel more or less, which clears it until
+ * the next frame and makes the text blink.
+ * The main process watches the pointer while the bar is open, since the bar is a drag region and
+ * the page cannot see the pointer over it.
  */
-export function TopStrip({ tall = false }: { tall?: boolean }) {
-  const peek = useUi((s) => s.sidebarPeek)
+export function TopBar() {
+  const fullscreen = useUi((s) => s.fullscreen)
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  const openBar = useRef<() => void>(() => {})
+  const edge = useRef<{ at: (x: number) => void; left: () => void }>({ at: () => {}, left: () => {} })
+
+  useEffect(() => {
+    const frame = ref.current?.parentElement
+    if (!frame) return
+    let isOpen = false
+    let inside = false
+    let lights = false
+    let linger = 0
+    let holding = false
+    const holdFits = (): void => {
+      if (holding) return
+      holding = true
+      registry.holdFits()
+    }
+    const releaseFits = (): void => {
+      if (!holding) return
+      holding = false
+      registry.releaseFits()
+    }
+    const showLights = (v: boolean): void => {
+      if (lights === v) return
+      lights = v
+      window.step.send('win:buttons', v)
+    }
+    const spring = new Spring(0, (v) => {
+      const r = Math.max(0, v)
+      const dpr = window.devicePixelRatio || 1
+      frame.style.setProperty('--bar', r.toFixed(4))
+      frame.style.setProperty('--bar-push', `${Math.round(r * (BAR_H - FRAME) * dpr) / dpr}px`)
+      if (r > 0.001) frame.setAttribute('data-bar', '')
+      else frame.removeAttribute('data-bar')
+      if (isOpen && r >= LIGHTS_AT) showLights(true)
+    }, releaseFits)
+    const close = (): void => {
+      if (!isOpen) return
+      isOpen = false
+      setOpen(false)
+      window.step.send('win:bar', 0)
+      showLights(false)
+      holdFits()
+      spring.to(0, CLOSE)
+    }
+    const closeSoon = (): void => {
+      window.clearTimeout(linger)
+      linger = window.setTimeout(() => {
+        if (inside) return
+        // A list opened from one of the bar's buttons hangs below it; the bar waits for it to go.
+        if (document.querySelector('[data-bar-keep]')) return closeSoon()
+        close()
+      }, LINGER_MS)
+    }
+    openBar.current = () => {
+      window.clearTimeout(linger)
+      if (isOpen) return
+      isOpen = true
+      inside = true
+      setOpen(true)
+      window.step.send('win:bar', BAR_H)
+      holdFits()
+      spring.to(1, OPEN)
+    }
+    const offs = [
+      window.step.on('win:barPointer', (now) => {
+        inside = now
+        if (now) window.clearTimeout(linger)
+        else if (isOpen) closeSoon()
+      }),
+      // Windows reports the pointer on its resize border over and over while it moves, without
+      // saying where; held off, it is simply ignored until the moment has passed.
+      window.step.on('win:topEdge', () => {
+        if (edgeRest(null) === 0) openBar.current()
+      })
+    ]
+    let edgeTimer = 0
+    edge.current = {
+      at: (x) => {
+        if (isOpen) return
+        const rest = edgeRest(x)
+        if (rest === 0) {
+          window.clearTimeout(edgeTimer)
+          edgeTimer = 0
+          return openBar.current()
+        }
+        if (!edgeTimer) {
+          edgeTimer = window.setTimeout(() => {
+            edgeTimer = 0
+            openBar.current()
+          }, rest)
+        }
+      },
+      left: () => {
+        window.clearTimeout(edgeTimer)
+        edgeTimer = 0
+      }
+    }
+    const onOpenBar = (): void => openBar.current()
+    window.addEventListener(OPEN_BAR, onOpenBar)
+    return () => {
+      offs.forEach((off) => off())
+      window.removeEventListener(OPEN_BAR, onOpenBar)
+      window.clearTimeout(edgeTimer)
+      window.clearTimeout(linger)
+      spring.stop()
+      releaseFits()
+      if (isOpen) window.step.send('win:bar', 0)
+      showLights(false)
+    }
+  }, [])
+
   return (
-    <div className="drag flex shrink-0" style={{ height: tall ? 'var(--chrome-h)' : 8 }}>
-      {peek && <div className="no-drag h-full shrink-0" style={{ width: 'var(--sidebar-w)' }} />}
-    </div>
+    <>
+      {!open && (
+        <div
+          className="bar-edge no-drag"
+          onMouseEnter={(e) => e.buttons === 0 && edge.current.at(e.clientX)}
+          onMouseMove={(e) => e.buttons === 0 && edge.current.at(e.clientX)}
+          onMouseLeave={() => edge.current.left()}
+        />
+      )}
+      <div ref={ref} className={open ? 'topbar drag' : 'topbar'} data-open={open}>
+        {/* The sidebar's button stays at the left, over the sidebar, after a Mac's traffic lights. The
+            rest take the end the system's own buttons leave free: the right on a Mac, the left elsewhere. */}
+        {mac ? (
+          <>
+            <div className="topbar-buttons no-drag" style={{ paddingLeft: fullscreen ? 12 : 84 }}>
+              <SidebarToggle />
+            </div>
+            <div className="topbar-buttons" style={{ marginLeft: 'auto', paddingRight: 10 }}>
+              <ChromeButtons />
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="topbar-buttons gap-0.5" style={{ paddingLeft: 12 }}>
+              <SidebarToggle />
+              <ChromeButtons />
+            </div>
+            <CaptionButtons />
+          </>
+        )}
+      </div>
+    </>
   )
 }
