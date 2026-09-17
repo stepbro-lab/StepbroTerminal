@@ -843,149 +843,169 @@ kbd {
   color: var(--danger);
 }
 
-/* ---- the session rail: the folder's sessions, folded into the top-right corner ---- */
+/* ---- the session rail: the folder's sessions, floating in the top-right corner ---- */
+/* The motion lives in SessionRail.tsx, which writes the springs out as variables: --q (0 at rest,
+   1 open) and --y for each row, --m for the well, --fq for the footer, --span for the height of
+   what is in the well. At rest a row is a 44 by 6 tally mark with its agent's mark to its left; open,
+   a 208 by 34 pill with the mark and the title inside. */
 .rail {
+  --m: 0;
+  --span: 0px;
+  --foot-y: 0px;
   position: absolute;
-  /* Up into the top row, which is above the rail's own box. */
-  top: calc(6px - var(--chrome-h));
-  right: 8px;
+  top: 0;
+  right: 0;
   z-index: 30;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 6px 8px;
-  border-radius: 14px;
-  transition:
-    background-color 200ms var(--ease),
-    box-shadow 200ms var(--ease);
+  /* Its box is where the pointer keeps it open: the marks at rest, the well once open. */
+  width: calc(88px + 148px * var(--m));
+  height: calc(28px + var(--span) + 6px * var(--m));
 }
-.rail[data-open='true'] {
-  background: var(--bg-overlay);
-  box-shadow:
-    0 0 0 1px var(--border) inset,
-    var(--shadow-chip);
+.rail-well {
+  position: absolute;
+  top: calc(14px - 8px * var(--m));
+  right: calc(14px - 8px * var(--m));
+  width: calc(62px + 162px * var(--m));
+  height: calc(var(--span) + 16px * var(--m));
+  /* Open, the pills' radius (17) plus the well's padding (8), so the curves run parallel. */
+  border-radius: calc(4px + 21px * var(--m));
+  background: var(--rail-well);
+  opacity: clamp(0, calc(var(--m) * 3), 1);
+  pointer-events: none;
 }
 .rail-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  height: 16px;
-  transition: height 320ms var(--ease);
+  --q: 0;
+  --y: 0px;
+  --rest: var(--rail-bar);
+  --open: var(--rail-pill);
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: calc(44px + 164px * var(--q));
+  height: calc(6px + 28px * var(--q));
+  border-radius: 999px;
+  transform: translateY(var(--y));
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
 }
-.rail[data-open='true'] .rail-row {
-  height: 30px;
+/* The fill is its own layer, so a waiting session can breathe without its title fading with it. */
+.rail-row::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: color-mix(in srgb, var(--open) clamp(0%, calc(var(--q) * 100%), 100%), var(--rest));
 }
-.rail-mark {
-  display: inline-flex;
-  width: 14px;
-  justify-content: center;
-  color: var(--text-muted);
-  transition: color 200ms var(--ease);
-}
-.rail-row[data-active='true'] .rail-mark,
+/* Hovered, a pill keeps its fill, so it stays as clear of the well as the rest; its title and mark darken. */
+.rail-row:hover,
 .rail-row:hover .rail-mark {
   color: var(--text);
 }
-/* The bar: a tally mark at rest, a pill with the title in it when the rail is open. */
-.rail-bar {
-  position: relative;
-  display: flex;
-  align-items: center;
-  overflow: hidden;
-  width: 38px;
-  height: 6px;
-  border-radius: 999px;
-  background: var(--border-strong);
-  transition:
-    width 320ms var(--ease),
-    height 320ms var(--ease),
-    background-color 200ms var(--ease),
-    opacity 200ms var(--ease);
-}
-.rail-row[data-active='true'] .rail-bar {
-  background: var(--accent);
-}
-.rail-row[data-status='gone'] .rail-bar {
-  opacity: 0.45;
-}
-.rail-row[data-status='attention'] .rail-bar {
-  background: var(--attention);
-  animation: rail-breathe 1.6s ease-in-out infinite;
-}
-.rail-row[data-status='error'] .rail-bar {
-  background: var(--danger);
-}
-.rail[data-open='true'] .rail-bar {
-  width: 224px;
-  height: 30px;
-  padding: 0 12px;
-  background: var(--bg-elevated);
-}
-.rail[data-open='true'] .rail-row:hover .rail-bar {
-  background: var(--bg-hover);
-}
-.rail[data-open='true'] .rail-row[data-active='true'] .rail-bar {
-  background: var(--bg-active);
-  box-shadow: 0 0 0 1px var(--accent-soft) inset;
-}
-.rail[data-open='true'] .rail-row[data-status='attention'] .rail-bar {
-  background: color-mix(in srgb, var(--attention) 22%, var(--bg-elevated));
-  animation: none;
-}
-.rail-title {
-  min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  font-size: 12.5px;
-  font-weight: 500;
+.rail-row[data-active='true'] {
+  --rest: var(--accent);
   color: var(--text);
-  opacity: 0;
-  transition: opacity 140ms var(--ease);
+  font-weight: 600;
 }
-.rail[data-open='true'] .rail-title {
-  opacity: 1;
-  transition-delay: 120ms;
-}
-/* Light sweeps along the bar while its agent works: the shimmer. */
-.rail-row[data-status='working'] .rail-bar::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  width: 55%;
-  background: linear-gradient(100deg, transparent 0%, color-mix(in srgb, var(--text) 42%, transparent) 50%, transparent 100%);
-  transform: translateX(-100%);
-  animation: rail-shimmer 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-.rail[data-open='true'] .rail-row[data-status='working'] .rail-bar::after {
-  background: linear-gradient(100deg, transparent 0%, color-mix(in srgb, var(--text) 10%, transparent) 50%, transparent 100%);
-}
-.rail-foot {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  max-height: 0;
-  overflow: hidden;
-  opacity: 0;
-  transition:
-    max-height 320ms var(--ease),
-    opacity 160ms var(--ease);
-}
-.rail[data-open='true'] .rail-foot {
-  max-height: 80px;
-  opacity: 1;
-  margin-top: 2px;
-  padding-top: 6px;
-  box-shadow: 0 -1px 0 var(--border);
-}
-.rail-more .rail-title {
+.rail-row[data-status='gone'] {
+  --rest: color-mix(in srgb, var(--rail-bar) 45%, transparent);
   color: var(--text-muted);
 }
+.rail-row[data-status='attention'] {
+  --rest: var(--attention);
+  --open: color-mix(in srgb, var(--attention) 20%, var(--rail-pill));
+}
+.rail-row[data-status='attention']::before {
+  animation: rail-breathe 1.6s ease-in-out infinite;
+}
+.rail-row[data-status='error'] {
+  --rest: var(--danger);
+  --open: color-mix(in srgb, var(--danger) 14%, var(--rail-pill));
+}
+/* The agent's mark: 8 px to the left of the bar at rest, 14 px inside the pill open. */
+.rail-mark {
+  position: absolute;
+  top: calc(50% - 7px);
+  left: -7px;
+  display: flex;
+  width: 14px;
+  height: 14px;
+  color: var(--text-muted);
+  transform: translateX(calc(-8px + 28px * var(--q))) scale(calc(0.57 + 0.43 * var(--q)));
+}
+.rail-row[data-active='true'] .rail-mark {
+  color: var(--text);
+}
+.rail-title {
+  position: absolute;
+  top: 50%;
+  left: 34px;
+  right: 14px;
+  overflow: hidden;
+  line-height: 18px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  text-align: left;
+  transform: translateY(-50%);
+  opacity: clamp(0, calc((var(--q) - 0.5) * 2), 1);
+  pointer-events: none;
+}
+/* Light sweeps along the bar while its agent works: the shimmer. */
+.rail-row[data-status='working']::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  background: linear-gradient(100deg, transparent 0%, color-mix(in srgb, var(--text) calc(42% - 36% * min(var(--q), 1)), transparent) 50%, transparent 100%) no-repeat;
+  background-size: 55% 100%;
+  animation: rail-shimmer 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  pointer-events: none;
+}
+.rail-foot {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  display: flex;
+  gap: 4px;
+  width: 208px;
+  height: 34px;
+  transform: translateY(var(--foot-y));
+  opacity: clamp(0, calc((var(--fq, 0) - 0.6) / 0.4), 1);
+  pointer-events: none;
+}
+.rail[data-open='true'] .rail-foot {
+  pointer-events: auto;
+}
+.rail-foot-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 0 12px;
+  border-radius: 999px;
+  color: var(--text-muted);
+  font-size: 12.5px;
+  font-weight: 500;
+  transition:
+    background-color 120ms var(--ease),
+    color 120ms var(--ease);
+}
+.rail-foot-btn:first-child {
+  flex: 1;
+}
+.rail-foot-btn:hover {
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+  color: var(--text);
+}
+.rail-folder {
+  max-width: 50%;
+}
 @keyframes rail-shimmer {
+  from {
+    background-position: -120% 0;
+  }
   to {
-    transform: translateX(280%);
+    background-position: 220% 0;
   }
 }
 @keyframes rail-breathe {
@@ -998,20 +1018,12 @@ kbd {
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .rail-row,
-  .rail-bar,
-  .rail-title,
-  .rail-foot,
-  .pane-frame {
-    transition: none;
-  }
-  .rail-row[data-status='working'] .rail-bar::after {
+  .rail-row[data-status='working']::after {
     animation: none;
-    transform: none;
-    width: 100%;
-    background: color-mix(in srgb, var(--text) 18%, transparent);
+    background: color-mix(in srgb, var(--text) 12%, transparent);
+    background-size: 100% 100%;
   }
-  .rail-row[data-status='attention'] .rail-bar {
+  .rail-row[data-status='attention']::before {
     animation: none;
   }
 }
