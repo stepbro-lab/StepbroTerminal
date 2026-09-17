@@ -745,6 +745,40 @@ kbd {
 :root[data-translucent] .app-frame {
   background: color-mix(in srgb, var(--bg-sidebar) calc(var(--frame-opacity) * 100%), transparent);
 }
+/* Text over the blur. The frame and the cards stay exactly as see-through as they are set; what
+   keeps their text readable is the text itself. Over a bright desktop the blur comes out mid-grey,
+   the one backdrop no text colour reads on, so every letter and icon carries a thin halo in the
+   theme's own surface colour. It grows as the surface under it thins out and is gone at 100%,
+   where the window looks exactly as it does solid. Declared on the frame and again on the card,
+   since each follows its own opacity and text-shadow is inherited already worked out. */
+:root[data-translucent] .app-frame {
+  --halo: color-mix(in srgb, var(--bg-sidebar-base) calc((1 - var(--frame-opacity)) * 90%), transparent);
+}
+:root[data-translucent] .card {
+  --halo: color-mix(in srgb, var(--bg-card-base) calc((1 - var(--content-opacity)) * 90%), transparent);
+}
+:root[data-translucent] .app-frame,
+:root[data-translucent] .card {
+  /* Tight rather than wide: a wide blur reads as a grey smudge around the words. */
+  text-shadow:
+    0 0 1px var(--halo),
+    0 0 1px var(--halo),
+    0 0 3px var(--halo);
+}
+:root[data-translucent] .app-frame svg,
+:root[data-translucent] .card svg {
+  filter: drop-shadow(0 0 1px var(--halo)) drop-shadow(0 0 2px var(--halo));
+}
+/* Dimmed text a step further from the surface on glass, where the blur behind it lifts or darkens
+   the tint: the solid window's greys sat on the blurred desktop's own grey and vanished into it. */
+:root[data-translucent][data-theme='dark'] {
+  --text-muted: #b4b7b8;
+  --text-faint: #9fa2a3;
+}
+:root[data-translucent][data-theme='light'] {
+  --text-muted: #3f4346;
+  --text-faint: #5d6164;
+}
 /* The strip the pointer touches to open the bar: the frame's top edge and a little of the card under it. */
 .bar-edge {
   position: absolute;
