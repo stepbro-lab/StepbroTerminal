@@ -87,7 +87,9 @@ export function ActivityPulse() {
         ) : done ? (
           <span className="rounded-full" style={{ width: 7, height: 7, background: 'var(--accent)' }} />
         ) : (
-          <span className="rounded-full" style={{ width: 7, height: 7, background: 'var(--text-faint)' }} />
+          // The same colour as the icons beside it. The faint text colour is the frame's own grey in
+          // the dark theme, and the dot vanished into it until the pointer brought a hover behind it.
+          <span className="rounded-full" style={{ width: 7, height: 7, background: 'currentColor' }} />
         )}
       </button>
 
