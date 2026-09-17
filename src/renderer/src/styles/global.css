@@ -711,48 +711,96 @@ kbd {
   margin-left: -5px;
 }
 
-/* ---- the window's corner: its buttons, out of sight until the pointer comes to them ---- */
-.corner {
+/* ---- the frame around the terminal, and the bar its top edge grows into ---- */
+/* The window is a thin, even frame with the terminal inside. --bar goes from 0 to 1 as the top
+   edge opens into a bar (see TopBar in Chrome.tsx), and the frame's top grows by --bar-push, up
+   to the difference between the two, pushing everything inside down. */
+.app-frame {
+  padding: calc(var(--frame) + var(--bar-push, 0px)) var(--frame) var(--frame);
+  background: var(--bg-sidebar);
+}
+/* The strip the pointer touches to open the bar: the frame's top edge and a little of the card under it. */
+.bar-edge {
   position: absolute;
-  left: 0;
   top: 0;
-  z-index: 40;
+  left: 0;
+  right: 0;
+  z-index: 39;
+  height: calc(var(--frame) + 4px);
+}
+.topbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 38;
   display: flex;
   align-items: center;
-  gap: 10px;
   height: var(--chrome-h);
-  padding-left: 12px;
-  padding-right: 10px;
-  opacity: 0;
-  transition: opacity 160ms var(--ease);
+  pointer-events: none;
 }
-.corner[data-over='true'] {
-  opacity: 1;
+.topbar[data-open='true'] {
+  pointer-events: auto;
 }
-/* Windows and Linux: minimize, maximize and close, flat, the way their title bars draw them; close turns red. */
+/* The buttons come in once the edge has made most of the room for them, dropping into place. */
+.topbar-buttons,
+.caption {
+  opacity: clamp(0, calc((var(--bar, 0) - 0.45) / 0.55), 1);
+  transform: translateY(calc((1 - min(var(--bar, 0), 1)) * -5px));
+}
+.topbar-buttons {
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+/* Windows and Linux: minimize, maximize and close at the right end. */
 .caption {
   display: flex;
   align-items: center;
+  height: 100%;
+  margin-left: auto;
 }
 .caption-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 24px;
-  border-radius: 7px;
-  color: var(--text-muted);
-  transition:
-    background-color 120ms var(--ease),
-    color 120ms var(--ease);
-}
-.caption-btn:hover {
-  background: var(--bg-hover);
   color: var(--text);
 }
-.caption-btn[data-k='close']:hover {
+/* Windows: flush with the corner, 46 wide, the glyphs of its own icon font; close turns red. */
+.caption[data-os='win'] .caption-btn {
+  width: 46px;
+  height: 100%;
+  font-family: 'Segoe Fluent Icons', 'Segoe MDL2 Assets';
+  font-size: 10px;
+  transition: background-color 100ms linear;
+}
+.caption[data-os='win'] .caption-btn:hover {
+  background: color-mix(in srgb, var(--text) 9%, transparent);
+}
+.caption[data-os='win'] .caption-btn:active {
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+}
+.caption[data-os='win'] .caption-btn[data-k='close']:hover {
   background: #c42b1c;
   color: #fff;
+}
+.caption[data-os='win'] .caption-btn[data-k='close']:active {
+  background: #b22a1c;
+  color: #fff;
+}
+/* Linux: round buttons with a soft fill, the way GNOME draws them. */
+.caption[data-os='linux'] {
+  gap: 10px;
+  padding-right: 12px;
+}
+.caption[data-os='linux'] .caption-btn {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+}
+.caption[data-os='linux'] .caption-btn:hover {
+  background: color-mix(in srgb, var(--text) 14%, transparent);
 }
 
 /* Offered where a selection ended: pressing it must not take the selection with it. */
@@ -793,78 +841,6 @@ kbd {
 }
 .voice-btn[data-voice='error'] {
   color: var(--danger);
-}
-
-/* ---- the folded sidebar out over the terminal for a look, in from the left and back the same way ---- */
-aside[data-peek] {
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  z-index: 38;
-  width: var(--sidebar-w) !important;
-  background: var(--bg-sidebar);
-  border-radius: 0 var(--radius-card) var(--radius-card) 0;
-  box-shadow:
-    var(--shadow-pop),
-    0 0 0 1px var(--border);
-}
-aside[data-peek='in'] {
-  animation: peek-in 260ms var(--ease) both;
-}
-aside[data-peek='out'] {
-  animation: peek-out 220ms var(--ease) both;
-  pointer-events: none;
-}
-@keyframes peek-in {
-  from {
-    transform: translateX(-100%);
-  }
-  to {
-    transform: none;
-  }
-}
-@keyframes peek-out {
-  from {
-    transform: none;
-  }
-  to {
-    transform: translateX(-100%);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  aside[data-peek='in'],
-  aside[data-peek='out'] {
-    animation-duration: 1ms;
-  }
-}
-
-/* ---- the pane area with the sidebar folded ---- */
-.pane-frame {
-  padding: 0 8px 8px 0;
-  transition: padding 280ms var(--ease);
-}
-/* No sidebar to keep the cards off the left edge, so the frame does. */
-.pane-area[data-immersive='true'] .pane-frame {
-  padding: 0 8px 8px;
-}
-/* A lone pane fills the window edge to edge: no card around it, no frame, one surface. */
-.pane-area .card {
-  transition: border-radius 280ms var(--ease);
-}
-.pane-area[data-bare='true'] {
-  background: var(--bg-card);
-}
-.pane-area[data-bare='true'] .pane-frame {
-  padding: 0;
-}
-.pane-area[data-bare='true'] .card {
-  border-radius: 0;
-  border-color: transparent;
-  box-shadow: none;
-}
-.pane-area[data-bare='true'] .side-panel {
-  box-shadow: -1px 0 0 var(--border);
 }
 
 /* ---- the session rail: the folder's sessions, folded into the top-right corner ---- */
@@ -1056,15 +1032,4 @@ aside[data-peek='out'] {
   font-size: 12.5px;
   font-weight: 550;
   pointer-events: none;
-}
-
-/* The close caption button takes the Windows close red on hover in both themes: our danger token
-   is a pale salmon in dark mode, meant for error text, and looked washed out behind a white X. */
-.win-close:hover {
-  background: #c42b1c;
-  color: #fff;
-}
-.win-close:active {
-  background: #a9261a;
-  color: #fff;
 }

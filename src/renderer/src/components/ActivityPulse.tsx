@@ -21,8 +21,8 @@ export function ActivityPulse() {
   const setActive = useUi((s) => s.setActive)
   const setActiveProject = useUi((s) => s.setActiveProject)
   const openPalette = useUi((s) => s.openPalette)
-  // The inbox is drawn at the top of the page, not inside the sidebar: the sidebar clips whatever
-  // spills past its edge, and the list is wider than the sidebar. `at` is where it goes.
+  // The inbox is drawn at the top of the page, not inside the bar, which would clip it. `at` is
+  // where it goes; while it is open the bar stays open above it (data-bar-keep).
   const [at, setAt] = useState<{ left: number; top: number } | null>(null)
   const open = at !== null
   const ref = useRef<HTMLDivElement>(null)
@@ -95,6 +95,7 @@ export function ActivityPulse() {
         createPortal(
           <div
             ref={pop}
+            data-bar-keep
             className="fade-in fixed z-40 rounded-[var(--radius-pop)] p-1"
             style={{ left: at.left, top: at.top, width: WIDTH, background: 'var(--bg-elevated)', boxShadow: '0 0 0 1px var(--border-strong) inset, var(--shadow-pop)' }}
           >

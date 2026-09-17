@@ -11,7 +11,6 @@ import { addDroppedFolders, addProject, reorderProjects, sidebarMenu } from '@/l
 import { useFolderDrop } from '@/lib/folderDrop'
 import { movedIds } from '@/lib/reorder'
 import { registry } from '@/terminal/TerminalRegistry'
-import { SidebarHeader } from '../Chrome'
 import { PROJECT_DRAG_TYPE, ProjectRow } from './ProjectRow'
 import { SessionRow } from './SessionRow'
 import { useReorder } from './useReorder'
@@ -49,29 +48,6 @@ export function Sidebar() {
   const closeView = useUi((s) => s.closeView)
   const width = prefs?.sidebarWidth ?? 240
   const collapsed = prefs?.sidebarCollapsed ?? false
-  // Folded away, the sidebar can still come out over the terminal for a look: in from the left,
-  // out again the same way. Unfolded for good while out, it simply stays, in the row like always.
-  const peek = useUi((s) => s.sidebarPeek)
-  const setPeek = useUi((s) => s.setSidebarPeek)
-  const [peekPhase, setPeekPhase] = useState<'off' | 'in' | 'out'>('off')
-  useEffect(() => {
-    if (!collapsed) {
-      // Unfolded, by its own button while out or otherwise: it is in the row now, not out on a visit.
-      if (peek) setPeek(false)
-      setPeekPhase('off')
-      return
-    }
-    if (peek) {
-      setPeekPhase('in')
-      return
-    }
-    setPeekPhase((phase) => (phase === 'in' ? 'out' : 'off'))
-  }, [peek, collapsed, setPeek])
-  useEffect(() => {
-    if (peekPhase !== 'out') return
-    const timer = window.setTimeout(() => setPeekPhase('off'), 240)
-    return () => window.clearTimeout(timer)
-  }, [peekPhase])
   const dragging = useRef(false)
   const list = useRef<HTMLDivElement>(null)
   // Folders dragged in from the desktop land in the sidebar the same way "Add folder" would.
@@ -262,11 +238,10 @@ export function Sidebar() {
   }
 
   return (
-    <aside {...drop.props} ref={aside} className="relative flex h-full shrink-0 flex-col overflow-hidden" data-peek={peekPhase === 'off' ? undefined : peekPhase}>
-      <SidebarHeader />
+    <aside {...drop.props} ref={aside} className="sidebar relative flex h-full shrink-0 flex-col overflow-hidden">
       <div
         ref={list}
-        className="scroll-thin flex-1 px-2 pt-1"
+        className="scroll-thin flex-1 pl-1 pr-2 pt-1"
         style={{ width: 'var(--sidebar-w)' }}
         onDragLeave={reorder.onDragLeave}
         onContextMenu={(e) => {
@@ -302,7 +277,7 @@ export function Sidebar() {
         ))}
       </div>
       {/* Two round raised buttons of the same size and weight, lifted a little off the window's bottom edge. */}
-      <div className="mb-4 flex h-10 shrink-0 items-center justify-between px-2" style={{ width: 'var(--sidebar-w)' }}>
+      <div className="mb-1 flex h-10 shrink-0 items-center justify-between pl-1 pr-2" style={{ width: 'var(--sidebar-w)' }}>
         <button className="fab" title={t('Add folder')} onClick={() => void addProject()}>
           <Plus size={20} strokeWidth={2.2} />
         </button>
