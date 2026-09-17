@@ -369,7 +369,13 @@ class TerminalRegistry {
    */
   private holds = new FitHold(() => {
     this.fitLater.clear()
-    for (const e of this.entries.values()) if (e.mounted) this.fitNow(e)
+    // A hold usually ends inside an animation frame, at the end of a tween. A fit there would
+    // clear a WebGL canvas right away and redraw it only in the next frame, and the text would
+    // blink; fitted from a task of its own, the redraw comes in the frame that shows the new size.
+    window.setTimeout(() => {
+      if (this.holds.isHeld) return
+      for (const e of this.entries.values()) if (e.mounted) this.fitNow(e)
+    }, 0)
   })
 
   holdFits(): void {
@@ -493,12 +499,19 @@ class TerminalRegistry {
       }
       if (!e.mounted || e.webgl) return
       const addon = new this.webglCtor() as IDisposable & { onContextLoss: (cb: () => void) => IDisposable }
+      e.term.loadAddon(addon as any)
+      const drawNow = drawOnCanvasResize(e.term)
+      const webgl = {
+        dispose: () => {
+          drawNow.disconnect()
+          addon.dispose()
+        }
+      }
       addon.onContextLoss(() => {
-        addon.dispose()
+        webgl.dispose()
         e.webgl = null
       })
-      e.term.loadAddon(addon as any)
-      e.webgl = addon
+      e.webgl = webgl
     } catch {
       this.webglSupported = false
     }
@@ -764,6 +777,24 @@ function fontStack(family: string | undefined): string {
   const f = (family || 'JetBrains Mono').trim()
   const quoted = /\s/.test(f) && !f.startsWith('"') && !f.startsWith("'") ? `"${f}"` : f
   return `${quoted}, "JetBrains Mono", "Geist Mono", "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace`
+}
+
+/**
+ * The WebGL renderer watches its canvas's size in device pixels. When that changes it clears the
+ * canvas and asks to be drawn on the next frame, which leaves one frame with no text in it: a
+ * blink, each time a terminal grows at a zoom where its size in CSS pixels does not come out to
+ * whole device pixels (the top bar closing, at 120%). This observer is made after the renderer's,
+ * so it runs right after it in the same frame and draws what was asked for there and then.
+ * It reaches into xterm's render debouncer, which has no public way to draw now; without it,
+ * the blink simply comes back.
+ */
+function drawOnCanvasResize(term: Terminal): ResizeObserver {
+  const observer = new ResizeObserver(() => {
+    const core = (term as unknown as { _core?: { _renderService?: { _renderDebouncer?: { _innerRefresh?: () => void } } } })._core
+    core?._renderService?._renderDebouncer?._innerRefresh?.()
+  })
+  for (const canvas of term.element?.querySelectorAll('.xterm-screen canvas') ?? []) observer.observe(canvas, { box: 'device-pixel-content-box' })
+  return observer
 }
 
 export const registry = new TerminalRegistry()
