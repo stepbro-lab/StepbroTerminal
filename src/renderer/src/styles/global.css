@@ -207,11 +207,10 @@ button:disabled {
 }
 
 /* ---- terminal card ---- */
+/* Flat on the frame: no border, no shadow; the change of surface is the edge. */
 .card {
   background: var(--bg-card);
-  border: 1px solid var(--border);
   border-radius: var(--radius-card);
-  box-shadow: var(--shadow-card);
   overflow: hidden;
 }
 /* A Mac's window corners are continuous, not circular; the card's follow them. */

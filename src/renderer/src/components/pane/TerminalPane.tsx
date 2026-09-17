@@ -209,7 +209,7 @@ function PaneCard({ id, connected, multi, bare, underRail }: { id: string; conne
       data-pane
       data-flip-id={id}
       className="card relative flex min-h-0 min-w-0 flex-1 flex-col"
-      style={multi && focused ? { boxShadow: '0 0 0 1px var(--accent-soft), var(--shadow-card)' } : undefined}
+      style={multi && focused ? { boxShadow: '0 0 0 1px var(--accent-soft)' } : undefined}
       onMouseDownCapture={focusMe}
       {...handlers}
     >
