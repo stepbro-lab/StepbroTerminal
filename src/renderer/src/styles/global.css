@@ -1105,3 +1105,89 @@ kbd {
   font-weight: 550;
   pointer-events: none;
 }
+
+/* ---- Topito, the mole at the foot of the sidebar ---- */
+
+.topito-dock {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  width: var(--sidebar-w);
+  flex-shrink: 0;
+}
+
+.topito-dock-button {
+  display: block;
+  padding: 2px 6px 0;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.topito-canvas {
+  display: block;
+}
+
+/* What he says when clicked: a small card above him, its lines links to the sessions they name. */
+.topito-bubble {
+  position: absolute;
+  bottom: calc(100% - 4px);
+  left: 10px;
+  right: 10px;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: var(--radius-pop);
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow-chip);
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text);
+}
+
+.topito-line {
+  display: block;
+  text-align: left;
+}
+
+.topito-link {
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.topito-link:hover {
+  color: var(--accent);
+}
+
+/* Popping out at the corner of the terminal with something to say. */
+.topito-corner {
+  position: absolute;
+  right: calc(var(--frame) + 10px);
+  bottom: calc(var(--frame) + 4px);
+  z-index: 30;
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.topito-corner-bubble {
+  max-width: 280px;
+  margin-bottom: 26px;
+  padding: 8px 11px;
+  border-radius: 14px 14px 4px 14px;
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow-chip);
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--text);
+  text-align: left;
+}
+
+.topito-corner-from {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 11px;
+  color: var(--text-muted);
+}

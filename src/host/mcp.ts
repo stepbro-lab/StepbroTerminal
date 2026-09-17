@@ -2,10 +2,11 @@ import type http from 'node:http'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js'
 import { z } from 'zod'
-import type { BrowserOp, BrowserResult, Note, NoteSource, Session } from '@shared/types'
+import { TOPITO_MOODS, type BrowserOp, type BrowserResult, type Note, type NoteSource, type Session, type TopitoMood, type TopitoSay } from '@shared/types'
 import type { NoteStore } from './NoteStore'
 import type { AgentBus } from './AgentBus'
 import { agentOf, pickSession } from './handoff'
+import { TopitoGate } from './topitoGate'
 
 export interface McpDeps {
   notes: NoteStore
@@ -19,6 +20,8 @@ export interface McpDeps {
   screen: (id: string, lines: number) => Promise<string[]>
   /** Something for the preview pane beside a session: the app does it and reports back. */
   browser: (sessionId: string, op: BrowserOp, timeoutMs?: number) => Promise<BrowserResult>
+  /** Has Topito, the mole in the person's window, come out with a few words from an agent. */
+  topito: (say: TopitoSay) => void
   version: string
 }
 
@@ -33,6 +36,7 @@ const INSTRUCTIONS = `You are running inside stepbro terminal, next to other ses
 - Sessions are terminals. list_sessions shows them, read_screen shows what is on one, send_to_session types into one as if the user had.
 - Agents talk to each other with report. A message you send with report shows up in the other agent's conversation as soon as it is free, the same way a message from another agent arrives in yours as a new turn.
 To delegate: send_to_session the task, then end your turn. Do not sit waiting: the answer arrives in your conversation as a message, and you continue from there. Keep the conversation going: answer questions, ask for what you need, and say when you are done. When someone hands you work, report back to them when you finish. wait exists for the rare case where you must block, for example to watch a session finish; it is not needed to receive messages.
+- Topito is the little mole in the person's window. The topito tool has him come out at the corner of their terminal with a short message from you, which they notice even while looking at another session. Keep it for what needs their eyes now.
 - The preview pane is a browser beside your session. open_preview shows a page there (the dev server you started, a site the user names); then preview_screenshot shows you what it looks like, preview_read gives its text or an outline of its headings, links, buttons and fields, and preview_scroll, preview_click, preview_type, preview_eval and preview_console let you work the page and watch its console. Open it when the user asks to see something, and when you need to check what a page shows.`
 
 /**
@@ -50,6 +54,9 @@ export async function handleMcp(deps: McpDeps, sessionId: string, req: http.Inco
   await server.connect(transport)
   await transport.handleRequest(req, res)
 }
+
+// The server is built anew for every request, so what Topito remembers lives out here.
+const topitoGate = new TopitoGate()
 
 const short = (id: string): string => id.slice(0, 8)
 const label = (s: Session): string => s.title || '(untitled)'
@@ -79,6 +86,30 @@ function buildServer(deps: McpDeps, sessionId: string): McpServer {
     const names = others().map((s) => `${label(s)} (${agentOf(s)}, ${short(s.id)})`)
     return names.length ? `No session matches "${to}". Open sessions: ${names.join('; ')}.` : 'No other sessions are open.'
   }
+
+  // ---- Topito ----
+
+  server.registerTool(
+    'topito',
+    {
+      title: 'Tell the person something through Topito',
+      description:
+        "Topito is the little mole mascot in the user's stepbro terminal window. This has him pop out at the corner of their terminal with a short message from you, which they see even while looking at another session, and a click on it takes them to yours. Use it sparingly, for what they should notice now: you finished something they are waiting on, you need a decision from them, something worth celebrating, or something went wrong. Not for progress updates, and not to repeat what you are already telling them in your reply. One short sentence, in the language they use with you.",
+      inputSchema: {
+        message: z.string().min(1).max(140).describe('What Topito says. One short sentence.'),
+        mood: z
+          .enum(TOPITO_MOODS as [TopitoMood, ...TopitoMood[]])
+          .optional()
+          .describe('How he looks while he says it: done, needs_you, happy, thinking, oops, hello, surprised or coffee. hello when left out.')
+      }
+    },
+    async ({ message, mood }) => {
+      const wait = topitoGate.take(sessionId)
+      if (wait) return text(`Topito passed on a message from you a moment ago; he can take another in ${Math.ceil(wait / 1000)} s.`)
+      deps.topito({ sessionId, message: clip(message, 140), mood: mood ?? 'hello', at: Date.now() })
+      return text('Topito came out at the corner of their terminal and said it.')
+    }
+  )
 
   // ---- notes ----
 

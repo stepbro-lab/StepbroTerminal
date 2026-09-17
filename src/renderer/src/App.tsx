@@ -12,6 +12,7 @@ import { useSidebarModel } from '@/lib/useSidebarModel'
 import { Sidebar } from '@/components/sidebar/Sidebar'
 import { TopBar, useWindowCorners } from '@/components/Chrome'
 import { useVoice } from '@/stores/voice'
+import { startTopito, topitoSay } from '@/lib/topito/director'
 import { SelectionRead } from '@/components/pane/SelectionRead'
 import { TerminalPane } from '@/components/pane/TerminalPane'
 import { CommandPalette } from '@/components/CommandPalette'
@@ -86,8 +87,10 @@ export default function App() {
       s.on('ui:openFolder', (p) => void addDroppedFolders([p])),
       s.on('ui:openWorkspace', (k) => void openWorkspaceByKey(k)),
       // The key the system holds, pressed while another program was in front.
-      s.on('ui:voiceToggle', () => useVoice.getState().toggle())
+      s.on('ui:voiceToggle', () => useVoice.getState().toggle()),
+      s.on('ui:topito', (say) => topitoSay(say))
     ]
+    const stopTopito = startTopito()
     void s.invoke('win:isMaximized').then((m) => useUi.getState().setMaximized(m))
     void s.invoke('notes:list').then((notes) => useNotes.getState().receive(notes))
     // Talking is held, not toggled, and the key can come up anywhere: in a terminal, over a
@@ -123,6 +126,7 @@ export default function App() {
       offData()
       offWorkspace()
       offs.forEach((off) => off())
+      stopTopito()
       window.removeEventListener('keydown', onKey, true)
       window.removeEventListener('keyup', onKeyUp, true)
       window.removeEventListener('blur', onBlur)

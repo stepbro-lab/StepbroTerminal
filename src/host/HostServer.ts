@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto'
 import { encodeFrame, FrameParser, type ClientMsg, type HostMsg } from '@shared/protocol'
 import type { SessionManager } from './SessionManager'
 import type { NoteStore } from './NoteStore'
-import type { BrowserOp, BrowserResult, Handoff, Note } from '@shared/types'
+import type { BrowserOp, BrowserResult, Handoff, Note, TopitoSay } from '@shared/types'
 import { SizeOwners } from './sizeOwners'
 import { log } from './log'
 
@@ -221,6 +221,11 @@ export class HostServer {
         this.onShutdown()
         break
     }
+  }
+
+  /** Passes on to every connected app what an agent asked Topito to say. */
+  topito(say: TopitoSay): void {
+    this.broadcast({ t: 'topito', say })
   }
 
   /**

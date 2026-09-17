@@ -1,4 +1,4 @@
-import type { BrowserOp, BrowserResult, CreateSessionOpts, PromptRecord, Session, Note, Handoff, HostStats } from './types'
+import type { BrowserOp, BrowserResult, CreateSessionOpts, PromptRecord, Session, Note, Handoff, HostStats, TopitoSay } from './types'
 
 export type ClientMsg =
   | { t: 'hello'; version: string }
@@ -44,6 +44,8 @@ export type HostMsg =
   | { t: 'notes'; notes: Note[]; added?: Note }
   /** One agent typed text into another session. */
   | { t: 'handoff'; handoff: Handoff }
+  /** An agent asked Topito to tell the person something. */
+  | { t: 'topito'; say: TopitoSay }
   | { t: 'stats'; reqId: string; stats: HostStats }
   /** An agent asks, through the MCP server, for something to happen in the preview pane beside its session. */
   | { t: 'browser'; reqId: string; sessionId: string; op: BrowserOp }
