@@ -44,8 +44,10 @@ export function EmptyState() {
         <LogoMark size={72} />
       </div>
       <div className="transition-opacity duration-200" style={{ opacity: browsing ? 0 : 1 }}>
-        <div className="text-[15px] font-semibold tracking-[-0.01em]">{project.name}</div>
-        <div className="mt-1 max-w-[440px] truncate font-mono text-[11.5px] text-muted">{project.path}</div>
+        {/* The name alone: the full path is long and says little at a glance, so it waits in the tooltip. */}
+        <div className="text-[15px] font-semibold tracking-[-0.01em]" title={project.path}>
+          {project.name}
+        </div>
       </div>
       <NewSessionCluster projectPath={project.path} onOpen={setBrowsing} />
       <div className="mt-1 flex items-center gap-4 text-[12.5px] text-muted">
