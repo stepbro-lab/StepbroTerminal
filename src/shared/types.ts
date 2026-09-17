@@ -221,6 +221,13 @@ export interface Prefs {
   flagHints: boolean
   /** Draw terminals with WebGL. Off uses the DOM renderer, for displays that react badly to GPU windows. */
   gpuRendering: boolean
+  /**
+   * How opaque the frame around the terminal is, and the terminal's own surface, each 0 to 1,
+   * over the desktop blurred behind the window. Below 1 only where the system can blur (see
+   * shared/frame); both at 1 is a solid window, and so is every window where it cannot.
+   */
+  frameOpacity: number
+  contentOpacity: number
   /** On launch, bring back the sessions that were still running; agents resume their conversation. */
   resumeOnLaunch: boolean
   /** Saved pane arrangements that open in one go. */

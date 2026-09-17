@@ -2,8 +2,17 @@ import { app, BrowserWindow, nativeImage, nativeTheme, screen, shell } from 'ele
 import { appLogoPath, dockLogoPath } from './branding'
 import { join } from 'node:path'
 import type { Prefs } from '@shared/types'
+import { canBlurBehind, isTranslucent } from '@shared/frame'
 
 const BG = { light: '#f6f3f2', dark: '#1c1b1b' }
+const CLEAR = '#00000000'
+/**
+ * What the system draws behind a translucent frame. On a Mac, the most see-through of its
+ * materials in both light and dark (compared side by side on macOS 27; sidebar and under-window
+ * are among the most opaque). On Windows 11, acrylic, which blurs what is behind the window.
+ */
+const VIBRANCY = 'fullscreen-ui' as const
+const MATERIAL = 'acrylic' as const
 /** The open bar along the top edge, in CSS pixels: the same as --chrome-h. */
 const BAR_H = 36
 /** A Mac's traffic lights are 14 DIP circles; the position they are given is their top-left corner. */
@@ -26,8 +35,17 @@ export function applyAppIcon(win: BrowserWindow, prefs: Prefs): void {
   else win.setIcon(image)
 }
 
+/** The window shows the blurred desktop behind it (see isTranslucent). */
+function translucent(prefs: Prefs): boolean {
+  return isTranslucent(prefs, process.platform, process.getSystemVersion())
+}
+/** Whether each window has the material behind it now, so a slider dragged through its values does not ask again on every step. */
+const materials = new WeakMap<BrowserWindow, boolean>()
+
 export function createWindow(prefs: Prefs): BrowserWindow {
   const platform = process.platform
+  followTheme(prefs)
+  const clear = translucent(prefs)
   const win = new BrowserWindow({
     width: 1200,
     height: 760,
@@ -35,12 +53,14 @@ export function createWindow(prefs: Prefs): BrowserWindow {
     minHeight: 480,
     show: false,
     title: 'stepbro terminal',
-    backgroundColor: isDark(prefs) ? BG.dark : BG.light,
+    backgroundColor: clear ? CLEAR : isDark(prefs) ? BG.dark : BG.light,
     // No title bar on any system: the window is the terminal inside a thin frame. The window's
     // buttons show only while the pointer is at the top edge, where the frame grows into a bar for
     // them: a Mac's own traffic lights, hidden until then; on Windows and Linux buttons of ours,
     // drawn the way those systems draw theirs, since the system's own there cannot be hidden.
-    ...(platform === 'darwin' ? { titleBarStyle: 'hidden' as const, trafficLightPosition: lightsAt(1) } : { frame: false }),
+    ...(platform === 'darwin'
+      ? { titleBarStyle: 'hidden' as const, trafficLightPosition: lightsAt(1), ...(clear ? { vibrancy: VIBRANCY } : {}) }
+      : { frame: false, ...(clear ? { backgroundMaterial: MATERIAL } : {}) }),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,
@@ -50,6 +70,7 @@ export function createWindow(prefs: Prefs): BrowserWindow {
       webviewTag: true
     }
   })
+  materials.set(win, clear)
   applyAppIcon(win, prefs)
   if (platform === 'darwin') win.setWindowButtonVisibility(false)
   win.once('ready-to-show', () => win.show())
@@ -74,9 +95,28 @@ export function createWindow(prefs: Prefs): BrowserWindow {
   return win
 }
 
-/** Keeps the window background in step with the theme, so resizes never flash the wrong color. */
+/**
+ * Keeps the window background in step with the theme, so resizes never flash the wrong color;
+ * and the material behind it or not. A translucent window has no color of its own: the system
+ * draws its material behind the page, and the page lays its frame and terminal over it at the
+ * opacity each is set to.
+ */
 export function applyWindowTheme(win: BrowserWindow, prefs: Prefs): void {
-  win.setBackgroundColor(isDark(prefs) ? BG.dark : BG.light)
+  followTheme(prefs)
+  const clear = translucent(prefs)
+  win.setBackgroundColor(clear ? CLEAR : isDark(prefs) ? BG.dark : BG.light)
+  if (materials.get(win) === clear) return
+  materials.set(win, clear)
+  if (process.platform === 'darwin') win.setVibrancy(clear ? VIBRANCY : null)
+  else if (canBlurBehind(process.platform, process.getSystemVersion())) win.setBackgroundMaterial(clear ? MATERIAL : 'none')
+}
+
+/**
+ * The system's own light or dark for this app: the material behind a translucent frame takes
+ * it, and it should be the app's theme rather than the system's when the two differ.
+ */
+function followTheme(prefs: Prefs): void {
+  if (nativeTheme.themeSource !== prefs.theme) nativeTheme.themeSource = prefs.theme
 }
 
 // ---- the bar along the top edge: open while the pointer is on it ----

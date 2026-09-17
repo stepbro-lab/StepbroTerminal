@@ -144,7 +144,7 @@ export function PreviewPane({ url, sessionId }: { url: string; sessionId: string
         {/* @ts-expect-error webview is an Electron element, not a React intrinsic */}
         <webview ref={ref} src={url} style={{ width: '100%', height: '100%' }} allowpopups="false" />
         {failed && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-[13px]" style={{ background: 'var(--bg-card)', color: 'var(--text-muted)' }}>
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-[13px]" style={{ background: 'var(--card-fill, var(--bg-card))', color: 'var(--text-muted)' }}>
             <span>{failed}</span>
             <button className="btn btn-secondary" onClick={() => ref.current?.reload()}>{t('Try again')}</button>
           </div>
