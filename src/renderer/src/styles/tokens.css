@@ -77,9 +77,13 @@
   --font-ui: 'Hanken Grotesk Variable', 'Hanken Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI Variable Text', 'Segoe UI', sans-serif;
   --font-mono: 'JetBrains Mono', 'Geist Mono', 'SF Mono', 'Cascadia Mono', Menlo, Consolas, monospace;
   /* Soft corners throughout: cards and dialogs round wide, rows and fields a little, buttons all the way. */
-  /* The card inside the frame rounds parallel to the window's own corners: their radius less the
-     frame, in CSS pixels. --window-radius and --zoom come from useWindowCorners (Chrome.tsx). */
-  --radius-card: max(0px, calc(var(--window-radius, 0px) / var(--zoom, 1) - var(--frame)));
+  /* The card inside the frame rounds with the window's own corners and never rounder than them.
+     With room to spare the two curves run parallel: the window's radius less the frame. Where that
+     leaves next to nothing (Windows 11 rounds 8px and the frame is 8px) the card takes the window's
+     radius itself, up to 8px, so it keeps a curve without outrounding the corner beside it. A square
+     window keeps a square card. --window-radius and --zoom come from useWindowCorners (Chrome.tsx). */
+  --window-corner: calc(var(--window-radius, 0px) / var(--zoom, 1));
+  --radius-card: max(calc(var(--window-corner) - var(--frame)), min(var(--window-corner), 8px));
   --radius-row: 9px;
   --radius-input: 10px;
   --radius-pop: 14px;
