@@ -1,12 +1,12 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { FolderPlus, Plus, Settings, Ungroup } from 'lucide-react'
 import gsap from 'gsap'
 import { Flip } from 'gsap/Flip'
 import { useData } from '@/stores/data'
 import { usePrefs } from '@/stores/prefs'
 import { useUi } from '@/stores/ui'
-import { buildSidebar, type SidebarProject, type SidebarSession } from '@/lib/sidebarModel'
-import { leaves } from '@/lib/layout'
+import type { SidebarProject, SidebarSession } from '@/lib/sidebarModel'
+import { useSidebarModel } from '@/lib/useSidebarModel'
 import { addDroppedFolders, addProject, reorderProjects, sidebarMenu } from '@/lib/actions'
 import { useFolderDrop } from '@/lib/folderDrop'
 import { movedIds } from '@/lib/reorder'
@@ -18,15 +18,6 @@ import { useReorder } from './useReorder'
 import { t } from '@/lib/i18n'
 
 gsap.registerPlugin(Flip)
-
-export function useSidebarModel() {
-  const projects = useData((s) => s.projects)
-  const sessions = useData((s) => s.sessions)
-  const prefs = usePrefs((s) => s.prefs)
-  const views = useUi((s) => s.views)
-  const groups = useMemo(() => views.map((v, i) => ({ view: i, ids: leaves(v) })).filter((g) => g.ids.length > 1), [views])
-  return useMemo(() => buildSidebar(projects, Object.values(sessions), prefs, groups), [projects, sessions, prefs, groups])
-}
 
 /** Consecutive rows that share a split view, so they can be drawn inside one box. */
 function chunk(rows: SidebarSession[]): Array<{ view: number | null; rows: SidebarSession[] }> {
