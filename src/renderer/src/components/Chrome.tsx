@@ -91,11 +91,16 @@ function SidebarToggle() {
   )
 }
 
-/** The buttons that belong to the window rather than to a pane: activity, updates, voice, notes, settings. */
+/**
+ * The buttons that belong to the window rather than to a pane: activity, updates, voice, notes,
+ * and settings while the sidebar is folded away. With the sidebar out, its own settings button
+ * sits at its foot, and a second one up here would only repeat it.
+ */
 function ChromeButtons() {
   const voice = useVoice((s) => s.state)
   const press = useVoice((s) => s.press)
   const release = useVoice((s) => s.release)
+  const folded = usePrefs((s) => s.prefs?.sidebarCollapsed ?? false)
   const settingsOpen = useUi((s) => s.settingsOpen)
   const setSettingsOpen = useUi((s) => s.setSettingsOpen)
   return (
@@ -113,9 +118,11 @@ function ChromeButtons() {
         <AudioLines size={15} />
       </button>
       <NotesButton />
-      <button className="icon-btn" data-on={settingsOpen} title={titled(t('Settings'), 'settings')} onClick={() => setSettingsOpen(!settingsOpen)}>
-        <Settings size={15} />
-      </button>
+      {folded && (
+        <button className="icon-btn" data-on={settingsOpen} title={titled(t('Settings'), 'settings')} onClick={() => setSettingsOpen(!settingsOpen)}>
+          <Settings size={15} />
+        </button>
+      )}
     </div>
   )
 }
