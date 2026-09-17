@@ -123,6 +123,9 @@ export class HostClient extends EventEmitter {
       case 'handoff':
         this.emit('handoff', msg.handoff)
         break
+      case 'topito':
+        this.emit('topito', msg.say)
+        break
       case 'stats': {
         const p = this.pending.get(msg.reqId)
         if (p) {

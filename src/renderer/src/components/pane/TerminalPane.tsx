@@ -18,6 +18,7 @@ import { EmptyState } from './EmptyState'
 import { HostBanner } from './HostBanner'
 import { PreviewPane } from './PreviewPane'
 import { ChangesPane } from './ChangesPane'
+import { TopitoCorner } from '../topito/Topito'
 import { t } from '@/lib/i18n'
 import { describeSessionError } from '@/lib/sessionErrors'
 
@@ -55,6 +56,7 @@ export function TerminalPane() {
           {SESSION_RAIL && <SessionRail />}
           <DropTarget className="card relative flex h-full w-full flex-col">{connected ? <EmptyState /> : <HostBanner />}</DropTarget>
         </div>
+        <TopitoCorner />
       </main>
     )
   }
@@ -71,6 +73,7 @@ export function TerminalPane() {
         </div>
         {sidePanel && <div className="side-panel flex min-w-0 flex-[0_0_44%]">{sidePanel}</div>}
       </div>
+      <TopitoCorner />
     </main>
   )
 }

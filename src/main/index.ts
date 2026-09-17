@@ -3,7 +3,7 @@ import { join, resolve } from 'node:path'
 import fs from 'node:fs'
 import { claudeDir, hostLogPath } from '@shared/paths'
 import type { EventMap, EventName } from '@shared/ipc'
-import type { BrowserOp, HostState, Prefs, Session, Note, Handoff } from '@shared/types'
+import type { BrowserOp, HostState, Prefs, Session, Note, Handoff, TopitoSay } from '@shared/types'
 import { HostClient } from './host/HostClient'
 import { ensureHost, requestHostShutdown } from './host/launcher'
 import { loadPrefs, savePrefs } from './prefs'
@@ -332,6 +332,7 @@ ${s.errorDetail}`)
     ctx.emit('notes:update', notes, added)
   })
   client.on('handoff', (h: Handoff) => ctx.emit('ui:handoff', h))
+  client.on('topito', (say: TopitoSay) => ctx.emit('ui:topito', say))
   // An agent's request for the preview pane: done here, where the <webview>'s contents are reachable, and answered over the socket.
   ctx.previews = new PreviewBridge({
     show: (id, url) => ctx.emit('ui:openPreview', id, url),

@@ -15,7 +15,8 @@ import type {
   UpdateState,
   Note,
   Handoff,
-  AppStats
+  AppStats,
+  TopitoSay
 } from './types'
 
 export interface CreateRequest {
@@ -146,6 +147,8 @@ export interface EventMap {
   /** The notes list changed; `added` is the note an agent just saved, for the animation. */
   'notes:update': (notes: Note[], added?: Note) => void
   'ui:handoff': (handoff: Handoff) => void
+  /** An agent asked Topito to tell the person something, through the stepbro MCP server. */
+  'ui:topito': (say: TopitoSay) => void
   /** The key the system holds for talking was pressed: start a turn, or end the one under way. */
   'ui:voiceToggle': () => void
   'win:maximized': (maximized: boolean) => void

@@ -83,6 +83,12 @@ export function AppearancePage() {
         </div>
       </Section>
 
+      <Section title="Topito" description={t('The little mole at the foot of the sidebar. He does whatever your agents are doing, comes out at the corner of the terminal when one needs you or has something to tell you, and answers when you click him.')}>
+        <Row label={t('Show Topito')}>
+          <Toggle value={p.topito !== false} onChange={(topito) => upd({ topito })} />
+        </Row>
+      </Section>
+
       <Section title={t('App color')} description={t('Tints selections, buttons and the activity marks, and washes the window chrome very slightly.')}>
         <div className="flex items-center gap-3 py-1">
           {ACCENTS.map((a) => (

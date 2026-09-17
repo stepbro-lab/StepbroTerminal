@@ -14,6 +14,7 @@ import { registry } from '@/terminal/TerminalRegistry'
 import { PROJECT_DRAG_TYPE, ProjectRow } from './ProjectRow'
 import { SessionRow } from './SessionRow'
 import { useReorder } from './useReorder'
+import { TopitoDock } from '../topito/Topito'
 import { t } from '@/lib/i18n'
 
 gsap.registerPlugin(Flip)
@@ -276,6 +277,7 @@ export function Sidebar() {
           </div>
         ))}
       </div>
+      <TopitoDock />
       {/* Two round raised buttons of the same size and weight, lifted a little off the window's bottom edge. */}
       <div className="mb-1 flex h-10 shrink-0 items-center justify-between pl-1 pr-2" style={{ width: 'var(--sidebar-w)' }}>
         <button className="fab" title={t('Add folder')} onClick={() => void addProject()}>
