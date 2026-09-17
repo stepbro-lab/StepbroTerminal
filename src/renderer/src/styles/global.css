@@ -89,29 +89,32 @@ button:disabled {
   color: var(--text);
 }
 
-/* ---- the sidebar's add button: small, round and raised off the surface ---- */
+/* ---- the sidebar: folders and their sessions, straight on the frame ---- */
+/* It sits on the frame, which may be the blurred desktop, so its fills are the theme's text or
+   card colour laid thinly over whatever is behind (--side-hover, --side-active in tokens.css)
+   rather than solid colours of their own. */
 .fab {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   border-radius: 999px;
-  background: var(--bg-elevated);
-  color: var(--text);
+  background: var(--side-hover);
+  color: var(--text-secondary);
   transition:
     background-color 120ms var(--ease),
+    color 120ms var(--ease),
     transform 140ms var(--ease);
 }
 .fab:hover {
-  background: var(--bg-hover);
-  transform: translateY(-1px);
+  background: var(--side-press);
+  color: var(--text);
 }
 .fab:active {
-  transform: translateY(0) scale(0.97);
+  transform: scale(0.96);
 }
 
-/* ---- sidebar rows ---- */
 .row {
   position: relative;
   cursor: pointer;
@@ -128,7 +131,7 @@ button:disabled {
     color 100ms var(--ease);
 }
 .row:hover {
-  background: var(--bg-hover);
+  background: var(--side-hover);
   color: var(--text-secondary);
 }
 .row[data-tone='fg'],
@@ -137,20 +140,27 @@ button:disabled {
 }
 .row[data-active='true'],
 .row[data-active='true']:hover {
-  background: var(--bg-active);
+  background: var(--side-active);
   color: var(--text);
+}
+/* A session's actions come in over the end of its title; the title fades out under them. */
+[data-session-row]:hover .row-title {
+  mask-image: linear-gradient(to left, transparent 30px, #000 46px);
+}
+[data-session-row][data-archived]:hover .row-title {
+  mask-image: linear-gradient(to left, transparent 52px, #000 68px);
 }
 /* Sessions that share a split view sit inside one box; the box of the view on screen is a touch stronger. */
 .view-box {
   position: relative;
   margin: 2px -3px;
   padding: 2px;
-  border: 1px solid var(--border);
+  border: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
   border-radius: calc(var(--radius-row) + 3px);
-  background: color-mix(in srgb, var(--bg-hover) 50%, transparent);
+  background: color-mix(in srgb, var(--text) 3%, transparent);
 }
 .view-box[data-on='true'] {
-  border-color: var(--border-strong);
+  border-color: color-mix(in srgb, var(--text) 16%, transparent);
 }
 /* Pulls the group apart; shows while the pointer is over the box. */
 .view-box-ungroup {
@@ -186,7 +196,6 @@ button:disabled {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  box-shadow: 0 0 0 1.5px var(--bg-sidebar);
 }
 :is(.row, .view-box)[data-insert='before']::after {
   top: -2px;
@@ -378,11 +387,11 @@ kbd {
   transition: background-color 100ms var(--ease);
 }
 .nav-row:hover {
-  background: var(--bg-hover);
+  background: var(--side-hover);
   color: var(--text);
 }
 .nav-row[data-on='true'] {
-  background: var(--bg-active);
+  background: var(--side-active);
   color: var(--text);
 }
 .nav-row svg {

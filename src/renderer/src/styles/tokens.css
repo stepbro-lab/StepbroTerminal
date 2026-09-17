@@ -32,6 +32,10 @@
   --rail-bar: color-mix(in srgb, var(--text) 16%, var(--bg-card));
   --rail-well: color-mix(in srgb, var(--text) 6%, var(--bg-card));
   --rail-pill: var(--bg-card);
+  /* Rows and buttons on the frame, which may be the blurred desktop: thin washes over what is behind. */
+  --side-hover: color-mix(in srgb, var(--text) 6%, transparent);
+  --side-press: color-mix(in srgb, var(--text) 10%, transparent);
+  --side-active: color-mix(in srgb, var(--bg-card) 90%, transparent);
 }
 
 :root[data-theme='dark'] {
@@ -64,6 +68,9 @@
   --rail-bar: color-mix(in srgb, var(--text) 22%, var(--bg-card));
   --rail-well: color-mix(in srgb, var(--text) 5%, var(--bg-card));
   --rail-pill: color-mix(in srgb, var(--text) 11%, var(--bg-card));
+  --side-hover: color-mix(in srgb, var(--text) 7%, transparent);
+  --side-press: color-mix(in srgb, var(--text) 11%, transparent);
+  --side-active: color-mix(in srgb, var(--text) 12%, transparent);
 }
 
 :root {
