@@ -265,7 +265,7 @@ function ArchivedView({ session }: { session: Session }) {
   const color = presets.find((p) => p.id === presetId)?.color ?? 'var(--text-muted)'
   const resumes = canResume(session)
   return (
-    <div className="fade-in absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 p-8 text-center" style={{ background: 'var(--bg-card)' }}>
+    <div className="fade-in absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 p-8 text-center" style={{ background: 'var(--card-fill, var(--bg-card))', backdropFilter: 'blur(14px)' }}>
       <span style={{ color }}>
         <AgentLogo presetId={presetId} size={40} />
       </span>

@@ -209,7 +209,7 @@ button:disabled {
 /* ---- terminal card ---- */
 /* Flat on the frame: no border, no shadow; the change of surface is the edge. */
 .card {
-  background: var(--bg-card);
+  background: var(--card-fill, var(--bg-card));
   border-radius: var(--radius-card);
   overflow: hidden;
 }
@@ -721,6 +721,20 @@ kbd {
 .app-frame {
   padding: calc(var(--frame) + var(--bar-push, 0px)) var(--frame) var(--frame);
   background: var(--bg-sidebar);
+}
+/* A translucent window: the system blurs the desktop behind it (applyWindowTheme in
+   main/window.ts), and the page lays the frame and the cards over the blur, each washed with its
+   own colour at the opacity set for it in Settings. The terminal paints the card's fill too. */
+:root[data-translucent],
+:root[data-translucent] body,
+:root[data-translucent] #root {
+  background: transparent;
+}
+:root[data-translucent] {
+  --card-fill: color-mix(in srgb, var(--bg-card) calc(var(--content-opacity) * 100%), transparent);
+}
+:root[data-translucent] .app-frame {
+  background: color-mix(in srgb, var(--bg-sidebar) calc(var(--frame-opacity) * 100%), transparent);
 }
 /* The strip the pointer touches to open the bar: the frame's top edge and a little of the card under it. */
 .bar-edge {

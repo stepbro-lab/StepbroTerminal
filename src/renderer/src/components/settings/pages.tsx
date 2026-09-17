@@ -15,6 +15,7 @@ import { useBinding } from '@/lib/shortcuts'
 import type { LogoId } from '@shared/types'
 import { LANGUAGES } from '@shared/i18n'
 import { takesAKeyFromTheTerminal } from '@shared/keybindings'
+import { canBlurBehind } from '@shared/frame'
 import { AgentLogo } from '../sidebar/AgentLogo'
 import { Footer, Row, Section, Segmented, Select, Slider, SmallButton, TextArea, TextField, Toggle } from './controls'
 import { ResourceSections } from './Resources'
@@ -53,6 +54,17 @@ export function AppearancePage() {
           />
         </Row>
       </Section>
+
+      {canBlurBehind(window.step.platform, window.step.osVersion) && (
+        <Section title={t('Opacity')} description={t('How much of the desktop shows through, blurred, behind the frame and behind the terminal. At 100% both are solid.')}>
+          <Row label={t('Frame')}>
+            <Slider value={Math.round(p.frameOpacity * 100)} min={0} max={100} step={5} onChange={(v) => upd({ frameOpacity: v / 100 })} format={(v) => `${v}%`} />
+          </Row>
+          <Row label={t('Terminal')}>
+            <Slider value={Math.round(p.contentOpacity * 100)} min={0} max={100} step={5} onChange={(v) => upd({ contentOpacity: v / 100 })} format={(v) => `${v}%`} />
+          </Row>
+        </Section>
+      )}
 
       <Section title={t('Logo')} description={t('The mark the app shows on its window, in the tray, in notifications and on an empty pane. On Windows the Start Menu, desktop and taskbar shortcuts take it too; on macOS the Dock does while the app runs.')}>
         <div className="flex items-center gap-3 py-1">
@@ -105,7 +117,7 @@ export function AppearancePage() {
       </Section>
 
       <Footer>
-        <SmallButton onClick={() => upd({ theme: 'system', accent: 'graphite', logo: DEFAULT_LOGO, fontFamily: 'JetBrains Mono', fontSize: 13, lineHeight: 1, sidebarWidth: 240 })}>{t('Revert to default')}</SmallButton>
+        <SmallButton onClick={() => upd({ theme: 'system', accent: 'graphite', logo: DEFAULT_LOGO, fontFamily: 'JetBrains Mono', fontSize: 13, lineHeight: 1, sidebarWidth: 240, frameOpacity: 0, contentOpacity: 0.9 })}>{t('Revert to default')}</SmallButton>
       </Footer>
     </>
   )
