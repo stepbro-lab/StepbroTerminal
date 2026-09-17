@@ -42,7 +42,17 @@ export function railStatus(row: SidebarSession): RailStatus {
 export const SESSION_RAIL = false
 
 /** How wide the folded rail is, so what sits under its corner can keep out of its way. */
-export const RAIL_INSET = 84
+export const RAIL_INSET = 96
+
+let pointerOnRailAt = -Infinity
+/** The pointer is on the session rail now. */
+export function notePointerOnRail(): void {
+  pointerOnRailAt = performance.now()
+}
+/** Milliseconds since the pointer was last on the session rail. */
+export function sincePointerOnRail(): number {
+  return performance.now() - pointerOnRailAt
+}
 
 /** The pane the rail hangs over: rightmost among panes side by side, topmost among stacked ones. */
 export function topRightLeaf(node: LayoutNode): string {

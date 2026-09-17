@@ -8,6 +8,7 @@ import { NotesButton } from './notes/NotesButton'
 import { useVoice } from '@/stores/voice'
 import { titled } from '@/lib/shortcuts'
 import { Spring, type SpringConfig } from '@/lib/spring'
+import { sincePointerOnRail } from '@/lib/rail'
 import { registry } from '@/terminal/TerminalRegistry'
 import { t } from '@/lib/i18n'
 
@@ -20,6 +21,24 @@ const FRAME = 8
 const LIGHTS_AT = 0.55
 /** How long the pointer may be off the bar before it closes, so brushing past the edge does not close it. */
 const LINGER_MS = 220
+/**
+ * The session rail sits just under the top edge, so a trip to it that overshoots lands on the
+ * edge, and the bar opening then pushes the rail away from the pointer. So for a moment after
+ * the pointer was on the rail, and on a Mac anywhere above the rail's corner, the edge waits for
+ * the pointer to rest on it before opening. On Windows and Linux that corner holds the window's
+ * own buttons, which people go for on purpose, so there only the moment after the rail counts.
+ */
+const RAIL_GRACE_MS = 600
+const RAIL_REACH = 48
+const EDGE_REST_MS = 400
+
+/** How long the pointer must rest on the top edge, at `x` (null when unknown), before the bar opens. */
+function edgeRest(x: number | null): number {
+  if (sincePointerOnRail() < RAIL_GRACE_MS) return EDGE_REST_MS
+  const rail = mac && x !== null ? document.querySelector('.rail')?.getBoundingClientRect() : undefined
+  return rail && x! >= rail.left - RAIL_REACH ? EDGE_REST_MS : 0
+}
+
 /** A window event that opens the bar from elsewhere in the page; it closes as usual once nothing holds it. */
 export const OPEN_BAR = 'step:open-bar'
 /** Opens quickly and settles without bouncing: the terminal's edge must not wobble under the buttons. */
@@ -110,6 +129,7 @@ export function TopBar() {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const openBar = useRef<() => void>(() => {})
+  const edge = useRef<{ at: (x: number) => void; left: () => void }>({ at: () => {}, left: () => {} })
 
   useEffect(() => {
     const frame = ref.current?.parentElement
@@ -177,13 +197,40 @@ export function TopBar() {
         if (now) window.clearTimeout(linger)
         else if (isOpen) closeSoon()
       }),
-      window.step.on('win:topEdge', () => openBar.current())
+      // Windows reports the pointer on its resize border over and over while it moves, without
+      // saying where; held off, it is simply ignored until the moment has passed.
+      window.step.on('win:topEdge', () => {
+        if (edgeRest(null) === 0) openBar.current()
+      })
     ]
+    let edgeTimer = 0
+    edge.current = {
+      at: (x) => {
+        if (isOpen) return
+        const rest = edgeRest(x)
+        if (rest === 0) {
+          window.clearTimeout(edgeTimer)
+          edgeTimer = 0
+          return openBar.current()
+        }
+        if (!edgeTimer) {
+          edgeTimer = window.setTimeout(() => {
+            edgeTimer = 0
+            openBar.current()
+          }, rest)
+        }
+      },
+      left: () => {
+        window.clearTimeout(edgeTimer)
+        edgeTimer = 0
+      }
+    }
     const onOpenBar = (): void => openBar.current()
     window.addEventListener(OPEN_BAR, onOpenBar)
     return () => {
       offs.forEach((off) => off())
       window.removeEventListener(OPEN_BAR, onOpenBar)
+      window.clearTimeout(edgeTimer)
       window.clearTimeout(linger)
       spring.stop()
       releaseFits()
@@ -194,7 +241,14 @@ export function TopBar() {
 
   return (
     <>
-      {!open && <div className="bar-edge no-drag" onMouseEnter={(e) => e.buttons === 0 && openBar.current()} />}
+      {!open && (
+        <div
+          className="bar-edge no-drag"
+          onMouseEnter={(e) => e.buttons === 0 && edge.current.at(e.clientX)}
+          onMouseMove={(e) => e.buttons === 0 && edge.current.at(e.clientX)}
+          onMouseLeave={() => edge.current.left()}
+        />
+      )}
       <div ref={ref} className={open ? 'topbar drag' : 'topbar'} data-open={open}>
         {/* The sidebar's button stays at the left, over the sidebar, after a Mac's traffic lights. The
             rest take the end the system's own buttons leave free: the right on a Mac, the left elsewhere. */}
