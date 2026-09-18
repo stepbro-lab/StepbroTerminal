@@ -1160,6 +1160,18 @@ kbd {
   color: var(--accent);
 }
 
+/* A session's preview while that session is out of view: still loaded, so the page keeps its place
+   and an agent there can keep working it, only out of sight. */
+.side-panel-parked {
+  position: fixed;
+  top: 0;
+  left: -10000px;
+  display: flex;
+  width: 900px;
+  height: 700px;
+  pointer-events: none;
+}
+
 /* Popping out at the corner of the terminal with something to say. */
 .topito-corner {
   position: absolute;

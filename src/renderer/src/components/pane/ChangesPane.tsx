@@ -18,7 +18,7 @@ const split = (rel: string): { name: string; dir: string } => {
 /** What changed in the session's repository, with the agent's own edits first, a readable diff and a way back. */
 export function ChangesPane({ sessionId }: { sessionId: string }) {
   const session = useData((s) => s.sessions[sessionId])
-  const setSide = useUi((s) => s.setSide)
+  const closeSide = useUi((s) => s.closeSide)
   const toast = useUi((s) => s.toast)
   const [changes, setChanges] = useState<GitChanges | null>(null)
   const [selected, setSelected] = useState<ChangedFile | null>(null)
@@ -80,7 +80,7 @@ export function ChangesPane({ sessionId }: { sessionId: string }) {
         <button className="icon-btn" title={t('Refresh')} onClick={() => void refresh()}>
           <RotateCw size={13} className={busy ? 'animate-spin' : undefined} />
         </button>
-        <button className="icon-btn" title={t('Close')} onClick={() => setSide(null)}>
+        <button className="icon-btn" title={t('Close')} onClick={() => closeSide(sessionId)}>
           <X size={15} />
         </button>
       </div>

@@ -24,7 +24,7 @@ interface WebviewEl extends HTMLElement {
  * agent can be given the page through the stepbro MCP server.
  */
 export function PreviewPane({ url, sessionId }: { url: string; sessionId: string }) {
-  const setSide = useUi((s) => s.setSide)
+  const closeSide = useUi((s) => s.closeSide)
   const ref = useRef<WebviewEl | null>(null)
   const [current, setCurrent] = useState(url)
   const [loading, setLoading] = useState(true)
@@ -129,7 +129,7 @@ export function PreviewPane({ url, sessionId }: { url: string; sessionId: string
         <button className="icon-btn" title={t('Open in your browser')} onClick={() => void window.step.invoke('app:openExternal', current)}>
           <ExternalLink size={13} />
         </button>
-        <button className="icon-btn" title={t('Close preview')} onClick={() => setSide(null)}>
+        <button className="icon-btn" title={t('Close preview')} onClick={() => closeSide(sessionId)}>
           <X size={15} />
         </button>
       </div>

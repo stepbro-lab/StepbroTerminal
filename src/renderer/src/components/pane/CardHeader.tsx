@@ -20,10 +20,11 @@ export function CardHeader({ session, split = false, dim = false, inset = 0 }: {
   const searchOpen = useUi((s) => s.searchOpen)
   const setSearchOpen = useUi((s) => s.setSearchOpen)
   const activeId = useUi((s) => s.activeId)
-  const side = useUi((s) => s.side)
-  const setSide = useUi((s) => s.setSide)
-  const previewOpen = side?.kind === 'preview' && side.sessionId === session.id
-  const changesOpen = side?.kind === 'changes' && side.sessionId === session.id
+  const side = useUi((s) => s.sides[session.id])
+  const openSide = useUi((s) => s.openSide)
+  const closeSide = useUi((s) => s.closeSide)
+  const previewOpen = side?.kind === 'preview'
+  const changesOpen = side?.kind === 'changes'
   const changedCount = session.agent.changedFiles?.length ?? 0
   const [editing, setEditing] = useState(false)
   const color = presets.find((p) => p.id === rowPresetId(session))?.color ?? '#8a8a90'
@@ -64,7 +65,8 @@ export function CardHeader({ session, split = false, dim = false, inset = 0 }: {
         pinSession(session.id, !session.pinned)
         break
       case 'changes':
-        setSide(changesOpen ? null : { kind: 'changes', sessionId: session.id })
+        if (changesOpen) closeSide(session.id)
+        else openSide({ kind: 'changes', sessionId: session.id })
         break
       case 'split-right':
         await splitWithNewShell('row', session.id)
@@ -137,7 +139,7 @@ export function CardHeader({ session, split = false, dim = false, inset = 0 }: {
                 label={session.previewUrl.replace(/^https?:\/\//, '')}
                 on={previewOpen}
                 title={t('Preview {url} beside the terminal', { url: session.previewUrl })}
-                onClick={() => setSide(previewOpen ? null : { kind: 'preview', url: session.previewUrl!, sessionId: session.id })}
+                onClick={() => (previewOpen ? closeSide(session.id) : openSide({ kind: 'preview', url: session.previewUrl!, sessionId: session.id }))}
               />
             )}
             {changedCount > 0 && (
@@ -146,14 +148,14 @@ export function CardHeader({ session, split = false, dim = false, inset = 0 }: {
                 label={t(changedCount === 1 ? '{n} file' : '{n} files', { n: changedCount })}
                 on={changesOpen}
                 title={t(changedCount === 1 ? '{n} file edited by this session. Changes in this folder' : '{n} files edited by this session. Changes in this folder', { n: changedCount })}
-                onClick={() => setSide(changesOpen ? null : { kind: 'changes', sessionId: session.id })}
+                onClick={() => (changesOpen ? closeSide(session.id) : openSide({ kind: 'changes', sessionId: session.id }))}
               />
             )}
           </div>
         )}
         <div className="flex items-center gap-0.5">
           {changedCount === 0 && (
-            <button className="icon-btn" title={t('Changes in this folder')} data-on={changesOpen} onClick={() => setSide(changesOpen ? null : { kind: 'changes', sessionId: session.id })}>
+            <button className="icon-btn" title={t('Changes in this folder')} data-on={changesOpen} onClick={() => (changesOpen ? closeSide(session.id) : openSide({ kind: 'changes', sessionId: session.id }))}>
               <FileDiff size={14} />
             </button>
           )}

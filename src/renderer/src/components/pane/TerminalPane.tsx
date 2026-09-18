@@ -27,7 +27,8 @@ export const DRAG_TYPE = 'application/x-step-session'
 /** Terminal cards arranged by the layout tree, plus an optional side panel. */
 export function TerminalPane() {
   const layout = useUi(activeLayout)
-  const side = useUi((s) => s.side)
+  const sides = useUi((s) => s.sides)
+  const activeId = useUi((s) => s.activeId)
   const hostState = useData((s) => s.hostState)
   const sessions = useData((s) => s.sessions)
   const connected = hostState.kind === 'connected'
@@ -35,6 +36,21 @@ export function TerminalPane() {
   // A lone pane has no header: the sidebar names it (or the floating session rail, while that is
   // off, see SESSION_RAIL). Panes side by side keep theirs, so they read as the separate things they are.
   const bare = live.length <= 1
+
+  // A side panel belongs to its session and shows only while that session is on screen: the focused
+  // pane's first, else another pane's in the same view. Opened in one session, it stays out of the rest.
+  const shownId = activeId && live.includes(activeId) && sides[activeId] ? activeId : live.find((id) => sides[id])
+  const shown = shownId ? sides[shownId] : undefined
+  // A preview stays loaded while its session is out of view, parked out of sight, so an agent there
+  // can keep working the page (and the page keeps its place) while you look at another session.
+  const previews = Object.values(sides).filter((p) => p.kind === 'preview' && sessions[p.sessionId])
+  const previewPanels = previews.map((p) =>
+    p.kind === 'preview' ? (
+      <div key={p.sessionId} className={p.sessionId === shownId ? 'side-panel flex min-w-0 flex-[0_0_44%]' : 'side-panel-parked'} inert={p.sessionId !== shownId}>
+        <PreviewPane key={p.url} url={p.url} sessionId={p.sessionId} />
+      </div>
+    ) : null
+  )
 
   // Panes travel when the arrangement changes shape: remembered just before React re-lays them
   // out (the store tells us first), moved right after it has. A gutter drag only changes proportions.
@@ -55,13 +71,13 @@ export function TerminalPane() {
         <div className="pane-frame relative flex min-h-0 flex-1">
           {SESSION_RAIL && <SessionRail />}
           <DropTarget className="card relative flex h-full w-full flex-col">{connected ? <EmptyState /> : <HostBanner />}</DropTarget>
+          {previewPanels}
         </div>
         <TopitoCorner />
       </main>
     )
   }
 
-  const sidePanel = side && sessions[side.sessionId] ? (side.kind === 'preview' ? <PreviewPane key={side.url} url={side.url} sessionId={side.sessionId} /> : <ChangesPane sessionId={side.sessionId} />) : null
 
   return (
     <main className="pane-area relative flex min-w-0 flex-1 flex-col">
@@ -71,7 +87,12 @@ export function TerminalPane() {
           {SESSION_RAIL && <SessionRail />}
           <LayoutView node={layout} path={[]} connected={connected} multi={live.length > 1} bare={bare} underRail={SESSION_RAIL && !bare ? topRightLeaf(layout) : null} />
         </div>
-        {sidePanel && <div className="side-panel flex min-w-0 flex-[0_0_44%]">{sidePanel}</div>}
+        {shown?.kind === 'changes' && sessions[shown.sessionId] && (
+          <div className="side-panel flex min-w-0 flex-[0_0_44%]">
+            <ChangesPane sessionId={shown.sessionId} />
+          </div>
+        )}
+        {previewPanels}
       </div>
       <TopitoCorner />
     </main>
