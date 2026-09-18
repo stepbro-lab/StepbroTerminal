@@ -21,3 +21,23 @@ const WAITING: RegExp[] = [
 export function waitingForApproval(screenLines: string[]): boolean {
   return screenLines.some((line) => WAITING.some((re) => re.test(line)))
 }
+
+/**
+ * The line an agent shows for as long as a turn is running, for agents whose screen keeps
+ * drawing while they wait: Codex twinkles the prompt and turns a spinner in its title, so its
+ * output never goes quiet, and only "Working (12s • esc to interrupt)" tells work from waiting.
+ */
+const BUSY: Record<string, RegExp> = {
+  codex: /to interrupt\)/i
+}
+
+/** The busy line to look for on this agent's screen, when it has one. */
+export function busyMarkerFor(agent: string | undefined): RegExp | undefined {
+  return agent ? BUSY[agent] : undefined
+}
+
+/** Whether the visible screen shows the agent in the middle of a turn. */
+export function busyOnScreen(agent: string | undefined, screenLines: string[]): boolean {
+  const marker = busyMarkerFor(agent)
+  return !!marker && screenLines.some((line) => marker.test(line))
+}

@@ -13,6 +13,8 @@ export type ReducerEvent =
   | { kind: 'registry'; status: string }
   /** What the screen of an agent without hooks shows once output settles: a permission question or not. */
   | { kind: 'screen'; waiting: boolean }
+  /** For an agent that keeps drawing while it waits, whether its screen shows a turn running. */
+  | { kind: 'busy'; busy: boolean }
 
 export interface StatusPatch {
   status?: SessionStatus
@@ -61,6 +63,12 @@ export function reduceStatus(s: Input, e: ReducerEvent): StatusPatch | null {
       if (managed(s) || s.status === 'exited') return null
       if (e.waiting) return s.status === 'attention' ? null : { status: 'attention', agent: { lastMessage: 'Waiting for your approval' } }
       return s.status === 'attention' ? { status: 'idle' } : null
+    case 'busy':
+      if (managed(s) || s.status === 'exited') return null
+      // A question on screen is still one; the look for questions decides when it has gone.
+      if (s.status === 'attention') return null
+      if (e.busy) return s.status === 'working' ? null : { status: 'working' }
+      return s.status === 'working' || s.status === 'starting' ? { status: 'idle' } : null
     case 'registry': {
       const v = e.status.toLowerCase()
       if (v === 'busy' || v === 'working' || v === 'running') return s.status === 'working' ? null : { status: 'working' }

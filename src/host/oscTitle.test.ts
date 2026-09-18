@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isBoringTitle, isOwnNameTitle, OscTitleParser, stripTitleGlyph } from './oscTitle'
+import { isBoringTitle, isOwnNameTitle, OscTitleParser, stripTitleGlyph, withoutFolder } from './oscTitle'
 
 const b = (s: string) => Buffer.from(s)
 
@@ -50,6 +50,21 @@ describe('isBoringTitle', () => {
     expect(isBoringTitle('')).toBe(true)
     expect(isBoringTitle('✱ Refactor checkout')).toBe(false)
     expect(isBoringTitle('npm run dev')).toBe(false)
+  })
+})
+
+describe('Codex titles', () => {
+  it('drop the spinner turning inside them, so a frame of it does not rename the session', () => {
+    expect(stripTitleGlyph('Fix the player \u2838 | NivoMusic')).toBe('Fix the player | NivoMusic')
+    expect(stripTitleGlyph('Fix the player \u2807 | NivoMusic')).toBe(stripTitleGlyph('Fix the player \u280b | NivoMusic'))
+  })
+
+  it('leave out the folder they add, and count the placeholder while it names the thread as no title', () => {
+    expect(withoutFolder('Fix the player | NivoMusic', 'NivoMusic')).toBe('Fix the player')
+    expect(withoutFolder('Fix the player | nivomusic', 'NivoMusic')).toBe('Fix the player')
+    expect(withoutFolder('A | B', 'NivoMusic')).toBe('A | B')
+    expect(isOwnNameTitle(withoutFolder(stripTitleGlyph('renaming... \u2838 | NivoMusic'), 'NivoMusic'), 'codex', 'NivoMusic')).toBe(true)
+    expect(isOwnNameTitle('renaming\u2026', 'codex', 'NivoMusic')).toBe(true)
   })
 })
 

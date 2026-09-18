@@ -7,7 +7,7 @@ import { Terminal as HeadlessTerminal } from '@xterm/headless'
 import { SerializeAddon } from '@xterm/addon-serialize'
 import type { CreateSessionOpts, HostStats, LiveClaude, Session, SessionStats } from '@shared/types'
 import { TitleCapture, detectAgentFromCommand } from './titleCapture'
-import { OscTitleParser, isBoringTitle, isOwnNameTitle, stripTitleGlyph } from './oscTitle'
+import { OscTitleParser, isBoringTitle, isOwnNameTitle, stripTitleGlyph, withoutFolder } from './oscTitle'
 import { projectName } from '@shared/paths'
 import { reduceStatus, type ReducerEvent } from './statusReducer'
 import {
@@ -27,7 +27,7 @@ import { describeSpawnEnv } from './ptyHelper'
 import { findAncestor, processTable } from './procTree'
 import { log } from './log'
 import { CpuMeter, readProcesses, subtree } from './procStats'
-import { waitingForApproval } from './screenPrompts'
+import { busyMarkerFor, busyOnScreen, waitingForApproval } from './screenPrompts'
 import { conptyReply, hasQuery, isControlOnly, stripProbeReplies, stripStaleReplies } from './conptyReply'
 import { agentOf } from './handoff'
 import { pacePieces } from './pace'
@@ -64,6 +64,9 @@ interface Live {
   quietTimer?: NodeJS.Timeout
   /** A typed agent has been seen drawing on the alternate screen; its going away means the agent quit. */
   altSeen?: boolean
+  /** When the screen was last read for whether a turn is running, and whether a read is under way. */
+  busyLookAt?: number
+  busyLooking?: boolean
   /** When the current burst of output started; reset after QUIET_MS of silence. */
   burstStart: number
   /** When the program last printed anything: a spinner still turning means it is not ready to be typed into. */
@@ -114,6 +117,8 @@ interface HeldHandoff {
 const QUIET_MS = 1500
 /** Output must keep flowing this long before a plain shell shows as working. */
 const BUSY_AFTER_MS = 400
+/** How often the screen of an agent that never stops drawing is read for whether it is working. */
+const BUSY_LOOK_MS = 700
 const LOG_MAX = 8 * 1024 * 1024
 const LOG_KEEP = 2 * 1024 * 1024
 
@@ -897,12 +902,16 @@ export class SessionManager extends EventEmitter {
     const now = Date.now()
     l.lastOutputAt = now
     if (!l.burstStart) l.burstStart = now
-    if (now - l.burstStart >= BUSY_AFTER_MS) this.apply(l, { kind: 'output' })
+    // Codex keeps drawing while it waits, so output says nothing about it; its screen does.
+    const byScreen = busyMarkerFor(agentOf(l.s)) !== undefined
+    if (byScreen) void this.lookForWork(l)
+    else if (now - l.burstStart >= BUSY_AFTER_MS) this.apply(l, { kind: 'output' })
     if (l.quietTimer) clearTimeout(l.quietTimer)
     l.quietTimer = setTimeout(() => {
       l.quietTimer = undefined
       l.burstStart = 0
-      this.apply(l, { kind: 'quiet' })
+      if (byScreen) void this.lookForWork(l, true)
+      else this.apply(l, { kind: 'quiet' })
       this.typeStartCommand(l)
       void this.lookAtScreen(l)
       void this.noteAgentScreen(l)
@@ -951,6 +960,30 @@ export class SessionManager extends EventEmitter {
     if (burst) l.pty.write(burst)
   }
 
+  /**
+   * For an agent whose output never settles, whether its screen shows a turn running: read at most
+   * once every BUSY_LOOK_MS while it draws, and once more when it does go quiet.
+   */
+  private async lookForWork(l: Live, now = false): Promise<void> {
+    const at = Date.now()
+    if (l.busyLooking || (!now && at - (l.busyLookAt ?? 0) < BUSY_LOOK_MS)) return
+    l.busyLooking = true
+    l.busyLookAt = at
+    try {
+      await l.drained
+      const s = l.s
+      if (!this.live.has(s.id) || !s.alive) return
+      const buf = l.screen.buffer.active
+      const lines: string[] = []
+      for (let y = buf.baseY; y < buf.baseY + l.screen.rows; y++) lines.push(buf.getLine(y)?.translateToString(true) ?? '')
+      // Its questions only show on screen too, and the look that finds them waits for quiet that never comes.
+      this.apply(l, { kind: 'screen', waiting: waitingForApproval(lines) })
+      this.apply(l, { kind: 'busy', busy: busyOnScreen(agentOf(s), lines) })
+    } finally {
+      l.busyLooking = false
+    }
+  }
+
   /** Agents without hooks only show their permission questions on screen; look once output settles. */
   private async lookAtScreen(l: Live): Promise<void> {
     const s = l.s
@@ -996,8 +1029,9 @@ export class SessionManager extends EventEmitter {
   private onOscTitle(l: Live, title: string): void {
     const s = l.s
     if (s.titleSource === 'user') return
-    const t = stripTitleGlyph(title)
-    if (isBoringTitle(t) || isOwnNameTitle(t, agentOf(s), projectName(s.projectPath))) return
+    const folder = projectName(s.projectPath)
+    const t = withoutFolder(stripTitleGlyph(title), folder)
+    if (isBoringTitle(t) || isOwnNameTitle(t, agentOf(s), folder)) return
     if (s.title === t && s.titleSource === 'osc') return
     s.title = t.slice(0, 120)
     s.titleSource = 'osc'
