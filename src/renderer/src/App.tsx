@@ -26,6 +26,7 @@ import { NotesPanel } from '@/components/notes/NotesPanel'
 import { NoteFlight } from '@/components/notes/NoteFlight'
 import { useHandoff } from '@/stores/handoff'
 import { HandoffFlight } from '@/components/HandoffFlight'
+import { WhatsNew } from '@/components/WhatsNew'
 
 export default function App() {
   useWindowCorners()
@@ -222,6 +223,7 @@ export default function App() {
       <NoteFlight />
       <HandoffFlight />
       <ContextMenu />
+      <WhatsNew />
       <Toasts />
     </div>
   )

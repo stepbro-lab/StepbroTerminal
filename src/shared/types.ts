@@ -212,6 +212,8 @@ export interface Prefs {
   voiceAnywhere?: boolean
   /** Topito, the mole between the buttons at the foot of the sidebar. Off until turned on. */
   topito?: boolean
+  /** The newest version whose changes have been shown; what came after it opens once after an update. */
+  seenVersion?: string
   /** V4 Pro, V4 Flash, or whatever model id is in deepseekModelId. */
   deepseekModel?: 'pro' | 'flash' | 'custom'
   deepseekModelId?: string

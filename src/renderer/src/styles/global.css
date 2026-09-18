@@ -1168,6 +1168,27 @@ kbd {
   pointer-events: none;
 }
 
+/* What is new scrolls without a bar of its own: the last lines fade out while there is more below. */
+.whats-new-scroll {
+  scrollbar-width: none;
+  mask-image: linear-gradient(to bottom, black calc(100% - 28px), transparent);
+}
+
+.whats-new-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* Topito saying hello at the top of what is new. */
+.whats-new-bubble {
+  position: relative;
+  padding: 9px 12px;
+  border-radius: 14px 14px 14px 4px;
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow-chip);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
 /* Popping out at the corner of the terminal with something to say. */
 .topito-corner {
   position: absolute;
