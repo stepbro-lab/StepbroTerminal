@@ -1,12 +1,30 @@
 /**
- * What Shift+Enter should send so an agent inserts a line break instead of submitting.
- * Claude Code and Gemini CLI treat a backslash followed by Enter as a line break; Codex
- * takes Ctrl+J. Shells keep their own Shift+Enter, so null there.
+ * Shift+Enter as a Windows console key event, in the win32-input-mode form ConPTY reads from the
+ * terminal: virtual key 13 (Enter), scan code 28, character 13, key down, Shift held, once.
  */
-export function newlineSequence(agent: string | null | undefined): string | null {
+export const WIN32_SHIFT_ENTER = '\x1b[13;28;13;1;16;1_'
+
+/**
+ * What Shift+Enter should send so an agent inserts a line break instead of submitting.
+ * Claude Code and Gemini CLI treat a backslash followed by Enter as a line break. Codex takes
+ * Shift+Enter or Ctrl+J, but on Windows ConPTY turns the Ctrl+J byte into Ctrl+Enter, which Codex
+ * ignores, so there it gets Shift+Enter itself as a console key event. Shells keep their own
+ * Shift+Enter, so null there.
+ */
+export function newlineSequence(agent: string | null | undefined, platform: string): string | null {
   if (agent === 'claude' || agent === 'gemini') return '\\\r'
-  if (agent === 'codex') return '\n'
+  if (agent === 'codex') return platform === 'win32' ? WIN32_SHIFT_ENTER : '\n'
   return null
+}
+
+/**
+ * What Alt+Up and Alt+Down should send to an agent that binds them. Outside macOS xterm.js sends
+ * Ctrl+Up and Ctrl+Down for them, so Codex never sees Alt; this is what other terminals send, and
+ * what ConPTY hands on as Alt with the arrow. Everything else keeps xterm's own.
+ */
+export function altArrowSequence(agent: string | null | undefined, key: 'ArrowUp' | 'ArrowDown', platform: string): string | null {
+  if (agent !== 'codex' || platform === 'darwin') return null
+  return key === 'ArrowUp' ? '\x1b[1;3A' : '\x1b[1;3B'
 }
 
 /**

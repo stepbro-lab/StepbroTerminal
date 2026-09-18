@@ -6,7 +6,7 @@ import { Unicode11Addon } from '@xterm/addon-unicode11'
 import type { Prefs } from '@shared/types'
 import { darkTerminal, lightTerminal } from '@/theme/terminalThemes'
 import { InputLine, hintFor } from '@/lib/flagHints'
-import { imagePaste, imagePathText, newlineSequence } from '@/lib/agentKeys'
+import { altArrowSequence, imagePaste, imagePathText, newlineSequence } from '@/lib/agentKeys'
 import { FitHold } from './fitHold'
 
 interface Entry {
@@ -575,11 +575,19 @@ class TerminalRegistry {
     }
     if (ev.key === 'Enter' && ev.shiftKey && !ev.ctrlKey && !ev.altKey && !ev.metaKey) {
       // Agents take Enter as send; give them their own line-break sequence instead.
-      const seq = newlineSequence(this.agentResolver(e.id))
+      const seq = newlineSequence(this.agentResolver(e.id), window.step.platform)
       if (seq) {
         ev.preventDefault()
         window.step.send('host:input', e.id, encoder.encode(seq))
         this.noteInput(e, seq)
+        return false
+      }
+    }
+    if ((ev.key === 'ArrowUp' || ev.key === 'ArrowDown') && ev.altKey && !ev.ctrlKey && !ev.shiftKey && !ev.metaKey) {
+      const seq = altArrowSequence(this.agentResolver(e.id), ev.key, window.step.platform)
+      if (seq) {
+        ev.preventDefault()
+        window.step.send('host:input', e.id, encoder.encode(seq))
         return false
       }
     }
