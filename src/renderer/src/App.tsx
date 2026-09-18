@@ -73,10 +73,9 @@ export default function App() {
       }),
       s.on('ui:command', (name) => runCommand(name as Command)),
       // An agent asked, through the stepbro MCP server, for a page beside its session.
-      s.on('ui:openPreview', (sessionId, url) => useUi.getState().setSide({ kind: 'preview', url, sessionId })),
+      s.on('ui:openPreview', (sessionId, url) => useUi.getState().openSide({ kind: 'preview', url, sessionId })),
       s.on('ui:closePreview', (sessionId) => {
-        const side = useUi.getState().side
-        if (side?.kind === 'preview' && side.sessionId === sessionId) useUi.getState().setSide(null)
+        if (useUi.getState().sides[sessionId]?.kind === 'preview') useUi.getState().closeSide(sessionId)
       }),
       s.on('ui:sound', playNotificationSound),
       s.on('ui:update', (state) => useUpdates.getState().set(state)),

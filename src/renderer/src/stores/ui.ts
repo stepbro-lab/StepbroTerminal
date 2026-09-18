@@ -10,6 +10,8 @@ export interface Toast {
   tone?: 'info' | 'error' | 'success'
 }
 
+export type SidePanel = { kind: 'preview'; url: string; sessionId: string } | { kind: 'changes'; sessionId: string }
+
 export type PaletteMode = 'all' | 'resume' | 'prompts'
 export type SettingsPage = 'appearance' | 'terminal' | 'agents' | 'voice' | 'workspaces' | 'notifications' | 'shortcuts' | 'advanced'
 
@@ -26,8 +28,11 @@ interface UiState {
   booted: boolean
   /** Session being dragged from the sidebar or a card header, for drop zones. */
   dragging: string | null
-  /** Side panel next to the terminals: a dev-server preview or the changes of a session. */
-  side: { kind: 'preview'; url: string; sessionId: string } | { kind: 'changes'; sessionId: string } | null
+  /**
+   * Side panels next to the terminals, at most one per session: a dev-server preview or the
+   * session's changes. Each belongs to its session and only shows while that session is on screen.
+   */
+  sides: Record<string, SidePanel>
   activeProject: string | null
   paletteOpen: boolean
   paletteQuery: string
@@ -56,7 +61,9 @@ interface UiState {
   dropSession: (id: string, target: string, zone: DropZone) => void
   setDragging: (id: string | null) => void
   setRatio: (path: Array<'a' | 'b'>, ratio: number) => void
-  setSide: (side: UiState['side']) => void
+  /** Opens a panel beside its session, in place of whatever panel that session had. */
+  openSide: (side: SidePanel) => void
+  closeSide: (sessionId: string) => void
   setActiveProject: (path: string | null) => void
   openPalette: (query?: string, mode?: PaletteMode, project?: string | null) => void
   closePalette: () => void
@@ -90,7 +97,7 @@ export const useUi = create<UiState>((set, get) => ({
   activeView: 0,
   booted: false,
   dragging: null,
-  side: null,
+  sides: {},
   activeProject: null,
   paletteOpen: false,
   paletteQuery: '',
@@ -215,7 +222,12 @@ export const useUi = create<UiState>((set, get) => ({
     next[activeView] = setRatio(views[activeView], path, ratio)
     set({ views: next })
   },
-  setSide: (side) => set({ side }),
+  openSide: (side) => set({ sides: { ...get().sides, [side.sessionId]: side } }),
+  closeSide: (sessionId) => {
+    if (!get().sides[sessionId]) return
+    const { [sessionId]: _closed, ...rest } = get().sides
+    set({ sides: rest })
+  },
   setActiveProject: (path) => set({ activeProject: path }),
   openPalette: (query = '', mode = 'all', project = null) =>
     set({ paletteOpen: true, paletteQuery: query, paletteMode: mode, paletteProject: project }),
