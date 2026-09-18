@@ -26,6 +26,8 @@ export interface TopitoStore {
   queue: TopitoClipName[]
   corner: TopitoCorner | null
   bubble: { key: number; lines: TopitoLine[] } | null
+  /** How many places show a Topito of their own right now (the empty state, what is new). */
+  elsewhere: number
   setAmbient: (clip: TopitoClipName) => void
   play: (clip: TopitoClipName) => void
   /** The one-off has played to its end. */
@@ -34,6 +36,8 @@ export interface TopitoStore {
   hideCorner: () => void
   showBubble: (lines: TopitoLine[], ms: number) => void
   hideBubble: () => void
+  enter: () => void
+  leave: () => void
 }
 
 /** A backlog of moments helps nobody: a few waiting is plenty, the rest are let go. */
@@ -49,6 +53,7 @@ export const useTopito = create<TopitoStore>((set, get) => ({
   queue: [],
   corner: null,
   bubble: null,
+  elsewhere: 0,
 
   setAmbient: (ambient) => {
     if (get().ambient !== ambient) set({ ambient })
@@ -85,5 +90,8 @@ export const useTopito = create<TopitoStore>((set, get) => ({
   hideBubble: () => {
     window.clearTimeout(bubbleTimer)
     set({ bubble: null })
-  }
+  },
+
+  enter: () => set({ elsewhere: get().elsewhere + 1 }),
+  leave: () => set({ elsewhere: Math.max(0, get().elsewhere - 1) })
 }))

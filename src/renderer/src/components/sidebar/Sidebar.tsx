@@ -277,12 +277,12 @@ export function Sidebar() {
           </div>
         ))}
       </div>
-      <TopitoDock />
-      {/* Two round raised buttons of the same size and weight, lifted a little off the window's bottom edge. */}
-      <div className="mb-1 flex h-10 shrink-0 items-center justify-between pl-1 pr-2" style={{ width: 'var(--sidebar-w)' }}>
+      {/* Two round raised buttons of the same size and weight, lifted a little off the window's bottom edge, with Topito between them when he is on. */}
+      <div className="relative mb-1 flex h-10 shrink-0 items-center justify-between pl-1 pr-2" style={{ width: 'var(--sidebar-w)' }}>
         <button className="fab" title={t('Add folder')} onClick={() => void addProject()}>
           <Plus size={20} strokeWidth={2.2} />
         </button>
+        <TopitoDock />
         <button className="fab" title={t('Settings')} onClick={() => setSettingsOpen(true)}>
           <Settings size={18} strokeWidth={2} />
         </button>

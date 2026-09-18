@@ -557,6 +557,74 @@ def cafecito():
         frames.append((cv, 200))
     return frames
 
+def perdido():
+    """Out of his hole with no session to dig in: he looks around, scratches his helmet, shrugs and
+    sweeps his lamp along the ground for something to do."""
+    frames = rise()[1:]
+    look = face(BODY_NO_ARMS, 'left')
+    for eyes, mark in (('left', 'S'), ('right', 'A'), ('left', 'A')):
+        cv = scene(face(BODY_NO_ARMS, eyes), OUT_Y)
+        dots(cv, [(MX - 1, OUT_Y + 8), (MX + 12, OUT_Y + 8)], 'W')
+        glyph(cv, '?', 19, 1, mark)
+        frames.append((cv, 420))
+    for i in range(4):
+        cv = scene(face(BODY_NO_ARMS, 'up'), OUT_Y)
+        dots(cv, [(MX + 12, OUT_Y + 6), (MX + 12, OUT_Y + 5), (MX + 11, OUT_Y + (2 if i % 2 else 3))], 'W')
+        dots(cv, [(MX - 1, OUT_Y + 8)], 'W')
+        glyph(cv, '?', 19, 1 - i % 2, 'A' if i % 2 else 'S')
+        frames.append((cv, 170))
+    # A shrug: paws out, eyes shut, then a blink back at you.
+    for eyes, ms in (('closed', 360), ('open', 260)):
+        cv = scene(face(BODY_NO_ARMS, eyes), OUT_Y + (1 if eyes == 'closed' else 0))
+        y = OUT_Y + (1 if eyes == 'closed' else 0)
+        dots(cv, [(MX - 1, y + 7), (MX - 2, y + 6), (MX + 12, y + 7), (MX + 13, y + 6)], 'W')
+        frames.append((cv, ms))
+    path = [4, 6, 8, 10, 12, 14, 16, 18, 20, 18, 16, 14, 12, 10]
+    for t, spot in enumerate(path):
+        eyes = 'right' if spot > MX + 8 else ('left' if spot < MX + 4 else 'down')
+        cv = scene(face(BODY_NO_ARMS, eyes, lamp='on'), OUT_Y)
+        dots(cv, [(MX - 1, OUT_Y + 8), (MX + 12, OUT_Y + 8)], 'W')
+        lx, ly = MX + 5, OUT_Y + 1
+        for k in range(1, 6):
+            x = round(lx + (spot - lx) * k / 6)
+            y = round(ly + (GROUND - 1 - ly) * k / 6)
+            if not (MX - 1 <= x <= MX + 12 and y < GROUND):
+                dots(cv, [(x, y)], 'D')
+        dots(cv, [(spot - 1, GROUND), (spot, GROUND), (spot + 1, GROUND)], 'A')
+        frames.append((cv, 110))
+    cv = scene(look, OUT_Y)
+    dots(cv, [(MX - 1, OUT_Y + 8), (MX + 12, OUT_Y + 8)], 'W')
+    glyph(cv, '?', 19, 1, 'A')
+    frames.append((cv, 500))
+    return frames
+
+
+def fuera():
+    """Gone from the sidebar while he is out at the corner of the terminal: he ducks down his hole,
+    which stays there for him to come back to."""
+    frames = sink()
+    frames.append((scene(None, 0), 1000))
+    return frames
+
+
+def saluda():
+    """Waving at you for as long as you are reading what he has to say."""
+    frames = rise()
+    frames.append((scene(face(BODY, 'open', 'smile'), OUT_Y), 260))
+    happy = face(BODY_NO_ARMS, 'happy', 'smile')
+    for i in range(8):
+        cv = scene(happy, OUT_Y)
+        arm(cv, OUT_Y, 'wave1' if i % 2 == 0 else 'wave2')
+        dots(cv, [(MX - 1, OUT_Y + 8)], 'W')
+        if i in (2, 3):
+            glyph(cv, 'spark', 19, 1, 'A' if i == 2 else 'S')
+        frames.append((cv, 170))
+    frames.append((scene(face(BODY, 'open', 'smile'), OUT_Y), 900))
+    frames.append((scene(face(BODY, 'closed', 'smile'), OUT_Y), 120))
+    frames.append((scene(face(BODY, 'open', 'smile'), OUT_Y), 700))
+    return frames
+
+
 # ---------------------------------------------------------------- the clips the app plays
 
 # Name in the app, the animation, and how many frames at its start are the way in (climbing out of
@@ -581,6 +649,9 @@ CLIPS = [
     ('love', corazon, 3),
     ('search', buscando, 3),
     ('coffee', cafecito, 3),
+    ('lost', perdido, 3),
+    ('away', fuera, 4),
+    ('greet', saluda, 5),
 ]
 
 

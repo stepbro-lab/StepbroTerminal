@@ -210,7 +210,7 @@ export interface Prefs {
    * program is in front. On unless turned off, and only ever while there is a Gemini key.
    */
   voiceAnywhere?: boolean
-  /** Topito, the mole at the foot of the sidebar. Shown unless turned off. */
+  /** Topito, the mole between the buttons at the foot of the sidebar. Off until turned on. */
   topito?: boolean
   /** V4 Pro, V4 Flash, or whatever model id is in deepseekModelId. */
   deepseekModel?: 'pro' | 'flash' | 'custom'

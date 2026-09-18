@@ -1108,18 +1108,14 @@ kbd {
 
 /* ---- Topito, the mole at the foot of the sidebar ---- */
 
+/* Between the two buttons at the foot of the sidebar, standing on their row rather than taking room above it. */
 .topito-dock {
-  position: relative;
-  display: flex;
-  justify-content: center;
-  width: var(--sidebar-w);
-  flex-shrink: 0;
-}
-
-.topito-dock-button {
+  position: absolute;
+  left: 50%;
+  bottom: 3px;
+  transform: translateX(-50%);
   display: block;
-  padding: 2px 6px 0;
-  border-radius: 12px;
+  border-radius: 10px;
   cursor: pointer;
 }
 
@@ -1130,7 +1126,7 @@ kbd {
 /* What he says when clicked: a small card above him, its lines links to the sessions they name. */
 .topito-bubble {
   position: absolute;
-  bottom: calc(100% - 4px);
+  bottom: calc(100% + 6px);
   left: 10px;
   right: 10px;
   z-index: 6;

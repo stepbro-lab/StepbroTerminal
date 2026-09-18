@@ -89,8 +89,8 @@ export function topitoSay(say: TopitoSay): void {
   const clip = clipForMood(say.mood)
   // Long enough to read at a glance: a little more for every word, within reason.
   const ms = Math.min(12000, Math.max(5000, 3500 + say.message.length * 55))
+  // The corner is where he says it; the sidebar's Topito ducks into his hole meanwhile, so there is only ever one of him.
   useTopito.getState().showCorner({ clip, text: say.message, from, sessionId: s ? say.sessionId : undefined }, ms)
-  useTopito.getState().play(clip)
 }
 
 /** What Topito tells you when you click him: who is waiting, who is working, who is done. */

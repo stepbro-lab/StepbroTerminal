@@ -7,8 +7,16 @@ import { useFolderDrop } from '@/lib/folderDrop'
 import { useBinding } from '@/lib/shortcuts'
 import { Keys } from '../Keys'
 import { LogoMark } from '../LogoMark'
+import { TopitoCanvas } from '../topito/TopitoCanvas'
+import { useTopitoElsewhere } from '../topito/Topito'
 import { NewSessionCluster } from './NewSessionCluster'
 import { t } from '@/lib/i18n'
+
+/** No session to dig in, so Topito looks around for one; the sidebar's ducks into his hole meanwhile. */
+function SearchingTopito() {
+  useTopitoElsewhere()
+  return <TopitoCanvas clip="lost" cell={5} rows={15} />
+}
 
 export function EmptyState() {
   const [browsing, setBrowsing] = useState(false)
@@ -39,9 +47,10 @@ export function EmptyState() {
 
   return (
     <div {...drop.props} className="relative flex h-full flex-col items-center justify-center gap-5 p-8 text-center">
-      {/* The agents bloom into this space, so the mark and the folder's name step aside while they are out. */}
+      {/* The agents bloom into this space, so Topito and the folder's name step aside while they are out. */}
       <div className="transition-opacity duration-200" style={{ opacity: browsing ? 0 : 1 }}>
-        <LogoMark size={72} />
+        {/* He shows here even while turned off: this is not where he gets in the way. */}
+        <SearchingTopito />
       </div>
       <div className="transition-opacity duration-200" style={{ opacity: browsing ? 0 : 1 }}>
         {/* The name alone: the full path is long and says little at a glance, so it waits in the tooltip. */}

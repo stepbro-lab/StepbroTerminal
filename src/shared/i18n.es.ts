@@ -421,8 +421,8 @@ export const es: Record<string, string> = {
   'All quiet down here': 'Todo tranquilo por aquí abajo',
   'Topito · click to ask what is going on': 'Topito · haz clic para preguntarle qué pasa',
   'Show Topito': 'Mostrar a Topito',
-  'The little mole at the foot of the sidebar. He does whatever your agents are doing, comes out at the corner of the terminal when one needs you or has something to tell you, and answers when you click him.':
-    'El topito del pie de la barra lateral. Hace lo mismo que están haciendo tus agentes, sale por la esquina del terminal cuando alguno te necesita o tiene algo que contarte, y te responde si le haces clic.',
+  'The little mole between the buttons at the foot of the sidebar. He does whatever your agents are doing, comes out at the corner of the terminal when one needs you, answers when you click him, and agents can tell you something through him.':
+    'El topito entre los botones del pie de la barra lateral. Hace lo mismo que están haciendo tus agentes, sale por la esquina del terminal cuando alguno te necesita, te responde si le haces clic y los agentes pueden decirte algo a través de él.',
   'The conversation was cut off. Press to talk again.': 'La conversación se cortó. Pulsa otra vez para hablar.',
   'Talk from any app': 'Hablar desde cualquier app',
   'From any app': 'Desde cualquier app',
