@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { imagePaste, imagePathText, newlineSequence } from './agentKeys'
+import { WIN32_SHIFT_ENTER, altArrowSequence, imagePaste, imagePathText, newlineSequence } from './agentKeys'
 
 describe('pasting an image', () => {
   it('lets Claude Code read the clipboard itself, with the key its platform listens for', () => {
@@ -22,18 +22,34 @@ describe('pasting an image', () => {
 
 describe('newlineSequence', () => {
   it('gives Claude and Gemini a backslash and Enter', () => {
-    expect(newlineSequence('claude')).toBe('\\\r')
-    expect(newlineSequence('gemini')).toBe('\\\r')
+    expect(newlineSequence('claude', 'win32')).toBe('\\\r')
+    expect(newlineSequence('gemini', 'darwin')).toBe('\\\r')
   })
 
-  it('gives Codex a Ctrl+J', () => {
-    expect(newlineSequence('codex')).toBe('\n')
+  it('gives Codex a real Shift+Enter on Windows, where ConPTY would turn Ctrl+J into Ctrl+Enter, and Ctrl+J elsewhere', () => {
+    expect(newlineSequence('codex', 'win32')).toBe(WIN32_SHIFT_ENTER)
+    expect(WIN32_SHIFT_ENTER).toBe('\x1b[13;28;13;1;16;1_')
+    expect(newlineSequence('codex', 'darwin')).toBe('\n')
+    expect(newlineSequence('codex', 'linux')).toBe('\n')
   })
 
   it('leaves shells and unknown programs alone', () => {
-    expect(newlineSequence(null)).toBeNull()
-    expect(newlineSequence(undefined)).toBeNull()
-    expect(newlineSequence('shell')).toBeNull()
-    expect(newlineSequence('my-launcher')).toBeNull()
+    expect(newlineSequence(null, 'win32')).toBeNull()
+    expect(newlineSequence(undefined, 'win32')).toBeNull()
+    expect(newlineSequence('shell', 'win32')).toBeNull()
+    expect(newlineSequence('my-launcher', 'linux')).toBeNull()
+  })
+})
+
+describe('altArrowSequence', () => {
+  it('sends Codex the Alt+arrow other terminals send, where xterm.js would send Ctrl+arrow', () => {
+    expect(altArrowSequence('codex', 'ArrowUp', 'win32')).toBe('\x1b[1;3A')
+    expect(altArrowSequence('codex', 'ArrowDown', 'linux')).toBe('\x1b[1;3B')
+  })
+
+  it('leaves macOS, where xterm.js already sends Alt, and every other program to xterm', () => {
+    expect(altArrowSequence('codex', 'ArrowUp', 'darwin')).toBeNull()
+    expect(altArrowSequence('claude', 'ArrowUp', 'win32')).toBeNull()
+    expect(altArrowSequence(null, 'ArrowDown', 'win32')).toBeNull()
   })
 })
