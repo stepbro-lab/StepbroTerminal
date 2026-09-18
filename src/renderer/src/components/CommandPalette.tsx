@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Folder, History, LayoutGrid, MessageSquare, Moon, PanelLeft, RotateCw, Search, Settings, Sun, Terminal } from 'lucide-react'
+import { Folder, History, LayoutGrid, MessageSquare, Moon, PanelLeft, RotateCw, Search, Settings, Sparkles, Sun, Terminal } from 'lucide-react'
 import type { PromptRecord } from '@shared/types'
 import { registry } from '@/terminal/TerminalRegistry'
 import { useData } from '@/stores/data'
@@ -13,6 +13,7 @@ import { useSidebarModel } from '@/lib/useSidebarModel'
 import { StatusGlyph } from './sidebar/StatusGlyph'
 import { AgentLogo } from './sidebar/AgentLogo'
 import { t } from '@/lib/i18n'
+import { showAllChanges } from './WhatsNew'
 
 interface Item {
   id: string
@@ -179,6 +180,7 @@ export function CommandPalette() {
         run: () => setPrefs({ sidebarCollapsed: !prefs?.sidebarCollapsed })
       },
       { id: 'a:settings', group: t('Actions'), label: t('Settings'), icon: <Settings size={13} className="text-muted" />, run: () => setSettingsOpen(true) },
+      { id: 'a:whats-new', group: t('Actions'), label: t('What’s new'), icon: <Sparkles size={13} className="text-muted" />, run: showAllChanges },
       {
         id: 'a:workspaces',
         group: t('Actions'),

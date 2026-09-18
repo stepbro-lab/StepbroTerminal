@@ -59,7 +59,8 @@ export function loadPrefs(): Prefs {
     if (raw && 'translucentFrame' in raw) delete raw.translucentFrame
     return { ...defaultPrefs, ...raw }
   } catch {
-    return { ...defaultPrefs }
+    // No preferences yet: a first launch, with nothing that changed since a version it never ran.
+    return { ...defaultPrefs, seenVersion: app.getVersion() }
   }
 }
 

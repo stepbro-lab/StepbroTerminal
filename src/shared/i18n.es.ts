@@ -436,6 +436,45 @@ export const es: Record<string, string> = {
   'Change it in Shortcuts': 'Cambiarlo en Atajos',
   'Google will not let this key talk: its project has no access. Make another one in AI Studio.': 'Google no deja hablar a esta clave: su proyecto no tiene acceso. Crea otra en AI Studio.',
   'Google did not accept this key. Check it in Settings.': 'Google no aceptó esta clave. Revísala en Ajustes.',
+  // ---- what's new ----
+  'What’s new': 'Novedades',
+  'What’s new in {version}': 'Novedades de la {version}',
+  'What changed in each release': 'Lo que cambió en cada versión',
+  Show: 'Ver',
+  New: 'Nuevo',
+  Improved: 'Mejorado',
+  Fixed: 'Arreglado',
+  'Got it': 'Entendido',
+  'Topito is on': 'Topito está activado',
+  'Turn on Topito': 'Activar a Topito',
+  'Hi! I’m Topito, the new mascot of stepbro terminal. I’ll be your trusty sidekick!': '¡Hola! Soy Topito, la nueva mascota de stepbro terminal. ¡Seré tu mascota de confianza!',
+  'Meet Topito, talk to your terminal from any app, and see your desktop through the window.':
+    'Llega Topito, puedes hablarle al terminal desde cualquier app y ver tu escritorio a través de la ventana.',
+  'Topito, a little mole who acts out what your agents are doing, pops out when one needs you and passes on what they want to tell you. Turn him on in Settings, under Appearance.':
+    'Topito, un topito que hace lo mismo que tus agentes, se asoma cuando alguno te necesita y te pasa lo que te quieren decir. Actívalo en Ajustes, en Apariencia.',
+  'Talk from any app: the voice key answers while another program is in front, and asking it to open an agent in a folder with a message types the message and sends it.':
+    'Habla desde cualquier app: la tecla de voz responde aunque haya otro programa delante, y si le pides abrir un agente en una carpeta con un mensaje, lo escribe y lo envía.',
+  'A translucent window, with the opacity of the frame and of the terminal each set in Appearance.':
+    'Una ventana translúcida, con la opacidad del marco y la del terminal ajustables por separado en Apariencia.',
+  'This page, after every update, with what changed.': 'Esta página, después de cada actualización, con lo que cambió.',
+  'The window controls wait in a bar along the top edge, and the settings button there only shows while the sidebar is folded.':
+    'Los controles de la ventana esperan en una barra en el borde de arriba, y el botón de ajustes de ahí solo aparece con la barra lateral plegada.',
+  'The session rail moves with springs, and the sidebar is restyled for the translucent frame.':
+    'El carril de sesiones se mueve con muelles, y la barra lateral se rediseñó para el marco translúcido.',
+  'The terminal’s corners follow the window’s, and text stays readable over a translucent window.':
+    'Las esquinas del terminal siguen a las de la ventana, y el texto se sigue leyendo bien sobre una ventana translúcida.',
+  'With no session open, Topito looks around for one, and the folder’s full path waits in a tooltip.':
+    'Sin ninguna sesión abierta, Topito se pone a buscar una, y la ruta completa de la carpeta queda en un tooltip.',
+  'Codex no longer shows as working for as long as it is open, and its title no longer changes with every turn of its spinner.':
+    'Codex ya no aparece como trabajando todo el rato mientras está abierto, y su título ya no cambia con cada vuelta de su spinner.',
+  'In Codex on Windows, Shift+Enter starts a new line and Alt+Up and Alt+Down reach it.':
+    'En Codex en Windows, Shift+Enter hace un salto de línea y Alt+Arriba y Alt+Abajo le llegan.',
+  'A preview opened in one session only shows beside that session, and stays loaded while you look at another.':
+    'La vista previa abierta en una sesión solo aparece junto a esa sesión, y sigue cargada mientras miras otra.',
+  'Text drawn with WebGL no longer blinks while a terminal resizes.': 'El texto dibujado con WebGL ya no parpadea mientras un terminal cambia de tamaño.',
+  'The activity dot shows while idle without having to hover over it.': 'El punto de actividad se ve en reposo sin tener que pasar el ratón por encima.',
+  'The voice agent no longer drops the conversation with "Precondition check failed".':
+    'El agente de voz ya no corta la conversación con "Precondition check failed".',
   // ---- settings: agents, DeepSeek ----
   'Claude Code on DeepSeek models, through the Anthropic-shaped API DeepSeek serves: same hooks, notes and status. With a key, DeepSeek shows up next to the other agents.': 'Claude Code con los modelos de DeepSeek, a través de la API con forma de Anthropic que sirve DeepSeek: los mismos hooks, notas y estado. Con una clave, DeepSeek aparece junto a los demás agentes.',
   'API key': 'Clave de API',

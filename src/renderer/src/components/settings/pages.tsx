@@ -21,6 +21,7 @@ import { Footer, Row, Section, Segmented, Select, Slider, SmallButton, TextArea,
 import { ResourceSections } from './Resources'
 import { playNotificationSound } from '@/lib/sound'
 import { useUpdates } from '@/stores/updates'
+import { showAllChanges } from '../WhatsNew'
 import { t } from '@/lib/i18n'
 
 const FONTS = ['JetBrains Mono', 'Geist Mono', 'SF Mono', 'Cascadia Mono', 'Menlo', 'Consolas', 'Fira Code', 'Monaspace Neon', 'Iosevka']
@@ -482,6 +483,9 @@ function UpdatesSection() {
     >
       <Row label={t('Version')} hint={hint}>
         {action && <SmallButton onClick={() => void action.run()}>{action.label}</SmallButton>}
+      </Row>
+      <Row label={t('What’s new')} hint={t('What changed in each release')}>
+        <SmallButton onClick={showAllChanges}>{t('Show')}</SmallButton>
       </Row>
     </Section>
   )
