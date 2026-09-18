@@ -471,6 +471,8 @@ export const es: Record<string, string> = {
     'En Codex en Windows, Shift+Enter hace un salto de línea y Alt+Arriba y Alt+Abajo le llegan.',
   'A preview opened in one session only shows beside that session, and stays loaded while you look at another.':
     'La vista previa abierta en una sesión solo aparece junto a esa sesión, y sigue cargada mientras miras otra.',
+  'Text selected in OpenCode stays selected when the mouse moves, so Ctrl+C and Ctrl+Shift+C copy it.':
+    'El texto seleccionado en OpenCode sigue seleccionado aunque muevas el ratón, así que Ctrl+C y Ctrl+Shift+C lo copian.',
   'Text drawn with WebGL no longer blinks while a terminal resizes.': 'El texto dibujado con WebGL ya no parpadea mientras un terminal cambia de tamaño.',
   'The activity dot shows while idle without having to hover over it.': 'El punto de actividad se ve en reposo sin tener que pasar el ratón por encima.',
   'The voice agent no longer drops the conversation with "Precondition check failed".':
