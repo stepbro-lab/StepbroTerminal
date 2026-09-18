@@ -90,6 +90,22 @@ describe('reduceStatus', () => {
   })
 })
 
+describe('agents that keep drawing while they wait', () => {
+  it('are working while the screen shows a turn running and idle once it does not, whatever they print', () => {
+    expect(reduceStatus(base('idle', false), { kind: 'busy', busy: true })).toEqual({ status: 'working' })
+    expect(reduceStatus(base('working', false), { kind: 'busy', busy: true })).toBeNull()
+    expect(reduceStatus(base('working', false), { kind: 'busy', busy: false })).toEqual({ status: 'idle' })
+    expect(reduceStatus(base('starting', false), { kind: 'busy', busy: false })).toEqual({ status: 'idle' })
+    expect(reduceStatus(base('idle', false), { kind: 'busy', busy: false })).toBeNull()
+  })
+
+  it('leave a question on screen, an exited session and hooked sessions alone', () => {
+    expect(reduceStatus(base('attention', false), { kind: 'busy', busy: false })).toBeNull()
+    expect(reduceStatus(base('exited', false), { kind: 'busy', busy: true })).toBeNull()
+    expect(reduceStatus(base('idle', true), { kind: 'busy', busy: true })).toBeNull()
+  })
+})
+
 describe('screen questions from agents without hooks', () => {
   const codex = (status: SessionStatus) => base(status, false, { detectedPreset: 'codex' })
 

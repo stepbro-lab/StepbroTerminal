@@ -62,13 +62,24 @@ const BORING = /^(windows powershell|powershell|pwsh|cmd|command prompt|bash|zsh
 
 /**
  * Agents prefix their titles with a spinner glyph ("✳ Fix bug", "◑ Thinking") or their initials
- * ("OC | Fix bug"); the sidebar has its own status mark and shows the agent's logo.
+ * ("OC | Fix bug"), and Codex turns a braille spinner inside its title ("Fix bug ⠸ | project"),
+ * which would rename the session with every frame; the sidebar has its own status mark and shows
+ * the agent's logo.
  */
 export function stripTitleGlyph(t: string): string {
   return t
+    .replace(/\s*[\u2800-\u28ff]+\s*/g, ' ')
     .replace(/^[^\p{L}\p{N}\s]{1,2}\s+/u, '')
     .replace(/^OC \| /, '')
+    .replace(/\s{2,}/g, ' ')
     .trim()
+}
+
+/** A title without the folder an agent adds after it ("Fix bug | project"): the sidebar already groups sessions by folder. */
+export function withoutFolder(title: string, folder: string): string {
+  if (!folder) return title
+  const tail = ` | ${folder}`
+  return title.toLowerCase().endsWith(tail.toLowerCase()) ? title.slice(0, -tail.length).trim() : title
 }
 
 const plain = (s: string): string => s.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '')
@@ -82,6 +93,8 @@ export function isOwnNameTitle(title: string, agent: string, folder: string): bo
   if (!t) return true
   const a = plain(agent)
   if (a && (t === a || t === `${a}code` || t === `${a}cli` || t === `${a}agent`)) return true
+  // Codex's stand-in while it thinks of a name for the thread.
+  if (t === 'renaming') return true
   const f = plain(folder)
   return !!f && t === f
 }

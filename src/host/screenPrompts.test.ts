@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { waitingForApproval } from './screenPrompts'
+import { busyMarkerFor, busyOnScreen, waitingForApproval } from './screenPrompts'
 
 const codexScreen = [
   '• Running pnpm test -- --run; pnpm typecheck; pnpm build',
@@ -35,5 +35,26 @@ describe('waitingForApproval', () => {
     expect(waitingForApproval(['$ pnpm test', 'Tests 61 passed (61)', 'PS C:\\repo>'])).toBe(false)
     expect(waitingForApproval(['esc to interrupt', '› Working on it…', 'Would you like a summary? Sure.'])).toBe(false)
     expect(waitingForApproval([])).toBe(false)
+  })
+})
+
+describe('busyOnScreen', () => {
+  const idle = ['• Registrado en docs/PENDIENTES.md.', '', '›⠁Ask Codex to do anything    ⠂   ⠁', '  gpt-6-astra high · ~\OneDrive\Escritorio\NivoMusic']
+
+  it('sees Codex in the middle of a turn by its working line', () => {
+    expect(busyOnScreen('codex', ['• Working (12s • esc to interrupt)', '', '› Ask Codex to do anything'])).toBe(true)
+    expect(busyOnScreen('codex', ['• Exploring (1m 05s • esc to interrupt)'])).toBe(true)
+  })
+
+  it('does not take the twinkling prompt of an idle Codex for work', () => {
+    expect(busyOnScreen('codex', idle)).toBe(false)
+  })
+
+  it('only knows the agents that need it', () => {
+    expect(busyMarkerFor('codex')).toBeDefined()
+    expect(busyMarkerFor('claude')).toBeUndefined()
+    expect(busyMarkerFor(undefined)).toBeUndefined()
+    // Clyra shows "esc to interrupt" in its footer all the time, so it could not go by that.
+    expect(busyOnScreen('clyra', ['! for bash mode · / for commands · esc to interrupt'])).toBe(false)
   })
 })
