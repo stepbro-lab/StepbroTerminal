@@ -8,6 +8,7 @@ import { darkTerminal, lightTerminal } from '@/theme/terminalThemes'
 import { InputLine, hintFor } from '@/lib/flagHints'
 import { altArrowSequence, imagePaste, imagePathText, newlineSequence } from '@/lib/agentKeys'
 import { FitHold } from './fitHold'
+import { keepSelectionWhileTheMouseMoves } from './mouseReports'
 
 interface Entry {
   id: string
@@ -179,6 +180,7 @@ class TerminalRegistry {
       smoothScrollDuration: 0,
       windowsPty: window.step.platform === 'win32' ? { backend: 'conpty', buildNumber: windowsBuild() } : undefined
     })
+    keepSelectionWhileTheMouseMoves(term)
     const fit = new FitAddon()
     const search = new SearchAddon()
     term.loadAddon(fit)
