@@ -29,7 +29,8 @@ function palette(host: HTMLElement): Record<TopitoInk, string> {
  * Plays one of Topito's clips on a canvas. The frames are drawn straight onto it on a timer, never
  * through React state, so an animation costs a few rectangles a few times a second and re-renders
  * nothing. Its way in plays once; the rest loops, or plays through once and says so when `once`.
- * It stops while the window is hidden.
+ * It holds still on the frame it is on while the window is hidden or in the background, where
+ * nobody is watching, and carries on when the window comes back to the front.
  */
 export function TopitoCanvas({
   clip,
@@ -63,10 +64,14 @@ export function TopitoCanvas({
     let i = 0
     let timer = 0
     let stopped = false
+    let shown = -1
 
     const draw = (index: number): void => {
+      // A frame held on (the empty hole, a pause) is already on the canvas.
+      if (frames[index][0] === shown) return
+      shown = frames[index][0]
       ctx.clearRect(0, 0, canvas.width, canvas.height)
-      const cells = frameCells(frames[index][0])
+      const cells = frameCells(shown)
       for (let r = 0; r < rows; r++) {
         for (let c = 0; c < TOPITO_COLS; c++) {
           const ink = cells[r * TOPITO_COLS + c]
@@ -77,9 +82,12 @@ export function TopitoCanvas({
       }
     }
 
+    const watched = (): boolean => !document.hidden && document.hasFocus()
+
     const step = (): void => {
       if (stopped) return
       draw(i)
+      if (!watched()) return
       timer = window.setTimeout(() => {
         i++
         if (i >= frames.length) {
@@ -94,16 +102,20 @@ export function TopitoCanvas({
       }, frames[i][1])
     }
 
-    const onVisibility = (): void => {
+    const onWatch = (): void => {
       window.clearTimeout(timer)
-      if (!document.hidden) step()
+      step()
     }
     step()
-    document.addEventListener('visibilitychange', onVisibility)
+    document.addEventListener('visibilitychange', onWatch)
+    window.addEventListener('focus', onWatch)
+    window.addEventListener('blur', onWatch)
     return () => {
       stopped = true
       window.clearTimeout(timer)
-      document.removeEventListener('visibilitychange', onVisibility)
+      document.removeEventListener('visibilitychange', onWatch)
+      window.removeEventListener('focus', onWatch)
+      window.removeEventListener('blur', onWatch)
     }
   }, [clip, once, cell, rows, dark, accent])
 

@@ -168,6 +168,7 @@ async function boot(): Promise<void> {
       if (shellChanged) ctx.refreshPresets()
       if (partial.addedProjects || partial.hiddenProjects) ctx.emitProjects()
       if (partial.keybindings) buildAppMenu(ctx)
+      if (partial.topito !== undefined) sendTopito(ctx)
       // The key the system holds for talking: its chord, whether it is wanted, and whether there
       // is anything to talk to all decide whether it should still be held.
       if (partial.keybindings || partial.voiceAnywhere !== undefined || partial.geminiApiKey !== undefined) applyGlobalKeys(ctx)
@@ -363,6 +364,11 @@ ${s.errorDetail}`)
   })
 }
 
+/** Tells the host whether Topito is on, so the agents' MCP server offers him only then. */
+function sendTopito(ctx: Ctx): void {
+  ctx.client.send({ t: 'topito', on: ctx.prefs.topito === true })
+}
+
 function setHostState(ctx: Ctx, state: HostState): void {
   ctx.hostState = state
   ctx.emit('host:state', state)
@@ -376,6 +382,7 @@ function connectHost(ctx: Ctx): Promise<void> {
     try {
       const info = await ensureHost({ version: ctx.version, entry: hostEntry(), env: ctx.env, log: ctx.log })
       await ctx.client.connect(info, ctx.version)
+      sendTopito(ctx)
       setHostState(ctx, { kind: 'connected', info })
     } catch (e: any) {
       const message = e?.message ?? String(e)

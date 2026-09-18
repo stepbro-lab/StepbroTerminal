@@ -27,6 +27,8 @@ export type ClientMsg =
   | { t: 'stats'; reqId: string }
   /** The app's answer to a `browser` request: what the preview pane did, or why it could not. */
   | { t: 'browser:result'; reqId: string; ok: boolean; result?: BrowserResult; error?: string }
+  /** Whether Topito is turned on in the app; the MCP server only offers agents his tool while he is. */
+  | { t: 'topito'; on: boolean }
   | { t: 'shutdown' }
 
 export type HostMsg =

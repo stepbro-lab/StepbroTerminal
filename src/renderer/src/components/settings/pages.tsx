@@ -83,9 +83,9 @@ export function AppearancePage() {
         </div>
       </Section>
 
-      <Section title="Topito" description={t('The little mole at the foot of the sidebar. He does whatever your agents are doing, comes out at the corner of the terminal when one needs you or has something to tell you, and answers when you click him.')}>
+      <Section title="Topito" description={t('The little mole between the buttons at the foot of the sidebar. He does whatever your agents are doing, comes out at the corner of the terminal when one needs you, answers when you click him, and agents can tell you something through him.')}>
         <Row label={t('Show Topito')}>
-          <Toggle value={p.topito !== false} onChange={(topito) => upd({ topito })} />
+          <Toggle value={p.topito === true} onChange={(topito) => upd({ topito })} />
         </Row>
       </Section>
 

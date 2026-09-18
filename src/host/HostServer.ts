@@ -28,6 +28,8 @@ export class HostServer {
   private owners = new SizeOwners<Client>()
   /** Preview requests out to the app, waiting for its answer. */
   private browserPending = new Map<string, { resolve: (r: BrowserResult) => void; reject: (e: Error) => void; timer: NodeJS.Timeout }>()
+  /** Whether the app has Topito turned on. He starts off, and agents are only offered him while he is on. */
+  topitoOn = false
   onClientsChange: () => void = () => {}
   onShutdown: () => void = () => {}
 
@@ -217,6 +219,9 @@ export class HostServer {
         else p.reject(new Error(msg.error ?? 'The preview pane could not do that.'))
         break
       }
+      case 'topito':
+        this.topitoOn = msg.on
+        break
       case 'shutdown':
         this.onShutdown()
         break

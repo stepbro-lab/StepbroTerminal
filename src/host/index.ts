@@ -94,6 +94,7 @@ async function main(): Promise<void> {
         // The preview pane lives in the app; the request travels over the socket and back.
         browser: (id, op, timeoutMs) => server.browser(id, op, timeoutMs),
         topito: (say) => server.topito(say),
+        topitoOn: () => server.topitoOn,
         version
       },
       sessionId,
