@@ -781,6 +781,12 @@ export class SessionManager extends EventEmitter {
   private spawn(l: Live, resume: boolean): void {
     const s = l.s
     const now = Date.now()
+    // An agent typed into the previous process went with it. Left on the session, a restored shell
+    // would wear its logo and, with its hooks still counted on, wait as 'starting' for events that
+    // never come. What the agent was (lastPreset) and its conversation stay, so it can be resumed.
+    s.agent.detectedPreset = undefined
+    s.agent.hooked = false
+    s.agent.tool = undefined
     s.status = 'starting'
     s.statusAt = now
     s.updatedAt = now
