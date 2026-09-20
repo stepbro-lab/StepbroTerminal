@@ -19,6 +19,7 @@ import { HostBanner } from './HostBanner'
 import { PreviewPane } from './PreviewPane'
 import { ChangesPane } from './ChangesPane'
 import { TopitoCorner } from '../topito/Topito'
+import { VoiceGlow } from './VoiceGlow'
 import { t } from '@/lib/i18n'
 import { describeSessionError } from '@/lib/sessionErrors'
 
@@ -70,14 +71,16 @@ export function TerminalPane() {
       <main className="pane-area relative flex min-w-0 flex-1 flex-col">
         <div className="pane-frame relative flex min-h-0 flex-1">
           {SESSION_RAIL && <SessionRail />}
-          <DropTarget className="card relative flex h-full w-full flex-col">{connected ? <EmptyState /> : <HostBanner />}</DropTarget>
+          <DropTarget className="card relative flex h-full w-full flex-col">
+            {connected ? <EmptyState /> : <HostBanner />}
+            <VoiceGlow />
+          </DropTarget>
           {previewPanels}
         </div>
         <TopitoCorner />
       </main>
     )
   }
-
 
   return (
     <main className="pane-area relative flex min-w-0 flex-1 flex-col">
@@ -274,6 +277,7 @@ function PaneCard({ id, connected, multi, bare, underRail }: { id: string; conne
         </div>
       )}
       {zone && <DropHighlight zone={zone} />}
+      {focused && <VoiceGlow />}
     </div>
   )
 }

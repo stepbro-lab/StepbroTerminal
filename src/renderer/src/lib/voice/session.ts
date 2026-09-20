@@ -120,6 +120,16 @@ export class VoiceConversation {
     this.o.on.state('talking')
   }
 
+  /** How loud the person is right now, 0 to 1. */
+  micLevel(): number {
+    return this.mic.level()
+  }
+
+  /** How loud the answer is right now, 0 to 1. */
+  answerLevel(): number {
+    return this.speaker.level()
+  }
+
   /** Let go: the turn is over and the model may answer. */
   endTurn(): void {
     this.waiting = false

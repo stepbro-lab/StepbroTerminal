@@ -59,6 +59,14 @@ export function base64ToPcm16(b64: string): Int16Array {
   return new Int16Array(bytes.buffer, 0, Math.floor(bytes.length / 2))
 }
 
+/** How loud the sound through an analyser is right now, 0 to 1: its RMS, scaled so speech fills the range. */
+function rms(analyser: AnalyserNode, samples: Float32Array<ArrayBuffer>): number {
+  analyser.getFloatTimeDomainData(samples)
+  let sum = 0
+  for (const v of samples) sum += v * v
+  return Math.min(1, Math.sqrt(sum / samples.length) * 4)
+}
+
 /**
  * The worklet that hands blocks of microphone audio back to the page. It runs on the audio
  * thread, where nothing else may block it, and is given to the browser as text: bundlers have no
@@ -99,6 +107,9 @@ export class Mic {
   private ctx: AudioContext | null = null
   private stream: MediaStream | null = null
   private node: AudioWorkletNode | null = null
+  /** Listens alongside the worklet, so how loud the person is can be read without touching what is sent. */
+  private analyser: AnalyserNode | null = null
+  private samples: Float32Array<ArrayBuffer> | null = null
   private url = ''
   private muted = true
 
@@ -127,10 +138,21 @@ export class Mic {
       if (this.muted) return
       o.onBlock(floatsToPcm16(resample(e.data, ctx.sampleRate, INPUT_RATE)))
     }
-    ctx.createMediaStreamSource(this.stream).connect(node)
+    const source = ctx.createMediaStreamSource(this.stream)
+    source.connect(node)
     // Connected to nothing audible: the worklet only reports, it must not be heard.
     node.connect(ctx.destination)
     node.port.start()
+    const analyser = ctx.createAnalyser()
+    analyser.fftSize = 1024
+    source.connect(analyser)
+    this.analyser = analyser
+    this.samples = new Float32Array(analyser.fftSize)
+  }
+
+  /** How loud the person is right now, 0 to 1, while the microphone is open: what the glow follows as they talk. */
+  level(): number {
+    return this.analyser && this.samples ? rms(this.analyser, this.samples) : 0
   }
 
   /** Stops sending without dropping the device, so speaking again is instant. */
@@ -145,6 +167,8 @@ export class Mic {
     void this.ctx?.close()
     if (this.url) URL.revokeObjectURL(this.url)
     this.node = null
+    this.analyser = null
+    this.samples = null
     this.stream = null
     this.ctx = null
     this.url = ''
@@ -157,14 +181,30 @@ export class Mic {
  */
 export class Speaker {
   private ctx: AudioContext | null = null
+  /** Everything played goes through it on its way out, so how loud the voice is can be read. */
+  private analyser: AnalyserNode | null = null
+  private samples: Float32Array<ArrayBuffer> | null = null
   private playing: AudioBufferSourceNode[] = []
   private nextAt = 0
   /** Set while sound is actually coming out, so the bubble can show it. */
   onSpeaking: (speaking: boolean) => void = () => {}
 
   private context(): AudioContext {
-    if (!this.ctx) this.ctx = new AudioContext({ sampleRate: OUTPUT_RATE })
+    if (!this.ctx) {
+      const ctx = new AudioContext({ sampleRate: OUTPUT_RATE })
+      const analyser = ctx.createAnalyser()
+      analyser.fftSize = 1024
+      analyser.connect(ctx.destination)
+      this.ctx = ctx
+      this.analyser = analyser
+      this.samples = new Float32Array(analyser.fftSize)
+    }
     return this.ctx
+  }
+
+  /** How loud the voice is right now, 0 to 1. */
+  level(): number {
+    return this.analyser && this.samples && this.playing.length ? rms(this.analyser, this.samples) : 0
   }
 
   play(pcm: Int16Array): void {
@@ -177,7 +217,7 @@ export class Speaker {
     buffer.getChannelData(0).set(pcm16ToFloats(pcm))
     const src = ctx.createBufferSource()
     src.buffer = buffer
-    src.connect(ctx.destination)
+    src.connect(this.analyser ?? ctx.destination)
     // A slice that arrives late starts now; one that arrives early waits its turn.
     const start = Math.max(ctx.currentTime, this.nextAt)
     src.start(start)
@@ -209,5 +249,7 @@ export class Speaker {
     this.stop()
     void this.ctx?.close()
     this.ctx = null
+    this.analyser = null
+    this.samples = null
   }
 }

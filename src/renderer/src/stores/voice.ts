@@ -112,6 +112,16 @@ export const useVoice = create<VoiceStore>((set) => ({
   }
 }))
 
+/** How loud the person talking to the voice agent is right now, 0 to 1; read every frame by the glow. */
+export function voiceMicLevel(): number {
+  return live?.micLevel() ?? 0
+}
+
+/** How loud the voice agent's answer is right now, 0 to 1; read every frame by the glow. */
+export function voiceAnswerLevel(): number {
+  return live?.answerLevel() ?? 0
+}
+
 /** The conversation that is open, started if there is none. Null when there is no key to start one with. */
 function connect(set: (partial: Partial<VoiceStore>) => void): VoiceConversation | null {
   if (live) return live
