@@ -482,6 +482,8 @@ export const es: Record<string, string> = {
   'The voice agent no longer drops the conversation with "Precondition check failed".':
     'El agente de voz ya no corta la conversación con "Precondition check failed".',
   'The voice agent’s answers no longer come out choppy and cut into pieces.': 'Las respuestas del agente de voz ya no suenan entrecortadas ni a trozos.',
+  'On a light translucent window, names and buttons no longer have an outline around them.':
+    'En la ventana translúcida clara, los nombres y los botones ya no tienen un contorno alrededor.',
   // ---- settings: agents, DeepSeek ----
   'Claude Code on DeepSeek models, through the Anthropic-shaped API DeepSeek serves: same hooks, notes and status. With a key, DeepSeek shows up next to the other agents.': 'Claude Code con los modelos de DeepSeek, a través de la API con forma de Anthropic que sirve DeepSeek: los mismos hooks, notas y estado. Con una clave, DeepSeek aparece junto a los demás agentes.',
   'API key': 'Clave de API',
