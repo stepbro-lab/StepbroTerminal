@@ -34,6 +34,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       { kind: 'improved', text: 'With no session open, Topito looks around for one, and the folder’s full path waits in a tooltip.' },
       { kind: 'fixed', text: 'Codex no longer shows as working for as long as it is open, and its title no longer changes with every turn of its spinner.' },
       { kind: 'fixed', text: 'In Codex on Windows, Shift+Enter starts a new line and Alt+Up and Alt+Down reach it.' },
+      { kind: 'fixed', text: 'Dimmed and italic text, like the box Codex opens with, no longer sits on dark patches over a translucent window.' },
       { kind: 'fixed', text: 'A preview opened in one session only shows beside that session, and stays loaded while you look at another.' },
       { kind: 'fixed', text: 'Text selected in OpenCode stays selected when the mouse moves, so Ctrl+C and Ctrl+Shift+C copy it.' },
       { kind: 'fixed', text: 'Text drawn with WebGL no longer blinks while a terminal resizes.' },

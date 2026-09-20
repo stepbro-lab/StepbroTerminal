@@ -802,6 +802,10 @@ function themeFor(dark: boolean): ITheme {
   return { ...base, background, cursorAccent: background }
 }
 
+/** xterm's cell attributes: the inverse mark on the foreground, and where either colour says which kind it is (0: the default). */
+const INVERSE = 0x4000000
+const COLOUR_MODE = 0x3000000
+
 /**
  * On a see-through card the terminal paints no background, and the card's own fill shows
  * through; painting it again would stack the two and the text area would come out more solid
@@ -811,12 +815,23 @@ function themeFor(dark: boolean): ITheme {
  * only the one rectangle the WebGL renderer clears the screen with, in that colour, is made clear.
  * Cells with a colour of their own still paint it.
  *
- * That rectangle's colour is private to the renderer, so its colour cache is wrapped, once, on
- * the class every terminal's renderer shares. Without the names it reaches for, nothing changes
- * and the terminal simply stays solid on its card.
+ * Dimmed and italic text gets a rectangle of its own too, in that same colour: xterm keeps both
+ * marks beside the background colour, and the renderer paints behind any cell whose background
+ * is not plain. Over glass those came out as solid boxes, the whole header Codex draws dimmed,
+ * so they are made clear as well.
+ *
+ * Those rectangles' colours are private to the renderer, so its colour cache and the method that
+ * lays out each rectangle are wrapped, once, on the class every terminal's renderer shares.
+ * Without the names they reach for, nothing changes and the terminal simply stays solid on its card.
  */
 function paintNoBackdropWhenSeeThrough(addon: unknown): void {
-  type Rect = { _bgFloat?: Float32Array; _themeService?: { colors: unknown }; _updateCachedColors?: (colors: unknown) => void; _updateViewportRectangle?: () => void }
+  type Rect = {
+    _bgFloat?: Float32Array
+    _themeService?: { colors: unknown }
+    _updateCachedColors?: (colors: unknown) => void
+    _updateViewportRectangle?: () => void
+    _updateRectangle?: (vertices: { attributes: Float32Array }, offset: number, fg: number, bg: number, ...rest: number[]) => void
+  }
   const rect = (addon as { _renderer?: { _rectangleRenderer?: { value?: Rect } } })._renderer?._rectangleRenderer?.value
   if (!rect?._updateCachedColors || !rect._updateViewportRectangle || !rect._themeService) return
   const proto = Object.getPrototypeOf(rect) as Rect & { __stepSeeThrough?: boolean }
@@ -825,6 +840,14 @@ function paintNoBackdropWhenSeeThrough(addon: unknown): void {
     proto._updateCachedColors = function (this: Rect, colors: unknown) {
       cache.call(this, colors)
       if (seeThrough()) this._bgFloat?.fill(0)
+    }
+    const lay = proto._updateRectangle
+    if (lay) {
+      proto._updateRectangle = function (this: Rect, vertices, offset, fg, bg, ...rest) {
+        lay.call(this, vertices, offset, fg, bg, ...rest)
+        // Not inverted, and in the terminal's own background colour: only there for a mark like dim or italic.
+        if (seeThrough() && !(fg & INVERSE) && (bg & COLOUR_MODE) === 0) vertices.attributes.fill(0, offset + 4, offset + 8)
+      }
     }
     proto.__stepSeeThrough = true
   }

@@ -469,6 +469,8 @@ export const es: Record<string, string> = {
     'Codex ya no aparece como trabajando todo el rato mientras está abierto, y su título ya no cambia con cada vuelta de su spinner.',
   'In Codex on Windows, Shift+Enter starts a new line and Alt+Up and Alt+Down reach it.':
     'En Codex en Windows, Shift+Enter hace un salto de línea y Alt+Arriba y Alt+Abajo le llegan.',
+  'Dimmed and italic text, like the box Codex opens with, no longer sits on dark patches over a translucent window.':
+    'El texto atenuado y en cursiva, como el recuadro con el que abre Codex, ya no lleva manchas oscuras debajo en la ventana translúcida.',
   'A preview opened in one session only shows beside that session, and stays loaded while you look at another.':
     'La vista previa abierta en una sesión solo aparece junto a esa sesión, y sigue cargada mientras miras otra.',
   'Text selected in OpenCode stays selected when the mouse moves, so Ctrl+C and Ctrl+Shift+C copy it.':
