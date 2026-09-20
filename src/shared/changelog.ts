@@ -20,7 +20,7 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     version: '0.1.0-beta.21',
-    date: '2026-09-17',
+    date: '2026-09-19',
     headline: 'Meet Topito, talk to your terminal from any app, and see your desktop through the window.',
     topito: true,
     changes: [
