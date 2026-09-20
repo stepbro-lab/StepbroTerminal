@@ -162,6 +162,10 @@ export class VoiceConversation {
         case 'interrupted':
           this.speaker.stop()
           break
+        case 'turnEnd':
+          // Nothing more is coming: whatever was being gathered plays now.
+          this.speaker.flush()
+          break
         case 'tools':
           void this.answerTools(event.calls)
           break

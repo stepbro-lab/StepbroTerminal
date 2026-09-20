@@ -40,7 +40,8 @@ export const CHANGELOG: ChangelogEntry[] = [
       { kind: 'fixed', text: 'Text selected in OpenCode stays selected when the mouse moves, so Ctrl+C and Ctrl+Shift+C copy it.' },
       { kind: 'fixed', text: 'Text drawn with WebGL no longer blinks while a terminal resizes.' },
       { kind: 'fixed', text: 'The activity dot shows while idle without having to hover over it.' },
-      { kind: 'fixed', text: 'The voice agent no longer drops the conversation with "Precondition check failed".' }
+      { kind: 'fixed', text: 'The voice agent no longer drops the conversation with "Precondition check failed".' },
+      { kind: 'fixed', text: 'The voice agent’s answers no longer come out choppy and cut into pieces.' }
     ]
   }
 ]
