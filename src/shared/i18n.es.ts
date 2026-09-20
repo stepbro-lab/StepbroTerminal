@@ -457,6 +457,8 @@ export const es: Record<string, string> = {
   'A translucent window, with the opacity of the frame and of the terminal each set in Appearance.':
     'Una ventana translúcida, con la opacidad del marco y la del terminal ajustables por separado en Apariencia.',
   'This page, after every update, with what changed.': 'Esta página, después de cada actualización, con lo que cambió.',
+  'While you talk to the voice agent, a soft light rises from the bottom of the terminal and follows the voice.':
+    'Mientras hablas con el agente de voz, una luz suave sube desde abajo del terminal y sigue la voz.',
   'The window controls wait in a bar along the top edge, and the settings button there only shows while the sidebar is folded.':
     'Los controles de la ventana esperan en una barra en el borde de arriba, y el botón de ajustes de ahí solo aparece con la barra lateral plegada.',
   'The session rail moves with springs, and the sidebar is restyled for the translucent frame.':

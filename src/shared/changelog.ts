@@ -28,6 +28,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       { kind: 'new', text: 'Talk from any app: the voice key answers while another program is in front, and asking it to open an agent in a folder with a message types the message and sends it.' },
       { kind: 'new', text: 'A translucent window, with the opacity of the frame and of the terminal each set in Appearance.' },
       { kind: 'new', text: 'This page, after every update, with what changed.' },
+      { kind: 'new', text: 'While you talk to the voice agent, a soft light rises from the bottom of the terminal and follows the voice.' },
       { kind: 'improved', text: 'The window controls wait in a bar along the top edge, and the settings button there only shows while the sidebar is folded.' },
       { kind: 'improved', text: 'The session rail moves with springs, and the sidebar is restyled for the translucent frame.' },
       { kind: 'improved', text: 'The terminal’s corners follow the window’s, and text stays readable over a translucent window.' },
