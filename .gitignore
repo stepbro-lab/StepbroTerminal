@@ -2,6 +2,7 @@ node_modules/
 out/
 dist/
 release/
+/* Setup *.exe
 build/icon.png
 build/icon.ico
 build/icons/
