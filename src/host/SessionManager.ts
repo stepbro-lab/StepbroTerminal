@@ -26,12 +26,15 @@ import {
 import { describeSpawnEnv } from './ptyHelper'
 import { findAncestor, processTable } from './procTree'
 import { log } from './log'
-import { CpuMeter, readProcesses, subtree } from './procStats'
+import { CpuMeter, processChildren, readProcesses, subtree } from './procStats'
+import { mapLimit, sampled } from '@shared/async'
 import { busyMarkerFor, busyOnScreen, waitingForApproval } from './screenPrompts'
 import { conptyReply, hasQuery, isControlOnly, stripProbeReplies, stripStaleReplies } from './conptyReply'
 import { agentOf } from './handoff'
 import { pacePieces } from './pace'
 import { isOwnEndpoint, previewUrlIn } from './previewUrl'
+import { SessionLog, readLogTail } from './SessionLog'
+import { OutputPressure } from './OutputPressure'
 
 export interface SessionManagerOpts {
   stateFile: string
@@ -71,12 +74,16 @@ interface Live {
   burstStart: number
   /** When the program last printed anything: a spinner still turning means it is not ready to be typed into. */
   lastOutputAt: number
+  log?: SessionLog
+  flow: OutputPressure
+  screenBytes: number
+  /** Exited sessions restore their scrollback only when someone requests it. */
+  restorePending?: boolean
   /** The size the pty was last told about, which is not always what the session record says. */
   ptyCols?: number
   ptyRows?: number
-  logFd?: number
-  logBytes: number
-  paused: boolean
+  restoring?: Promise<void>
+  generation: number
   /** From a launch configuration: typed into the pane once it first settles, then forgotten. */
   runOnStart?: string
   /** ConPTY is still probing the terminal (nothing printable yet); the host answers and views must not. */
@@ -119,7 +126,6 @@ const QUIET_MS = 1500
 const BUSY_AFTER_MS = 400
 /** How often the screen of an agent that never stops drawing is read for whether it is working. */
 const BUSY_LOOK_MS = 700
-const LOG_MAX = 8 * 1024 * 1024
 const LOG_KEEP = 2 * 1024 * 1024
 
 /**
@@ -136,6 +142,7 @@ export class SessionManager extends EventEmitter {
   private persistTimer?: NodeJS.Timeout
   private registryBusy = false
   private registryDirty: LiveClaude[] | null = null
+  private closingLogs = new Set<Promise<void>>()
 
   constructor(private readonly opts: SessionManagerOpts) {
     super()
@@ -162,6 +169,7 @@ export class SessionManager extends EventEmitter {
   async snapshot(id: string): Promise<Uint8Array> {
     const l = this.live.get(id)
     if (!l) return new Uint8Array(0)
+    await this.restoreScreen(l)
     await l.drained
     try {
       return Buffer.from(l.serializer.serialize({ scrollback: this.opts.scrollback }), 'utf8')
@@ -176,14 +184,17 @@ export class SessionManager extends EventEmitter {
   private cpu = new CpuMeter()
 
   /** What every live session and the host itself use right now; CPU is measured between two calls. */
-  async stats(): Promise<HostStats> {
-    const procs = await readProcesses()
+  stats = sampled(() => this.collectStats(), 1000)
+
+  private async collectStats(): Promise<HostStats> {
+    const [procs, scrollbackBytes] = await Promise.all([readProcesses(), this.scrollbackOnDisk()])
+    const children = processChildren(procs)
     const now = Date.now()
     const seen = new Set<number>([process.pid])
     const sessions: SessionStats[] = []
     for (const l of this.live.values()) {
       if (!l.s.alive || !l.s.pid) continue
-      const tree = subtree(procs, l.s.pid)
+      const tree = subtree(procs, l.s.pid, children)
       let cpu = 0
       let memory = 0
       for (const p of tree) {
@@ -196,19 +207,19 @@ export class SessionManager extends EventEmitter {
     const self = procs.get(process.pid)
     const cpu = self ? this.cpu.rate(self, now) : 0
     this.cpu.keepOnly(seen)
-    return { pid: process.pid, memory: process.memoryUsage().rss, cpu, sessions, sessionsOnDisk: this.live.size, scrollbackBytes: this.scrollbackOnDisk(), at: now }
+    return { pid: process.pid, memory: process.memoryUsage().rss, cpu, sessions, sessionsOnDisk: this.live.size, scrollbackBytes, at: now }
   }
 
-  private scrollbackOnDisk(): number {
+  private async scrollbackOnDisk(): Promise<number> {
     let total = 0
     try {
-      for (const name of fs.readdirSync(this.opts.logDir)) {
+      await mapLimit(await fs.promises.readdir(this.opts.logDir), 16, async (name) => {
         try {
-          total += fs.statSync(path.join(this.opts.logDir, name)).size
+          total += (await fs.promises.stat(path.join(this.opts.logDir, name))).size
         } catch {
           /* gone between readdir and stat */
         }
-      }
+      })
     } catch {
       /* no log dir yet */
     }
@@ -249,7 +260,7 @@ export class SessionManager extends EventEmitter {
       if (typeof s.order !== 'number') s.order = s.createdAt
       if (s.previewUrl && isOwnEndpoint(s.previewUrl)) s.previewUrl = undefined
       const l = this.newLive(s)
-      this.replayLogTail(l)
+      l.restorePending = true
       this.live.set(s.id, l)
     }
   }
@@ -315,7 +326,16 @@ export class SessionManager extends EventEmitter {
         /* already gone */
       }
     }
-    l.screen.reset()
+    l.flow.connect()
+    // Pending emulator writes belong to the old run. Drain/dispose that emulator separately.
+    const oldScreen = l.screen
+    void l.drained.then(() => oldScreen.dispose())
+    const fresh = this.newScreen(l.s)
+    l.screen = fresh.screen
+    l.serializer = fresh.serializer
+    l.drained = Promise.resolve()
+    l.screenBytes = 0
+    l.flow.set('screen', false)
     l.lines.reset()
     l.s.exitCode = undefined
     l.s.error = undefined
@@ -325,7 +345,11 @@ export class SessionManager extends EventEmitter {
       l.s.title = ''
       l.s.titleSource = 'none'
     }
-    this.truncateLog(l, true)
+    l.generation++
+    l.restorePending = false
+    // Keep one writer across restarts so old bytes cannot land after the clear.
+    this.openLog(l)
+    l.log!.clear()
     this.emit('clear', id)
     const canResume = !!l.s.launch.resumeArgs && !!l.s.agent.sessionId
     this.spawn(l, canResume)
@@ -373,13 +397,12 @@ export class SessionManager extends EventEmitter {
       }
     }
     if (l.quietTimer) clearTimeout(l.quietTimer)
-    if (l.logFd !== undefined) {
-      try {
-        fs.closeSync(l.logFd)
-      } catch {
-        /* ignore */
-      }
-    }
+    l.generation++
+    l.flow.connect()
+    this.openLog(l)
+    const closing = l.log!.finish(true)
+    this.closingLogs.add(closing)
+    void closing.finally(() => this.closingLogs.delete(closing))
     try {
       l.screen.dispose()
     } catch {
@@ -391,7 +414,7 @@ export class SessionManager extends EventEmitter {
     const held = this.heldTimers.get(id)
     if (held) clearTimeout(held)
     this.heldTimers.delete(id)
-    for (const f of [this.logPath(id), path.join(this.opts.hooksDir, `${id}.json`)]) {
+    for (const f of [path.join(this.opts.hooksDir, `${id}.json`)]) {
       try {
         fs.rmSync(f, { force: true })
       } catch {
@@ -485,25 +508,11 @@ export class SessionManager extends EventEmitter {
   }
 
   pause(id: string): void {
-    const l = this.live.get(id)
-    if (!l?.pty || l.paused) return
-    l.paused = true
-    try {
-      l.pty.pause()
-    } catch {
-      /* not supported */
-    }
+    this.live.get(id)?.flow.set('client', true)
   }
 
   resume(id: string): void {
-    const l = this.live.get(id)
-    if (!l?.pty || !l.paused) return
-    l.paused = false
-    try {
-      l.pty.resume()
-    } catch {
-      /* not supported */
-    }
+    this.live.get(id)?.flow.set('client', false)
   }
 
   // ---- metadata ----
@@ -644,6 +653,7 @@ export class SessionManager extends EventEmitter {
   async screenLines(id: string, max: number): Promise<string[]> {
     const l = this.live.get(id)
     if (!l) return []
+    await this.restoreScreen(l)
     await l.drained
     if (!this.live.has(id)) return []
     const buf = l.screen.buffer.active
@@ -754,7 +764,7 @@ export class SessionManager extends EventEmitter {
 
   // ---- internals ----
 
-  private newLive(s: Session): Live {
+  private newScreen(s: Session): { screen: HeadlessTerminal; serializer: SerializeAddon } {
     const screen = new HeadlessTerminal({
       cols: s.cols || 80,
       rows: s.rows || 24,
@@ -763,6 +773,11 @@ export class SessionManager extends EventEmitter {
     })
     const serializer = new SerializeAddon()
     screen.loadAddon(serializer as any)
+    return { screen, serializer }
+  }
+
+  private newLive(s: Session): Live {
+    const { screen, serializer } = this.newScreen(s)
     return {
       s,
       screen,
@@ -772,8 +787,9 @@ export class SessionManager extends EventEmitter {
       osc: new OscTitleParser(),
       burstStart: 0,
       lastOutputAt: 0,
-      logBytes: 0,
-      paused: false,
+      flow: new OutputPressure(),
+      screenBytes: 0,
+      generation: 0,
       probing: false
     }
   }
@@ -857,7 +873,7 @@ export class SessionManager extends EventEmitter {
       return
     }
     l.pty = p
-    l.paused = false
+    l.flow.connect(p)
     s.alive = true
     s.pid = p.pid
     s.exitCode = undefined
@@ -888,6 +904,8 @@ export class SessionManager extends EventEmitter {
     p.onExit(({ exitCode }) => {
       if (l.pty !== p) return
       l.pty = undefined
+      l.flow.connect()
+      void l.log?.flush()
       s.alive = false
       s.pid = undefined
       s.exitCode = exitCode
@@ -901,7 +919,7 @@ export class SessionManager extends EventEmitter {
   private onOutput(l: Live, data: string): void {
     const bytes = Buffer.from(data, 'utf8')
     this.feedScreen(l, data)
-    this.appendLog(l, bytes)
+    l.log?.append(bytes)
     this.emit('output', l.s.id, bytes)
     for (const t of l.osc.feed(bytes)) this.onOscTitle(l, t)
     this.spotPreviewUrl(l, data)
@@ -1005,12 +1023,23 @@ export class SessionManager extends EventEmitter {
   }
 
   private feedScreen(l: Live, data: string | Uint8Array): void {
+    const generation = l.generation
+    const size = typeof data === 'string' ? Buffer.byteLength(data) : data.byteLength
+    l.screenBytes += size
+    if (l.screenBytes >= 1024 * 1024) l.flow.set('screen', true)
     l.drained = new Promise<void>((resolve) => {
+      const done = (): void => {
+        if (generation === l.generation) {
+          l.screenBytes -= size
+          if (l.screenBytes <= 256 * 1024) l.flow.set('screen', false)
+        }
+        resolve()
+      }
       try {
-        l.screen.write(data as any, resolve)
+        l.screen.write(data as any, done)
       } catch (e) {
         log('screen write failed', l.s.id, e)
-        resolve()
+        done()
       }
     })
   }
@@ -1083,65 +1112,31 @@ export class SessionManager extends EventEmitter {
   }
 
   private openLog(l: Live): void {
-    if (l.logFd !== undefined) return
-    try {
-      const file = this.logPath(l.s.id)
-      l.logFd = fs.openSync(file, 'a')
-      l.logBytes = fs.fstatSync(l.logFd).size
-    } catch (e) {
-      log('open log failed', e)
-      l.logFd = undefined
-    }
+    l.log ??= new SessionLog(this.logPath(l.s.id), {
+      pressure: (paused) => l.flow.set('log', paused),
+      error: (e) => log('session log failed', l.s.id, e)
+    })
   }
 
-  private appendLog(l: Live, bytes: Buffer): void {
-    if (l.logFd === undefined) return
-    try {
-      fs.writeSync(l.logFd, bytes)
-      l.logBytes += bytes.length
-      if (l.logBytes > LOG_MAX) this.truncateLog(l, false)
-    } catch {
-      /* disk issues are not fatal */
-    }
+  /** Called before the host exits, so batched output is not abandoned on a normal shutdown. */
+  async finishLogs(): Promise<void> {
+    for (const l of this.live.values()) l.flow.set('shutdown', true)
+    await new Promise<void>((resolve) => setImmediate(resolve))
+    await Promise.all([...this.closingLogs, ...[...this.live.values()].map((l) => l.log?.finish())])
   }
 
-  private truncateLog(l: Live, clear: boolean): void {
-    const file = this.logPath(l.s.id)
-    try {
-      if (l.logFd !== undefined) fs.closeSync(l.logFd)
-      l.logFd = undefined
-      if (clear) {
-        fs.rmSync(file, { force: true })
-      } else {
-        const keep = this.readTail(file, LOG_KEEP)
-        fs.writeFileSync(file, keep)
-      }
-    } catch {
-      /* ignore */
-    }
-    if (l.pty) this.openLog(l)
-  }
-
-  private replayLogTail(l: Live): void {
-    const tail = this.readTail(this.logPath(l.s.id), LOG_KEEP)
-    if (tail.length) this.feedScreen(l, tail)
-  }
-
-  private readTail(file: string, max: number): Buffer {
-    try {
-      const st = fs.statSync(file)
-      const size = Math.min(st.size, max)
-      if (size === 0) return Buffer.alloc(0)
-      const fd = fs.openSync(file, 'r')
-      try {
-        const out = Buffer.allocUnsafe(size)
-        fs.readSync(fd, out, 0, size, st.size - size)
-        return out
-      } finally {
-        fs.closeSync(fd)
-      }
-    } catch {
-      return Buffer.alloc(0)
-    }
+  private restoreScreen(l: Live): Promise<void> {
+    if (l.restoring) return l.restoring
+    if (!l.restorePending) return Promise.resolve()
+    l.restorePending = false
+    const generation = l.generation
+    l.restoring = readLogTail(this.logPath(l.s.id), LOG_KEEP).then(async (tail) => {
+      if (generation !== l.generation || !this.live.has(l.s.id)) return
+      if (tail.length) this.feedScreen(l, tail)
+      await l.drained
+    }).catch((e) => {
+      if (e.code !== 'ENOENT') log('restore log failed', l.s.id, e)
+    }).finally(() => { l.restoring = undefined })
+    return l.restoring
   }
 }

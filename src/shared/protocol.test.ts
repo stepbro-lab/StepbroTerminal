@@ -2,6 +2,32 @@ import { describe, expect, it } from 'vitest'
 import { encodeFrame, FrameParser } from './protocol'
 
 describe('frame codec', () => {
+  it('handles a large replay fragmented into small socket reads', () => {
+    const p = new FrameParser()
+    const payload = Buffer.alloc(2 * 1024 * 1024, 0x61)
+    const frame = encodeFrame({ t: 'replay', id: 's' }, payload)
+    let received: Uint8Array | undefined
+    p.onFrame = (_, bytes) => { received = bytes }
+    for (let i = 0; i < frame.length; i += 257) p.push(frame.subarray(i, i + 257))
+    expect(Buffer.from(received!).equals(payload)).toBe(true)
+    const retained = received!
+    frame.fill(0)
+    p.push(encodeFrame({ t: 'list' }))
+    expect(retained[0]).toBe(0x61)
+  })
+
+  it('owns binary payloads and survives queue compaction with incomplete following frames', () => {
+    const p = new FrameParser()
+    const received: Uint8Array[] = []
+    p.onFrame = (_, bytes) => { received.push(bytes) }
+    const frame = encodeFrame({ t: 'output' }, Buffer.from('keep'))
+    p.push(frame)
+    frame.fill(0)
+    expect(Buffer.from(received[0]).toString()).toBe('keep')
+    const next = Buffer.concat(Array.from({ length: 3000 }, () => encodeFrame({ t: 'x' })))
+    for (let i = 0; i < next.length; i += 13) p.push(next.subarray(i, i + 13))
+    expect(received).toHaveLength(3001)
+  })
   it('round-trips a json-only frame', () => {
     const p = new FrameParser()
     const got: any[] = []

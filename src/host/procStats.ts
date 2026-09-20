@@ -62,7 +62,7 @@ export function parseCpuTime(text: string): number {
 }
 
 /** `root` and everything under it. A process that claims to be its own parent is skipped. */
-export function subtree(procs: Map<number, ProcInfo>, root: number): ProcInfo[] {
+export function processChildren(procs: Map<number, ProcInfo>): Map<number, ProcInfo[]> {
   const children = new Map<number, ProcInfo[]>()
   for (const p of procs.values()) {
     if (p.pid === p.ppid) continue
@@ -70,6 +70,10 @@ export function subtree(procs: Map<number, ProcInfo>, root: number): ProcInfo[] 
     if (arr) arr.push(p)
     else children.set(p.ppid, [p])
   }
+  return children
+}
+
+export function subtree(procs: Map<number, ProcInfo>, root: number, children = processChildren(procs)): ProcInfo[] {
   const out: ProcInfo[] = []
   const seen = new Set<number>()
   const stack = [root]
