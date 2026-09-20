@@ -161,7 +161,10 @@ async function main(): Promise<void> {
     log('registry watch unavailable', e)
   }
 
+  let shuttingDown = false
   const shutdown = (why: string): void => {
+    if (shuttingDown) return
+    shuttingDown = true
     log('shutting down:', why)
     sm.persistNow()
     try {
@@ -172,7 +175,10 @@ async function main(): Promise<void> {
     }
     hooks.close()
     server.close()
-    setTimeout(() => process.exit(0), 100)
+    void sm.finishLogs().then(() => process.exit(0), (e) => {
+      log('log shutdown failed', e)
+      process.exit(1)
+    })
   }
   server.onShutdown = () => shutdown('client request')
   process.on('SIGTERM', () => shutdown('SIGTERM'))

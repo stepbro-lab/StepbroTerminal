@@ -14,6 +14,8 @@ interface Client {
   attached: Set<string>
   unacked: Map<string, number>
   pending: Map<string, Buffer[]>
+  pendingBytes: Map<string, number>
+  blocked: boolean
   flushTimer?: NodeJS.Timeout
 }
 
@@ -46,6 +48,7 @@ export class HostServer {
         c.attached.delete(id)
         c.unacked.delete(id)
         c.pending.delete(id)
+        c.pendingBytes.delete(id)
       }
       this.owners.forget(id)
       this.broadcast({ t: 'removed', id })
@@ -89,7 +92,7 @@ export class HostServer {
   }
 
   private accept(sock: net.Socket): void {
-    const c: Client = { sock, parser: new FrameParser(), attached: new Set(), unacked: new Map(), pending: new Map() }
+    const c: Client = { sock, parser: new FrameParser(), attached: new Set(), unacked: new Map(), pending: new Map(), pendingBytes: new Map(), blocked: false }
     this.clients.add(c)
     sock.setNoDelay?.(true)
     c.parser.onFrame = (msg, bin) => {
@@ -101,6 +104,10 @@ export class HostServer {
       }
     }
     sock.on('data', (d) => c.parser.push(d))
+    sock.on('drain', () => {
+      c.blocked = false
+      for (const id of c.attached) this.recheckFlow(id)
+    })
     const drop = (): void => {
       if (!this.clients.has(c)) return
       this.clients.delete(c)
@@ -149,6 +156,7 @@ export class HostServer {
         c.attached.delete(msg.id)
         c.unacked.delete(msg.id)
         c.pending.delete(msg.id)
+        c.pendingBytes.delete(msg.id)
         this.recheckFlow(msg.id)
         this.letGo(c, msg.id)
         break
@@ -185,6 +193,7 @@ export class HostServer {
         this.sm.viewed(msg.id)
         break
       case 'ack': {
+        if (!c.attached.has(msg.id) || !Number.isFinite(msg.bytes) || msg.bytes <= 0) break
         const cur = c.unacked.get(msg.id) ?? 0
         c.unacked.set(msg.id, Math.max(0, cur - msg.bytes))
         this.recheckFlow(msg.id)
@@ -259,6 +268,8 @@ export class HostServer {
   }
 
   private queueOutput(id: string, bytes: Uint8Array): void {
+    // The host owns this immutable buffer; clients can share it until frame encoding.
+    const data = Buffer.isBuffer(bytes) ? bytes : Buffer.from(bytes)
     for (const c of this.clients) {
       if (!c.attached.has(id)) continue
       let arr = c.pending.get(id)
@@ -266,9 +277,11 @@ export class HostServer {
         arr = []
         c.pending.set(id, arr)
       }
-      arr.push(Buffer.from(bytes))
+      arr.push(data)
+      c.pendingBytes.set(id, (c.pendingBytes.get(id) ?? 0) + data.length)
       if (!c.flushTimer) c.flushTimer = setTimeout(() => this.flush(c), FLUSH_MS)
     }
+    this.recheckFlow(id)
   }
 
   private flush(c: Client): void {
@@ -276,6 +289,7 @@ export class HostServer {
     for (const [id, chunks] of c.pending) {
       const data = chunks.length === 1 ? chunks[0] : Buffer.concat(chunks)
       c.unacked.set(id, (c.unacked.get(id) ?? 0) + data.length)
+      c.pendingBytes.delete(id)
       this.send(c, { t: 'output', id }, data)
       this.recheckFlow(id)
     }
@@ -285,7 +299,10 @@ export class HostServer {
   /** Pause the PTY when any attached client is far behind; resume when everyone caught up. */
   private recheckFlow(id: string): void {
     let max = 0
-    for (const c of this.clients) if (c.attached.has(id)) max = Math.max(max, c.unacked.get(id) ?? 0)
+    for (const c of this.clients) {
+      if (!c.attached.has(id)) continue
+      max = Math.max(max, c.blocked ? PAUSE_ABOVE + 1 : (c.unacked.get(id) ?? 0) + (c.pendingBytes.get(id) ?? 0))
+    }
     if (max > PAUSE_ABOVE) this.sm.pause(id)
     else if (max < RESUME_BELOW) this.sm.resume(id)
   }
@@ -296,7 +313,10 @@ export class HostServer {
 
   private send(c: Client, msg: HostMsg, bin?: Uint8Array): void {
     if (c.sock.destroyed) return
-    c.sock.write(encodeFrame(msg, bin))
+    if (!c.sock.write(encodeFrame(msg, bin))) {
+      c.blocked = true
+      for (const id of c.attached) this.recheckFlow(id)
+    }
   }
 }
 

@@ -12,7 +12,7 @@ import type { CreateSessionOpts, HostInfo, HostStats, Session } from '@shared/ty
 export class HostClient extends EventEmitter {
   private sock: net.Socket | null = null
   private parser = new FrameParser()
-  private pending = new Map<string, { resolve: (v: unknown) => void; reject: (e: Error) => void }>()
+  private pending = new Map<string, { resolve: (v: unknown) => void; reject: (e: Error) => void; timer: NodeJS.Timeout }>()
   info: HostInfo | null = null
 
   get connected(): boolean {
@@ -40,8 +40,7 @@ export class HostClient extends EventEmitter {
       s.on('close', () => {
         if (this.sock !== s) return
         this.sock = null
-        for (const p of this.pending.values()) p.reject(new Error('host disconnected'))
-        this.pending.clear()
+        this.rejectPending()
         this.emit('disconnected')
       })
     })
@@ -51,6 +50,15 @@ export class HostClient extends EventEmitter {
     const s = this.sock
     this.sock = null
     if (s) s.destroy()
+    this.rejectPending()
+  }
+
+  private rejectPending(): void {
+    for (const p of this.pending.values()) {
+      clearTimeout(p.timer)
+      p.reject(new Error('host disconnected'))
+    }
+    this.pending.clear()
   }
 
   send(msg: ClientMsg, bin?: Uint8Array): void {
@@ -71,11 +79,11 @@ export class HostClient extends EventEmitter {
     const reqId = randomUUID()
     return new Promise<T>((resolve, reject) => {
       if (!this.connected) return reject(new Error('host not connected'))
-      this.pending.set(reqId, { resolve: resolve as (v: unknown) => void, reject })
-      this.send(build(reqId))
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         if (this.pending.delete(reqId)) reject(new Error('host did not answer'))
       }, timeoutMs)
+      this.pending.set(reqId, { resolve: resolve as (v: unknown) => void, reject, timer })
+      this.send(build(reqId))
     })
   }
 
@@ -94,6 +102,7 @@ export class HostClient extends EventEmitter {
         const p = msg.reqId ? this.pending.get(msg.reqId) : undefined
         if (p && msg.reqId) {
           this.pending.delete(msg.reqId)
+          clearTimeout(p.timer)
           p.resolve(msg.session)
         }
         this.emit('session', msg.session)
@@ -130,6 +139,7 @@ export class HostClient extends EventEmitter {
         const p = this.pending.get(msg.reqId)
         if (p) {
           this.pending.delete(msg.reqId)
+          clearTimeout(p.timer)
           p.resolve(msg.stats)
         }
         break
@@ -141,6 +151,7 @@ export class HostClient extends EventEmitter {
         const p = msg.reqId ? this.pending.get(msg.reqId) : undefined
         if (p && msg.reqId) {
           this.pending.delete(msg.reqId)
+          clearTimeout(p.timer)
           p.reject(new Error(msg.message))
         }
         this.emit('error', msg.message)

@@ -69,20 +69,48 @@ export function encodeFrame(msg: object, bin?: Uint8Array): Buffer {
 }
 
 export class FrameParser {
-  private acc: Buffer = Buffer.alloc(0)
+  private chunks: Buffer[] = []
+  private head = 0
+  private offset = 0
+  private available = 0
+  private lengths?: { json: number; bin: number }
   onFrame: (msg: any, bin: Uint8Array) => void = () => {}
 
   push(chunk: Buffer): void {
-    this.acc = this.acc.length ? Buffer.concat([this.acc, chunk]) : chunk
+    // Common case: complete small frames already fit in this socket read. Avoid the queue.
+    if (!this.available && !this.lengths) {
+      let offset = 0
+      while (chunk.length - offset >= HEADER) {
+        const jsonLen = chunk.readUInt32BE(offset)
+        const binLen = chunk.readUInt32BE(offset + 4)
+        const end = offset + HEADER + jsonLen + binLen
+        if (end > chunk.length) break
+        const json = chunk.subarray(offset + HEADER, offset + HEADER + jsonLen).toString('utf8')
+        const bin = binLen ? new Uint8Array(chunk.subarray(offset + HEADER + jsonLen, end)) : EMPTY
+        offset = end
+        let msg: unknown
+        try { msg = JSON.parse(json) } catch { continue }
+        this.onFrame(msg, bin)
+      }
+      if (offset === chunk.length) return
+      chunk = chunk.subarray(offset)
+    }
+    if (chunk.length) {
+      this.chunks.push(chunk)
+      this.available += chunk.length
+    }
     for (;;) {
-      if (this.acc.length < HEADER) return
-      const jsonLen = this.acc.readUInt32BE(0)
-      const binLen = this.acc.readUInt32BE(4)
-      const total = HEADER + jsonLen + binLen
-      if (this.acc.length < total) return
-      const json = this.acc.subarray(HEADER, HEADER + jsonLen).toString('utf8')
-      const bin = binLen ? new Uint8Array(this.acc.subarray(HEADER + jsonLen, total)) : EMPTY
-      this.acc = this.acc.subarray(total)
+      if (!this.lengths) {
+        if (this.available < HEADER) return
+        const header = this.read(HEADER)
+        this.lengths = { json: header.readUInt32BE(0), bin: header.readUInt32BE(4) }
+      }
+      const { json: jsonLen, bin: binLen } = this.lengths
+      if (this.available < jsonLen + binLen) return
+      const json = this.read(jsonLen).toString('utf8')
+      // Own the payload: listeners may retain it after the next push.
+      const bin = binLen ? this.read(binLen, true) : EMPTY
+      this.lengths = undefined
       let msg: unknown
       try {
         msg = JSON.parse(json)
@@ -91,5 +119,34 @@ export class FrameParser {
       }
       this.onFrame(msg, bin)
     }
+  }
+
+  /** Consume each fragment once instead of copying the accumulated frame on every push. */
+  private read(size: number, own = false): Buffer {
+    const first = this.chunks[this.head]
+    const contiguous = first && first.length - this.offset >= size
+    // JSON/header can be views. Binary is copied exactly once, including fragmented payloads.
+    const out = contiguous && !own ? first.subarray(this.offset, this.offset + size) : Buffer.allocUnsafe(size)
+    let written = 0
+    while (written < size) {
+      const chunk = this.chunks[this.head]
+      const n = Math.min(size - written, chunk.length - this.offset)
+      if (!contiguous || own) chunk.copy(out, written, this.offset, this.offset + n)
+      written += n
+      this.offset += n
+      if (this.offset === chunk.length) {
+        this.head++
+        this.offset = 0
+      }
+    }
+    this.available -= size
+    if (this.head === this.chunks.length) {
+      this.chunks = []
+      this.head = 0
+    } else if (this.head > 1024 && this.head * 2 >= this.chunks.length) {
+      this.chunks = this.chunks.slice(this.head)
+      this.head = 0
+    }
+    return out
   }
 }
