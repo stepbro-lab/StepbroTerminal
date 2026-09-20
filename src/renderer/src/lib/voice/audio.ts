@@ -176,8 +176,20 @@ export class Mic {
 }
 
 /**
- * The model's voice. Slices arrive faster than they play, so each is booked to start where the
- * one before it ends; a barge-in throws away everything not yet heard.
+ * How much of an answer is gathered before it starts playing, and again whenever it runs out
+ * halfway. The start of an answer streams in slower than it plays (two thirds of real time for
+ * the first seconds, measured), and played slice by slice as it came it stopped fifteen times in
+ * six seconds: the voice came out choppy and cut to pieces. Gathered first, the same answer stops
+ * twice at most, and a warm conversation not at all, for about three quarters of a second more
+ * before the first word.
+ */
+const GATHER_S = 0.6
+/** Never gathered longer than this from the first slice, so a short answer is not kept waiting. */
+const GATHER_MAX_MS = 1500
+
+/**
+ * The model's voice. Each slice is booked to start where the one before it ends, after the first
+ * few have been gathered; a barge-in throws away everything not yet heard.
  */
 export class Speaker {
   private ctx: AudioContext | null = null
@@ -186,6 +198,10 @@ export class Speaker {
   private samples: Float32Array<ArrayBuffer> | null = null
   private playing: AudioBufferSourceNode[] = []
   private nextAt = 0
+  /** Slices held back until there are enough of them to play without running dry. */
+  private gathered: AudioBuffer[] = []
+  private gatheredS = 0
+  private gatherTimer: ReturnType<typeof setTimeout> | null = null
   /** Set while sound is actually coming out, so the bubble can show it. */
   onSpeaking: (speaking: boolean) => void = () => {}
 
@@ -215,13 +231,39 @@ export class Speaker {
     // Written into the channel rather than copied in: the samples come from a view over bytes,
     // and set() takes that where copyToChannel wants a buffer of its own.
     buffer.getChannelData(0).set(pcm16ToFloats(pcm))
+    // Still speaking: straight after what is already booked.
+    if (this.playing.length && this.nextAt > ctx.currentTime && !this.gathered.length) {
+      this.book(ctx, buffer, this.nextAt)
+      return
+    }
+    this.gathered.push(buffer)
+    this.gatheredS += buffer.duration
+    if (this.gatheredS >= GATHER_S) this.flush()
+    else if (!this.gatherTimer) this.gatherTimer = setTimeout(() => this.flush(), GATHER_MAX_MS)
+  }
+
+  /** Plays whatever has been gathered, now. Also what the end of an answer calls: nothing more is coming. */
+  flush(): void {
+    if (this.gatherTimer) clearTimeout(this.gatherTimer)
+    this.gatherTimer = null
+    const ctx = this.ctx
+    if (!ctx || !this.gathered.length) return
+    // A moment ahead, so the first slice is not already late by the time it is booked.
+    let at = Math.max(ctx.currentTime + 0.02, this.nextAt)
+    for (const buffer of this.gathered) {
+      this.book(ctx, buffer, at)
+      at += buffer.duration
+    }
+    this.gathered = []
+    this.gatheredS = 0
+  }
+
+  private book(ctx: AudioContext, buffer: AudioBuffer, at: number): void {
     const src = ctx.createBufferSource()
     src.buffer = buffer
     src.connect(this.analyser ?? ctx.destination)
-    // A slice that arrives late starts now; one that arrives early waits its turn.
-    const start = Math.max(ctx.currentTime, this.nextAt)
-    src.start(start)
-    this.nextAt = start + buffer.duration
+    src.start(at)
+    this.nextAt = at + buffer.duration
     this.playing.push(src)
     if (this.playing.length === 1) this.onSpeaking(true)
     src.onended = () => {
@@ -242,6 +284,10 @@ export class Speaker {
     }
     this.playing = []
     this.nextAt = 0
+    this.gathered = []
+    this.gatheredS = 0
+    if (this.gatherTimer) clearTimeout(this.gatherTimer)
+    this.gatherTimer = null
     this.onSpeaking(false)
   }
 
