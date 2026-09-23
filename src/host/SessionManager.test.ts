@@ -16,12 +16,15 @@ vi.mock('node-pty', () => ({ spawn: () => {
 
 let dir: string
 let sm: SessionManager
+/** Whether a window has the sessions attached; most tests are of a session someone is looking at. */
+let watched = true
 beforeEach(async () => {
   ptys.length = 0
+  watched = true
   dir = await fs.mkdtemp(path.join(os.tmpdir(), 'step-manager-'))
   sm = new SessionManager({ stateFile: path.join(dir, 'state.json'), logDir: path.join(dir, 'logs'), hooksDir: path.join(dir, 'hooks'),
     binDir: path.join(dir, 'bin'), hookUrl: () => 'http://127.0.0.1:1/hooks', mcpUrl: () => 'http://127.0.0.1:1/mcp',
-    scrollback: 5000, baseEnv: process.env })
+    scrollback: 5000, baseEnv: process.env, viewed: () => watched })
 })
 afterEach(async () => {
   for (const s of sm.list()) sm.close(s.id)
@@ -161,5 +164,49 @@ describe('full-screen programs through a host restart', () => {
     expect(Buffer.from(await next.snapshot(s.id)).toString()).toContain('what was on screen')
     await expect(fs.access(path.join(dir, 'logs', `${s.id}.screen`))).rejects.toThrow()
     await next.finishLogs()
+  })
+})
+
+describe("answers a program asks the terminal for as it starts", () => {
+  const platform = process.platform
+  const onPlatform = (value: string): void => {
+    Object.defineProperty(process, 'platform', { value, configurable: true })
+  }
+  afterEach(() => onPlatform(platform))
+  /** What the program was sent, beyond the host's own answer to ConPTY. */
+  const sentToProgram = (p: any): string => p.write.mock.calls.map((c: any[]) => Buffer.from(c[0]).toString()).filter((t: string) => t !== '\x1b[?1;2c').join('')
+
+  it('passes on where the cursor is, away from Windows, even before anything was printed', () => {
+    onPlatform('darwin')
+    const s = create()
+    // A full-screen program measuring its text: a question, and nothing printable yet.
+    ptys[0].data('\x1b[?1049h\x1b[3;7H\x1b[6n')
+    sm.input(s.id, Buffer.from('\x1b[3;7R'))
+    expect(sentToProgram(ptys[0])).toBe('\x1b[3;7R')
+  })
+
+  it('answers the program itself while no window is watching yet', async () => {
+    onPlatform('darwin')
+    watched = false
+    const s = create()
+    ptys[0].data('\x1b[?1049h\x1b[3;7H\x1b[6n')
+    await sm.snapshot(s.id)
+    expect(sentToProgram(ptys[0])).toBe('\x1b[3;7R')
+    // Once a window watches, it answers and the host stays quiet.
+    ptys[0].write.mockClear()
+    watched = true
+    ptys[0].data('\x1b[5;9H\x1b[6n')
+    await sm.snapshot(s.id)
+    expect(sentToProgram(ptys[0])).toBe('')
+  })
+
+  it('still drops a view\'s answers to ConPTY\'s startup probe on Windows', () => {
+    onPlatform('win32')
+    const s = create()
+    // ConPTY's probe: the host answers it, and a view that saw it answers it again.
+    ptys[0].data('\x1b[c\x1b[6n')
+    expect(ptys[0].write).toHaveBeenCalledWith('\x1b[?1;2c')
+    sm.input(s.id, Buffer.from('\x1b[?1;2c\x1b[1;1R'))
+    expect(sentToProgram(ptys[0])).toBe('')
   })
 })

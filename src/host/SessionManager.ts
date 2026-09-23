@@ -49,6 +49,8 @@ export interface SessionManagerOpts {
   opencodePlugin?: string
   scrollback: number
   baseEnv: NodeJS.ProcessEnv
+  /** Whether a window has the session attached, and so answers what its program asks the terminal. */
+  viewed?: (id: string) => boolean
 }
 
 /** How long after asking the terminal about itself an answer is still worth passing on. */
@@ -335,6 +337,7 @@ export class SessionManager extends EventEmitter {
     const fresh = this.newScreen(l.s)
     l.screen = fresh.screen
     l.serializer = fresh.serializer
+    this.answerWhenUnseen(l, fresh.screen)
     l.drained = Promise.resolve()
     l.screenBytes = 0
     l.flow.set('screen', false)
@@ -766,6 +769,23 @@ export class SessionManager extends EventEmitter {
 
   // ---- internals ----
 
+  /**
+   * The host's copy of the screen answers what the program asks the terminal (where the cursor
+   * is, what kind of terminal this is) while no window is watching the session. A program asks the
+   * moment it starts, and a window only takes the session a moment later, once its pane has
+   * settled: nobody answered those first questions, which a full-screen agent asks to measure its
+   * text with. With a window watching, the window
+   * answers, as a terminal would, and this stays quiet; so it does while ConPTY is still probing,
+   * which the host answers on its own.
+   */
+  private answerWhenUnseen(l: Live, screen: HeadlessTerminal): void {
+    screen.onData((reply) => {
+      if (screen !== l.screen || !l.pty) return
+      if (this.opts.viewed?.(l.s.id) || l.probing) return
+      l.pty.write(reply)
+    })
+  }
+
   private newScreen(s: Session): { screen: HeadlessTerminal; serializer: SerializeAddon } {
     const screen = new HeadlessTerminal({
       cols: s.cols || 80,
@@ -780,7 +800,7 @@ export class SessionManager extends EventEmitter {
 
   private newLive(s: Session): Live {
     const { screen, serializer } = this.newScreen(s)
-    return {
+    const l: Live = {
       s,
       screen,
       serializer,
@@ -794,6 +814,8 @@ export class SessionManager extends EventEmitter {
       generation: 0,
       probing: false
     }
+    this.answerWhenUnseen(l, screen)
+    return l
   }
 
   private spawn(l: Live, resume: boolean): void {
@@ -882,7 +904,9 @@ export class SessionManager extends EventEmitter {
     this.openLog(l)
     // Answer ConPTY's startup probes so the shell does not sit blocked for ~3s. The window closes
     // on the first printable output; while it is open, input() also drops the replies a view sends.
-    l.probing = true
+    // ConPTY is Windows' alone. Anywhere else nothing probes the terminal on the program's behalf,
+    // and a window held open for it only swallowed the answers to what the program itself asked.
+    l.probing = process.platform === 'win32'
     l.askedAt = Date.now()
     p.onData((data) => {
       if (l.pty !== p) return
