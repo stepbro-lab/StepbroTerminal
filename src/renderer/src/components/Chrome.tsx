@@ -168,6 +168,8 @@ function CaptionButtons() {
  */
 export function TopBar() {
   const fullscreen = useUi((s) => s.fullscreen)
+  // Kept open for good when the bar is set not to tuck itself away.
+  const hides = usePrefs((s) => s.prefs?.barHides !== false)
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const openBar = useRef<() => void>(() => {})
@@ -206,7 +208,7 @@ export function TopBar() {
       if (isOpen && r >= LIGHTS_AT) showLights(true)
     }, releaseFits)
     const close = (): void => {
-      if (!isOpen) return
+      if (!isOpen || !hides) return
       isOpen = false
       setOpen(false)
       window.step.send('win:bar', 0)
@@ -233,6 +235,7 @@ export function TopBar() {
       holdFits()
       spring.to(1, OPEN)
     }
+    if (!hides) openBar.current()
     const offs = [
       window.step.on('win:barPointer', (now) => {
         inside = now
@@ -278,12 +281,18 @@ export function TopBar() {
       releaseFits()
       if (isOpen) window.step.send('win:bar', 0)
       showLights(false)
+      // Back to a bare edge: the next run opens it again if it is meant to stay open, and without
+      // this an open bar would still be drawn while the spring behind it started from nothing.
+      setOpen(false)
+      frame.style.setProperty('--bar', '0')
+      frame.style.setProperty('--bar-push', '0px')
+      frame.removeAttribute('data-bar')
     }
-  }, [])
+  }, [hides])
 
   return (
     <>
-      {!open && (
+      {hides && !open && (
         <div
           className="bar-edge no-drag"
           onMouseEnter={(e) => e.buttons === 0 && edge.current.at(e.clientX)}

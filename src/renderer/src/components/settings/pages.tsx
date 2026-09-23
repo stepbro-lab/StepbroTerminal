@@ -84,6 +84,12 @@ export function AppearancePage() {
         </div>
       </Section>
 
+      <Section title={t('Top bar')} description={t('The bar the top edge grows into, with the window buttons in it.')}>
+        <Row label={t('Tuck it away')} hint={t('Off, the bar stays open and the terminal sits below it.')}>
+          <Toggle value={p.barHides !== false} onChange={(barHides) => upd({ barHides })} />
+        </Row>
+      </Section>
+
       <Section title="Topito" description={t('The little mole between the buttons at the foot of the sidebar. He does whatever your agents are doing, comes out at the corner of the terminal when one needs you, answers when you click him, and agents can tell you something through him.')}>
         <Row label={t('Show Topito')}>
           <Toggle value={p.topito === true} onChange={(topito) => upd({ topito })} />
@@ -124,7 +130,7 @@ export function AppearancePage() {
       </Section>
 
       <Footer>
-        <SmallButton onClick={() => upd({ theme: 'system', accent: 'graphite', logo: DEFAULT_LOGO, fontFamily: 'JetBrains Mono', fontSize: 13, lineHeight: 1, sidebarWidth: 240, frameOpacity: 0, contentOpacity: 0.9 })}>{t('Revert to default')}</SmallButton>
+        <SmallButton onClick={() => upd({ theme: 'system', accent: 'graphite', logo: DEFAULT_LOGO, fontFamily: 'JetBrains Mono', fontSize: 13, lineHeight: 1, sidebarWidth: 240, frameOpacity: 0, contentOpacity: 0.9, barHides: true })}>{t('Revert to default')}</SmallButton>
       </Footer>
     </>
   )

@@ -210,6 +210,11 @@ export interface Prefs {
    * program is in front. On unless turned off, and only ever while there is a Gemini key.
    */
   voiceAnywhere?: boolean
+  /**
+   * The bar at the top edge tucks itself away and comes back when the pointer reaches the
+   * edge. Off, it stays open and the terminal sits below it. On unless turned off.
+   */
+  barHides?: boolean
   /** Topito, the mole between the buttons at the foot of the sidebar. Off until turned on. */
   topito?: boolean
   /** The newest version whose changes have been shown; what came after it opens once after an update. */
