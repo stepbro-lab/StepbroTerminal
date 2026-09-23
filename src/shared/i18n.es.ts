@@ -421,6 +421,10 @@ export const es: Record<string, string> = {
   'All quiet down here': 'Todo tranquilo por aquí abajo',
   'Topito · click to ask what is going on': 'Topito · haz clic para preguntarle qué pasa',
   'Show Topito': 'Mostrar a Topito',
+  'Top bar': 'Barra superior',
+  'The bar the top edge grows into, with the window buttons in it.': 'La barra en la que crece el borde de arriba, con los botones de la ventana.',
+  'Tuck it away': 'Esconderla',
+  'Off, the bar stays open and the terminal sits below it.': 'Desactivado, la barra se queda abierta y el terminal va debajo.',
   'The little mole between the buttons at the foot of the sidebar. He does whatever your agents are doing, comes out at the corner of the terminal when one needs you, answers when you click him, and agents can tell you something through him.':
     'El topito entre los botones del pie de la barra lateral. Hace lo mismo que están haciendo tus agentes, sale por la esquina del terminal cuando alguno te necesita, te responde si le haces clic y los agentes pueden decirte algo a través de él.',
   'The conversation was cut off. Press to talk again.': 'La conversación se cortó. Pulsa otra vez para hablar.',
@@ -450,6 +454,8 @@ export const es: Record<string, string> = {
   'Hi! I’m Topito, the new mascot of stepbro terminal. I’ll be your trusty sidekick!': '¡Hola! Soy Topito, la nueva mascota de stepbro terminal. ¡Seré tu mascota de confianza!',
   'A calmer window: no shadow behind the text, and nothing over the menu.': 'Una ventana más tranquila: sin sombra detrás del texto y sin nada encima del menú.',
   'Text and icons over a translucent window no longer carry a shadow around them.': 'El texto y los iconos sobre la ventana translúcida ya no llevan una sombra alrededor.',
+  'The bar at the top edge can be kept open: in Settings, under Appearance, it can be told not to tuck itself away.':
+    'La barra del borde de arriba se puede dejar abierta: en Ajustes, en Apariencia, se le puede decir que no se esconda.',
   'Right-clicking a selection no longer leaves the Read aloud button on top of the menu.':
     'Al hacer clic derecho sobre una selección, el botón de leer en voz alta ya no se queda encima del menú.',
   'An agent that draws a full screen, like OpenCode, comes back on its own screen after the app updates, instead of its frames piling up one over another.':
