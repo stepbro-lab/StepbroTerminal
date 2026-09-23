@@ -25,7 +25,8 @@ export const CHANGELOG: ChangelogEntry[] = [
     changes: [
       { kind: 'fixed', text: 'Text and icons over a translucent window no longer carry a shadow around them.' },
       { kind: 'fixed', text: 'Right-clicking a selection no longer leaves the Read aloud button on top of the menu.' },
-      { kind: 'fixed', text: 'An agent that draws a full screen, like OpenCode, comes back on its own screen after the app updates, instead of its frames piling up one over another.' }
+      { kind: 'fixed', text: 'An agent that draws a full screen, like OpenCode, comes back on its own screen after the app updates, instead of its frames piling up one over another.' },
+      { kind: 'fixed', text: 'The Restart and Close buttons on a session that ended can be pressed again, instead of the click going through to the terminal.' }
     ]
   },
   {

@@ -293,7 +293,7 @@ function ArchivedView({ session }: { session: Session }) {
   const color = presets.find((p) => p.id === presetId)?.color ?? 'var(--text-muted)'
   const resumes = canResume(session)
   return (
-    <div className="fade-in absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 p-8 text-center" style={{ background: 'var(--card-fill, var(--bg-card))', backdropFilter: 'blur(14px)' }}>
+    <div className="fade-in absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 p-8 text-center" style={{ background: 'var(--card-fill, var(--bg-card))', backdropFilter: 'blur(14px)' }}>
       <span style={{ color }}>
         <AgentLogo presetId={presetId} size={40} />
       </span>
@@ -320,7 +320,7 @@ function ErrorBar({ session }: { session: Session }) {
   const detail = session.errorDetail || session.error
   return (
     <div
-      className="fade-in absolute inset-x-2 bottom-2 rounded-xl px-3 py-2.5 text-[12.5px]"
+      className="fade-in absolute inset-x-2 bottom-2 z-20 rounded-xl px-3 py-2.5 text-[12.5px]"
       style={{ background: 'var(--bg-overlay)', boxShadow: '0 0 0 1px var(--border) inset, var(--shadow-card)' }}
     >
       <div className="flex items-center gap-3">
@@ -352,7 +352,7 @@ function ErrorBar({ session }: { session: Session }) {
 function Bar({ children }: { children: React.ReactNode }) {
   return (
     <div
-      className="fade-in absolute inset-x-2 bottom-2 flex items-center gap-3 rounded-xl px-3 py-2 text-[12.5px]"
+      className="fade-in absolute inset-x-2 bottom-2 z-20 flex items-center gap-3 rounded-xl px-3 py-2 text-[12.5px]"
       style={{ background: 'var(--bg-overlay)', boxShadow: '0 0 0 1px var(--border) inset, var(--shadow-card)' }}
     >
       {children}
