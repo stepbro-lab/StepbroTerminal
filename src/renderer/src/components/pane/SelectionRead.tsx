@@ -33,6 +33,9 @@ export function SelectionRead() {
     }
     const hide = (): void => setAt(null)
     const onUp = (ev: MouseEvent): void => {
+      // The left button only. A right-click opens the menu on the way down, and this, coming up
+      // after it, put the button back on screen over the menu, which offers the same thing anyway.
+      if (ev.button !== 0) return
       const here = terminal()
       if (!here || !here.el.contains(ev.target as Node)) return
       // A moment after the button comes up, so xterm has settled on what is selected.
