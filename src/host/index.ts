@@ -44,6 +44,8 @@ async function main(): Promise<void> {
   } catch (e) {
     log('agent plugin write failed', e)
   }
+  // The server, made below once the sessions are loaded, says whether a window is watching one.
+  let viewed: (id: string) => boolean = () => false
   const sm = new SessionManager({
     stateFile: path.join(dir, 'state.json'),
     logDir: path.join(dir, 'sessions'),
@@ -53,7 +55,8 @@ async function main(): Promise<void> {
     mcpUrl: (id) => mcpUrlFor(id),
     opencodePlugin,
     scrollback: SCROLLBACK_LINES,
-    baseEnv: process.env
+    baseEnv: process.env,
+    viewed: (id) => viewed(id)
   })
   sm.load()
 
@@ -109,6 +112,7 @@ async function main(): Promise<void> {
 
   const socketPath = hostSocketPath()
   const server = new HostServer(sm, notes, socketPath, version)
+  viewed = (id) => server.isViewed(id)
   try {
     await server.listen()
   } catch (e: any) {

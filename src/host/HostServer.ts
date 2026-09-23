@@ -65,6 +65,12 @@ export class HostServer {
     return this.clients.size
   }
 
+  /** Whether any window has this session attached, and so answers what its program asks the terminal. */
+  isViewed(id: string): boolean {
+    for (const c of this.clients) if (c.attached.has(id)) return true
+    return false
+  }
+
   async listen(): Promise<void> {
     if (process.platform !== 'win32') {
       // Remove a stale socket file if nobody answers on it.
