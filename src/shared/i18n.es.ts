@@ -456,6 +456,8 @@ export const es: Record<string, string> = {
     'Un agente que dibuja a pantalla completa, como OpenCode, vuelve en su propia pantalla después de actualizar la app, en vez de amontonar sus fotogramas uno sobre otro.',
   'The Restart and Close buttons on a session that ended can be pressed again, instead of the click going through to the terminal.':
     'Los botones de reiniciar y cerrar de una sesión terminada se pueden pulsar otra vez, en vez de que el clic se vaya al terminal.',
+  'Clicking the buttons an agent draws, like the ones OpenCode asks with, works: a click reaches the program, and dragging still selects text.':
+    'Pulsar los botones que dibuja un agente, como los que usa OpenCode para preguntar, ya funciona: el clic le llega al programa y arrastrar sigue seleccionando texto.',
   'Meet Topito, talk to your terminal from any app, and see your desktop through the window.':
     'Llega Topito, puedes hablarle al terminal desde cualquier app y ver tu escritorio a través de la ventana.',
   'Topito, a little mole who acts out what your agents are doing, pops out when one needs you and passes on what they want to tell you. Turn him on in Settings, under Appearance.':
