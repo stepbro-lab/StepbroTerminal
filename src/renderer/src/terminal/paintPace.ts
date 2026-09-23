@@ -64,8 +64,9 @@ export function paceDrawing(term: Terminal): () => void {
   if (!following) {
     following = true
     onPace(follow)
-  }
-  h.draw(currentPace() === 'live')
+    // The window may already be behind another by now, and no change of pace would say so.
+    follow(currentPace())
+  } else h.draw(currentPace() === 'live')
   return () => {
     held.delete(h)
     rs._handleIntersectionChange = own
