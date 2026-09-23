@@ -448,6 +448,8 @@ export const es: Record<string, string> = {
   'Topito is on': 'Topito está activado',
   'Turn on Topito': 'Activar a Topito',
   'Hi! I’m Topito, the new mascot of stepbro terminal. I’ll be your trusty sidekick!': '¡Hola! Soy Topito, la nueva mascota de stepbro terminal. ¡Seré tu mascota de confianza!',
+  'A calmer window: no shadow behind the text, and nothing over the menu.': 'Una ventana más tranquila: sin sombra detrás del texto y sin nada encima del menú.',
+  'Text and icons over a translucent window no longer carry a shadow around them.': 'El texto y los iconos sobre la ventana translúcida ya no llevan una sombra alrededor.',
   'Meet Topito, talk to your terminal from any app, and see your desktop through the window.':
     'Llega Topito, puedes hablarle al terminal desde cualquier app y ver tu escritorio a través de la ventana.',
   'Topito, a little mole who acts out what your agents are doing, pops out when one needs you and passes on what they want to tell you. Turn him on in Settings, under Appearance.':

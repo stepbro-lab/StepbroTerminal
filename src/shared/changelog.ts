@@ -19,6 +19,14 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.1.0-beta.22',
+    date: '2026-09-20',
+    headline: 'A calmer window: no shadow behind the text, and nothing over the menu.',
+    changes: [
+      { kind: 'fixed', text: 'Text and icons over a translucent window no longer carry a shadow around them.' }
+    ]
+  },
+  {
     version: '0.1.0-beta.21',
     date: '2026-09-19',
     headline: 'Meet Topito, talk to your terminal from any app, and see your desktop through the window.',
