@@ -9,6 +9,7 @@ import { InputLine, hintFor } from '@/lib/flagHints'
 import { altArrowSequence, imagePaste, imagePathText, newlineSequence } from '@/lib/agentKeys'
 import { FitHold } from './fitHold'
 import { keepSelectionWhileTheMouseMoves } from './mouseReports'
+import { pressGoesToTheProgram } from './mousePress'
 
 interface Entry {
   id: string
@@ -174,6 +175,9 @@ class TerminalRegistry {
       scrollback: p?.scrollback ?? 5000,
       theme: themeFor(this.dark),
       macOptionIsMeta: true,
+      // On a Mac this is the only thing that makes a press select rather than go to a program
+      // that owns the mouse; elsewhere Shift does it and there is nothing to turn on.
+      macOptionClickForcesSelection: true,
       minimumContrastRatio: 1,
       drawBoldTextInBrightColors: false,
       scrollOnUserInput: true,
@@ -197,42 +201,11 @@ class TerminalRegistry {
       this.contextMenuHandler(id, ev.clientX, ev.clientY)
     })
     const gesture = { at: 0, down: false }
-    // Dragging selects text even while a program owns the mouse (Claude Code takes it for
-    // scrolling). xterm only allows that with Shift held, so the press is replayed as if it were;
-    // the wheel still reaches the program.
-    container.addEventListener(
-      'mousedown',
-      (ev) => {
-        if (ev.isTrusted) {
-          gesture.at = performance.now()
-          gesture.down = true
-        }
-        if (ev.button !== 0 || ev.shiftKey || term.modes.mouseTrackingMode === 'none') return
-        if (window.step.platform === 'darwin' && ev.altKey) return
-        ev.stopPropagation()
-        // Without this the browser moves focus off the terminal, xterm reports the focus loss, the
-        // program repaints and re-enables the mouse, and xterm drops the selection it just started.
-        ev.preventDefault()
-        ev.target?.dispatchEvent(
-          new MouseEvent('mousedown', {
-            bubbles: true,
-            cancelable: true,
-            shiftKey: true,
-            button: 0,
-            buttons: 1,
-            detail: ev.detail,
-            clientX: ev.clientX,
-            clientY: ev.clientY,
-            screenX: ev.screenX,
-            screenY: ev.screenY,
-            ctrlKey: ev.ctrlKey,
-            altKey: ev.altKey,
-            metaKey: ev.metaKey
-          })
-        )
-      },
-      true
-    )
+    pressGoesToTheProgram(container, term, window.step.platform, () => {
+      gesture.at = performance.now()
+      gesture.down = true
+    })
+
     // Dropping files pastes their paths, quoted when needed.
     container.addEventListener('dragover', (ev) => ev.preventDefault())
     container.addEventListener('drop', (ev) => {
