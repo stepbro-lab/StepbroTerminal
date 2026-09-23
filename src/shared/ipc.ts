@@ -152,6 +152,11 @@ export interface EventMap {
   /** The key the system holds for talking was pressed: start a turn, or end the one under way. */
   'ui:voiceToggle': () => void
   'win:maximized': (maximized: boolean) => void
+  /**
+   * Whether the window can be seen: false once minimised or hidden, true when it is back. The page
+   * cannot tell by itself, since it is kept running at full speed whatever becomes of it.
+   */
+  'win:seen': (seen: boolean) => void
   /** macOS: the window went full screen, where the traffic lights leave the bar. */
   'win:fullscreen': (fullscreen: boolean) => void
   /** While the top bar is open: the pointer went into it (true) or left it (false). */

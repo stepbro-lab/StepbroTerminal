@@ -3,6 +3,7 @@ import { useData, subscribeData } from '@/stores/data'
 import { usePrefs } from '@/stores/prefs'
 import { allPaneIds, useUi } from '@/stores/ui'
 import { registry } from '@/terminal/TerminalRegistry'
+import { usePace } from '@/lib/windowPace'
 import { handleKeydown, runCommand, setSidebarModelRef, type Command } from '@/lib/shortcuts'
 import { terminalContextMenu } from '@/lib/terminalMenu'
 import { defaultTitle } from '@/lib/sidebarModel'
@@ -175,13 +176,17 @@ export default function App() {
     if (prefs) registry.applyPrefs(prefs, dark)
   }, [prefs, dark])
 
-  // ---- spinner ticker only while something is working ----
+  // ---- spinner ticker only while something is working, and only as fast as anyone can see ----
+  // Each turn of it redraws every spinner on screen, over the window's glass. Left at full speed
+  // it kept the window drawing for as long as an agent worked, minimised or not: at the pace of an
+  // agent's own spinner in front, a few turns a second behind another window, still when out of sight.
+  const anyWorking = Object.values(sessions).some((s) => s.status === 'working' || s.status === 'starting')
+  const pace = usePace()
   useEffect(() => {
-    const anyWorking = Object.values(sessions).some((s) => s.status === 'working' || s.status === 'starting')
-    if (!anyWorking) return
-    const t = window.setInterval(() => useUi.getState().tickSpinner(), 80)
+    if (!anyWorking || pace === 'off') return
+    const t = window.setInterval(() => useUi.getState().tickSpinner(), pace === 'live' ? 80 : 400)
     return () => window.clearInterval(t)
-  }, [sessions])
+  }, [anyWorking, pace])
 
   // ---- keep the session model available to keyboard jumps, pick a sensible active session ----
   useEffect(() => {

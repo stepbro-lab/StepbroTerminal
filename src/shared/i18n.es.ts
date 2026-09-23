@@ -454,6 +454,8 @@ export const es: Record<string, string> = {
   'Hi! I’m Topito, the new mascot of stepbro terminal. I’ll be your trusty sidekick!': '¡Hola! Soy Topito, la nueva mascota de stepbro terminal. ¡Seré tu mascota de confianza!',
   'A calmer window: no shadow behind the text, and nothing over the menu.': 'Una ventana más tranquila: sin sombra detrás del texto y sin nada encima del menú.',
   'Text and icons over a translucent window no longer carry a shadow around them.': 'El texto y los iconos sobre la ventana translúcida ya no llevan una sombra alrededor.',
+  'Much less energy while an agent works and the window is behind another or minimised: nothing is drawn where nobody can see it, and the spinners slow down or stop.':
+    'Mucho menos consumo mientras un agente trabaja y la ventana está detrás de otra o minimizada: no se dibuja nada que nadie vea, y los indicadores giran más despacio o se paran.',
   'The bar at the top edge can be kept open: in Settings, under Appearance, it can be told not to tuck itself away.':
     'La barra del borde de arriba se puede dejar abierta: en Ajustes, en Apariencia, se le puede decir que no se esconda.',
   'Right-clicking a selection no longer leaves the Read aloud button on top of the menu.':
