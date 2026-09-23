@@ -72,6 +72,25 @@ mac:
         LSItemContentTypes:
           - public.folder
   artifactName: StepbroTerminal-${version}-mac-${arch}.${ext}
+# The installer's window: the app on the left, Applications on the right, and the picture behind
+# them with the name, an arrow between the two and what to do (build/dmg/background.html, drawn by
+# pnpm dmg:background). The positions are where the picture leaves room for them.
+dmg:
+  title: stepbro terminal
+  background: build/dmg-background.png
+  window:
+    width: 540
+    height: 380
+  iconSize: 88
+  iconTextSize: 12
+  contents:
+    - x: 150
+      y: 190
+      type: file
+    - x: 390
+      y: 190
+      type: link
+      path: /Applications
 linux:
   target:
     - AppImage
