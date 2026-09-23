@@ -80,6 +80,15 @@ export function createWindow(prefs: Prefs): BrowserWindow {
   })
   // A file or folder dropped where nothing handles it must never replace the app with itself.
   win.webContents.on('will-navigate', (e) => e.preventDefault())
+  // The page keeps running at full speed while the window is out of sight, so it cannot see this
+  // for itself; the terminals stop drawing on it.
+  const seen = (v: boolean) => () => {
+    if (!win.isDestroyed()) win.webContents.send('win:seen', v)
+  }
+  win.on('minimize', seen(false))
+  win.on('hide', seen(false))
+  win.on('restore', seen(true))
+  win.on('show', seen(true))
   win.on('maximize', () => win.webContents.send('win:maximized', true))
   win.on('unmaximize', () => win.webContents.send('win:maximized', false))
   // In macOS full screen the traffic lights go away with the menu bar.

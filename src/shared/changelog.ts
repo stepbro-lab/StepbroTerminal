@@ -24,6 +24,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     headline: 'A calmer window: no shadow behind the text, and nothing over the menu.',
     changes: [
       { kind: 'new', text: 'The bar at the top edge can be kept open: in Settings, under Appearance, it can be told not to tuck itself away.' },
+      { kind: 'improved', text: 'Much less energy while an agent works and the window is behind another or minimised: nothing is drawn where nobody can see it, and the spinners slow down or stop.' },
       { kind: 'fixed', text: 'Text and icons over a translucent window no longer carry a shadow around them.' },
       { kind: 'fixed', text: 'Right-clicking a selection no longer leaves the Read aloud button on top of the menu.' },
       { kind: 'fixed', text: 'An agent that draws a full screen, like OpenCode, comes back on its own screen after the app updates, instead of its frames piling up one over another.' },

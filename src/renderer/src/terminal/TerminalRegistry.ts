@@ -10,6 +10,7 @@ import { altArrowSequence, imagePaste, imagePathText, newlineSequence } from '@/
 import { FitHold } from './fitHold'
 import { keepSelectionWhileTheMouseMoves } from './mouseReports'
 import { pressGoesToTheProgram } from './mousePress'
+import { paceDrawing } from './paintPace'
 
 interface Entry {
   id: string
@@ -299,6 +300,8 @@ class TerminalRegistry {
       e.term.open(e.container)
       // xterm builds its selection service in open(), so this is the first moment it can be reached.
       keepSelectionAcrossRedraws(e.term)
+      // Its renderer too: from here it is drawn as often as the window can be seen.
+      e.disposables.push({ dispose: paceDrawing(e.term) })
     }
     e.mounted = true
     this.loadWebgl(e)
