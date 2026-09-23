@@ -5,7 +5,7 @@ interface Pausable {
 
 /** Every consumer must catch up before the PTY can resume. */
 export class OutputPressure {
-  private reasons = new Set<'client' | 'screen' | 'log' | 'shutdown'>()
+  private reasons = new Set<'client' | 'screen' | 'log' | 'rotate' | 'shutdown'>()
   private target?: Pausable
   private paused = false
 
@@ -15,7 +15,7 @@ export class OutputPressure {
     this.update()
   }
 
-  set(reason: 'client' | 'screen' | 'log' | 'shutdown', paused: boolean): void {
+  set(reason: 'client' | 'screen' | 'log' | 'rotate' | 'shutdown', paused: boolean): void {
     if (paused) this.reasons.add(reason)
     else this.reasons.delete(reason)
     this.update()

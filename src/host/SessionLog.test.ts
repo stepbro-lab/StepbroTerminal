@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
-import { SessionLog, readLogTail } from './SessionLog'
+import { SessionLog, altScreenBefore, readLogTail } from './SessionLog'
 
 let dir: string
 let logs: SessionLog[]
@@ -90,5 +90,43 @@ describe('session log', () => {
     await log.finish()
     expect(pressure.mock.calls).toEqual([[true], [false]])
     expect(error).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('altScreenBefore', () => {
+  it('says which screen the part that was cut away left the session on', async () => {
+    const file = path.join(dir, 'screens.log')
+    await fs.writeFile(file, 'shell output\x1b[?1049hframes and frames\x1b[?1049lback at the shell\x1b[?1049hmore frames')
+    const size = (await fs.stat(file)).size
+    expect(await altScreenBefore(file, size)).toBe(true)
+    expect(await altScreenBefore(file, size - 'more frames'.length - '\x1b[?1049h'.length)).toBe(false)
+    expect(await altScreenBefore(file, 'shell output'.length)).toBe(false)
+    expect(await altScreenBefore(file, 0)).toBe(false)
+  })
+
+  it('sees a switch that falls across two reads', async () => {
+    const file = path.join(dir, 'split.log')
+    await fs.writeFile(file, 'x'.repeat(64 * 1024 - 4) + '\x1b[?1049h' + 'y'.repeat(100))
+    expect(await altScreenBefore(file, (await fs.stat(file)).size)).toBe(true)
+  })
+})
+
+describe('a log that outgrows its limit', () => {
+  it('keeps the screen it is given rather than the last bytes printed', async () => {
+    const file = path.join(dir, 'rotated.log')
+    const log = new SessionLog(file, { maxBytes: 4096, keepBytes: 1024, batchBytes: 1, screen: async () => 'THE SCREEN AS IT WAS' })
+    log.append(Buffer.from('x'.repeat(5000)))
+    await log.finish()
+    expect(await fs.readFile(file, 'utf8')).toBe('THE SCREEN AS IT WAS')
+  })
+
+  it('falls back to the last bytes when no screen is on offer', async () => {
+    const file = path.join(dir, 'plain.log')
+    const log = new SessionLog(file, { maxBytes: 4096, keepBytes: 1024, batchBytes: 1 })
+    log.append(Buffer.from('a'.repeat(3000) + 'b'.repeat(2000)))
+    await log.finish()
+    const kept = await fs.readFile(file, 'utf8')
+    expect(kept.length).toBe(1024)
+    expect(kept.endsWith('b')).toBe(true)
   })
 })

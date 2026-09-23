@@ -9,6 +9,8 @@ export interface SessionLogOptions {
   lowWater?: number
   pressure?: (paused: boolean) => void
   error?: (error: unknown) => void
+  /** What is on screen, written as escape sequences, to keep in place of the bytes being cut. */
+  screen?: () => Promise<string | undefined>
 }
 
 /** Ordered, batched disk writes. The PTY must honor pressure to bound queued output. */
@@ -96,9 +98,13 @@ export class SessionLog {
         await fs.appendFile(this.file, data)
         this.size! += length
         if (this.size! > this.max) {
-          const tail = await readLogTail(this.file, this.keep)
-          await fs.writeFile(this.file, tail)
-          this.size = tail.length
+          // What the session has on screen beats the last bytes it printed: a full-screen program
+          // asks for its own screen once, when it starts, and cutting that away leaves its frames
+          // to pile up on the ordinary screen when they are read back.
+          const screen = await this.opts.screen?.()
+          const kept = screen === undefined ? await readLogTail(this.file, this.keep) : Buffer.from(screen, 'utf8')
+          await fs.writeFile(this.file, kept)
+          this.size = kept.length
         }
         this.bytes -= length
         chunks = []
@@ -124,6 +130,35 @@ export class SessionLog {
     if (next === this.pressured) return
     this.pressured = next
     this.opts.pressure?.(next)
+  }
+}
+
+/**
+ * Whether the part of the log before `before` left the session on the alternate screen: the one a
+ * full-screen program draws on, which it asks for once, when it starts. A tail that begins after
+ * that is a stack of half-drawn frames unless the screen is put back where they were drawn.
+ */
+export async function altScreenBefore(file: string, before: number): Promise<boolean> {
+  if (before <= 0) return false
+  const fh = await fs.open(file, 'r')
+  try {
+    const size = Math.min(before, (await fh.stat()).size)
+    const buffer = Buffer.allocUnsafe(Math.min(size, 64 * 1024))
+    let at = 0
+    let alt = false
+    // The last few bytes of a chunk again with the next, so a sequence split across two is still seen.
+    let carry = ''
+    while (at < size) {
+      const { bytesRead } = await fh.read(buffer, 0, Math.min(buffer.length, size - at), at)
+      if (!bytesRead) break
+      at += bytesRead
+      const text = carry + buffer.subarray(0, bytesRead).toString('latin1')
+      for (const m of text.matchAll(/\x1b\[\?(?:1049|1047|47)([hl])/g)) alt = m[1] === 'h'
+      carry = text.slice(-8)
+    }
+    return alt
+  } finally {
+    await fh.close()
   }
 }
 
