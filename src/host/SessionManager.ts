@@ -33,7 +33,7 @@ import { conptyReply, hasQuery, isControlOnly, stripProbeReplies, stripStaleRepl
 import { agentOf } from './handoff'
 import { pacePieces } from './pace'
 import { isOwnEndpoint, previewUrlIn } from './previewUrl'
-import { SessionLog, readLogTail } from './SessionLog'
+import { SessionLog, altScreenBefore, readLogTail } from './SessionLog'
 import { OutputPressure } from './OutputPressure'
 
 export interface SessionManagerOpts {
@@ -127,6 +127,8 @@ const BUSY_AFTER_MS = 400
 /** How often the screen of an agent that never stops drawing is read for whether it is working. */
 const BUSY_LOOK_MS = 700
 const LOG_KEEP = 2 * 1024 * 1024
+/** Onto the screen a full-screen program draws on, the one it asks for when it starts. */
+const ALT_SCREEN = '\x1b[?1049h'
 
 /**
  * Owns every PTY, its screen state and its status. Emits:
@@ -414,7 +416,7 @@ export class SessionManager extends EventEmitter {
     const held = this.heldTimers.get(id)
     if (held) clearTimeout(held)
     this.heldTimers.delete(id)
-    for (const f of [path.join(this.opts.hooksDir, `${id}.json`)]) {
+    for (const f of [path.join(this.opts.hooksDir, `${id}.json`), this.screenPath(id)]) {
       try {
         fs.rmSync(f, { force: true })
       } catch {
@@ -1114,8 +1116,28 @@ export class SessionManager extends EventEmitter {
   private openLog(l: Live): void {
     l.log ??= new SessionLog(this.logPath(l.s.id), {
       pressure: (paused) => l.flow.set('log', paused),
-      error: (e) => log('session log failed', l.s.id, e)
+      error: (e) => log('session log failed', l.s.id, e),
+      screen: () => this.screenForLog(l)
     })
+  }
+
+  /**
+   * The session's screen for a log that has grown past its limit, in place of the bytes it cuts.
+   * The program is held while it is taken, so nothing it prints lands both in the screen written
+   * here and in the log after it.
+   */
+  private async screenForLog(l: Live): Promise<string | undefined> {
+    const generation = l.generation
+    l.flow.set('rotate', true)
+    try {
+      await l.drained
+      return generation === l.generation ? l.serializer.serialize({ scrollback: this.opts.scrollback }) : undefined
+    } catch (e) {
+      log('keeping the screen failed', l.s.id, e)
+      return undefined
+    } finally {
+      l.flow.set('rotate', false)
+    }
   }
 
   /** Called before the host exits, so batched output is not abandoned on a normal shutdown. */
@@ -1123,6 +1145,7 @@ export class SessionManager extends EventEmitter {
     for (const l of this.live.values()) l.flow.set('shutdown', true)
     await new Promise<void>((resolve) => setImmediate(resolve))
     await Promise.all([...this.closingLogs, ...[...this.live.values()].map((l) => l.log?.finish())])
+    await this.saveScreens()
   }
 
   private restoreScreen(l: Live): Promise<void> {
@@ -1130,13 +1153,65 @@ export class SessionManager extends EventEmitter {
     if (!l.restorePending) return Promise.resolve()
     l.restorePending = false
     const generation = l.generation
-    l.restoring = readLogTail(this.logPath(l.s.id), LOG_KEEP).then(async (tail) => {
+    l.restoring = this.lastScreen(l.s.id).then(async (kept) => {
       if (generation !== l.generation || !this.live.has(l.s.id)) return
-      if (tail.length) this.feedScreen(l, tail)
+      if (kept.length) this.feedScreen(l, kept)
       await l.drained
     }).catch((e) => {
       if (e.code !== 'ENOENT') log('restore log failed', l.s.id, e)
     }).finally(() => { l.restoring = undefined })
     return l.restoring
+  }
+
+  /**
+   * What a session had on screen when this host's turn ended: the screen it saved on the way out,
+   * and failing that the tail of its log.
+   *
+   * The saved screen is read once and thrown away; from there the session's own screen is what
+   * gets saved next time. Without one, a full-screen program's log is picked up mid-drawing, with
+   * the switch to the screen it draws on long cut away, so that switch is made again first — or
+   * its frames pile up on the ordinary screen, one over another, as scrollback.
+   */
+  private async lastScreen(id: string): Promise<Buffer> {
+    const saved = this.screenPath(id)
+    try {
+      const kept = await fs.promises.readFile(saved)
+      await fs.promises.rm(saved, { force: true })
+      if (kept.length) return kept
+    } catch (e: any) {
+      if (e.code !== 'ENOENT') log('reading the saved screen failed', id, e)
+    }
+    const file = this.logPath(id)
+    const tail = await readLogTail(file, LOG_KEEP)
+    const cut = (await fs.promises.stat(file)).size - tail.length
+    return cut > 0 && (await altScreenBefore(file, cut)) ? Buffer.concat([Buffer.from(ALT_SCREEN), tail]) : tail
+  }
+
+  private screenPath(id: string): string {
+    return path.join(this.opts.logDir, `${id}.screen`)
+  }
+
+  /**
+   * Every session's screen, written beside its log as the escape sequences that draw it again.
+   * A host starting up replays these rather than reading back the log, which only holds what was
+   * printed and not where a program left the screen.
+   */
+  private async saveScreens(): Promise<void> {
+    await Promise.all(
+      [...this.live.values()].map(async (l) => {
+        // One whose screen was never read back still has its log to be read: an empty screen saved
+        // over it would throw away everything that session ever printed.
+        if (l.restorePending) return
+        const file = this.screenPath(l.s.id)
+        try {
+          // Whatever arrived last is on the screen only once the emulator has read it.
+          await l.drained
+          await fs.promises.writeFile(file + '.tmp', l.serializer.serialize({ scrollback: this.opts.scrollback }))
+          await fs.promises.rename(file + '.tmp', file)
+        } catch (e) {
+          log('saving the screen failed', l.s.id, e)
+        }
+      })
+    )
   }
 }

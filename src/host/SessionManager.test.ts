@@ -82,3 +82,84 @@ describe('session output lifecycle', () => {
     await vi.waitFor(() => expect(ptys[0].resume).toHaveBeenCalled())
   })
 })
+
+describe('full-screen programs through a host restart', () => {
+  /** A second host over the same files, the way an update starts one. */
+  const restarted = (): SessionManager =>
+    new SessionManager({ stateFile: path.join(dir, 'state.json'), logDir: path.join(dir, 'logs'), hooksDir: path.join(dir, 'hooks'),
+      binDir: path.join(dir, 'bin'), hookUrl: () => 'http://127.0.0.1:1/hooks', mcpUrl: () => 'http://127.0.0.1:1/mcp',
+      scrollback: 5000, baseEnv: process.env })
+
+  it('brings back the screen a program was drawing on, not the log behind it', async () => {
+    const s = create()
+    // A full-screen program: its own screen, then frames drawn over each other in place.
+    ptys[0].data('\x1b[?1049h\x1b[2J')
+    for (let frame = 1; frame <= 40; frame++) ptys[0].data(`\x1b[H\x1b[2Jframe ${frame} of the drawing`)
+    sm.persistNow()
+    await sm.finishLogs()
+
+    const next = restarted()
+    next.load()
+    const screen = Buffer.from(await next.snapshot(s.id)).toString()
+    expect(screen).toContain('frame 40 of the drawing')
+    expect(screen).not.toContain('frame 39')
+    expect(screen).toContain('?1049h')
+    await next.finishLogs()
+  })
+
+  it('puts a program back on its own screen when the head of its log was cut away', async () => {
+    const saved: Session = { id: 'cut', projectPath: dir, presetId: 'shell', title: '', titleSource: 'none', pinned: false,
+      order: 0, createdAt: 0, updatedAt: 0, status: 'exited', statusAt: 0, alive: false,
+      cols: 80, rows: 24, agent: {}, launch: { command: process.execPath, args: [], hooks: false } }
+    await fs.writeFile(path.join(dir, 'state.json'), JSON.stringify({ sessions: [saved] }))
+    // The switch to its own screen, and then more frames than the host keeps: the tail read back
+    // starts long after that switch.
+    const frame = (n: number): string => `\x1b[H\x1b[2Jframe ${n} ` + 'filler '.repeat(140)
+    let written = '\x1b[?1049h\x1b[2J'
+    for (let n = 1; written.length < 3 * 1024 * 1024; n++) written += frame(n)
+    written += frame(999999)
+    await fs.writeFile(path.join(dir, 'logs', 'cut.log'), written)
+
+    const next = restarted()
+    next.load()
+    const screen = Buffer.from(await next.snapshot('cut')).toString()
+    expect(screen).toContain('frame 999999')
+    // On its own screen, so the frames are not stacked one under another as scrollback.
+    expect(screen).toContain('?1049h')
+    expect(screen.split('frame ').length - 1).toBe(1)
+    await next.finishLogs()
+  })
+
+  it('survives a log so long that it had to be cut while the program was drawing', async () => {
+    const s = create()
+    ptys[0].data('\x1b[?1049h\x1b[2J')
+    // Past the eight megabytes a log holds, so it is cut with the program still on its own screen.
+    const filler = 'filler '.repeat(150)
+    for (let frame = 1; frame <= 1400; frame++) ptys[0].data(`\x1b[H\x1b[2Jframe ${frame} ${filler}`)
+    await vi.waitFor(async () => expect((await fs.stat(path.join(dir, 'logs', `${s.id}.log`))).size).toBeLessThan(8 * 1024 * 1024), { timeout: 10000 })
+    // The host is lost without a word: only what the log holds is left to go on.
+    sm.persistNow()
+
+    const next = restarted()
+    next.load()
+    const screen = Buffer.from(await next.snapshot(s.id)).toString()
+    expect(screen).toContain('frame 1400')
+    expect(screen).toContain('?1049h')
+    expect(screen.split('frame ').length - 1).toBe(1)
+    await next.finishLogs()
+  })
+
+  it('reads the screen it saved once, then keeps its own', async () => {
+    const s = create()
+    ptys[0].data('\x1b[?1049h\x1b[2Jwhat was on screen')
+    sm.persistNow()
+    await sm.finishLogs()
+    expect(await fs.readFile(path.join(dir, 'logs', `${s.id}.screen`), 'utf8')).toContain('what was on screen')
+
+    const next = restarted()
+    next.load()
+    expect(Buffer.from(await next.snapshot(s.id)).toString()).toContain('what was on screen')
+    await expect(fs.access(path.join(dir, 'logs', `${s.id}.screen`))).rejects.toThrow()
+    await next.finishLogs()
+  })
+})
