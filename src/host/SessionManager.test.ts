@@ -200,13 +200,30 @@ describe("answers a program asks the terminal for as it starts", () => {
     expect(sentToProgram(ptys[0])).toBe('')
   })
 
-  it('still drops a view\'s answers to ConPTY\'s startup probe on Windows', () => {
+  it('on Windows, drops a watching window\'s answers to ConPTY\'s probe and passes the program\'s', () => {
     onPlatform('win32')
     const s = create()
-    // ConPTY's probe: the host answers it, and a view that saw it answers it again.
-    ptys[0].data('\x1b[c\x1b[6n')
+    // ConPTY's probe: the host answers it, and the window watching answers it again.
+    ptys[0].data('\x1b[6n\x1b[c')
     expect(ptys[0].write).toHaveBeenCalledWith('\x1b[?1;2c')
-    sm.input(s.id, Buffer.from('\x1b[?1;2c\x1b[1;1R'))
+    sm.input(s.id, Buffer.from('\x1b[1;1R\x1b[?1;2c'))
     expect(sentToProgram(ptys[0])).toBe('')
+    // ConPTY has let the program go; it asks before printing anything, and gets its answer.
+    ptys[0].data('\x1b[?1049h\x1b[3;7H\x1b[6n')
+    sm.input(s.id, Buffer.from('\x1b[3;7R'))
+    expect(sentToProgram(ptys[0])).toBe('\x1b[3;7R')
+  })
+
+  it('on Windows with no window yet, never answers ConPTY\'s cursor question but answers the program\'s', async () => {
+    onPlatform('win32')
+    watched = false
+    const s = create()
+    ptys[0].data('\x1b[6n\x1b[c')
+    await sm.snapshot(s.id)
+    // Only the host's own answer to ConPTY: its question about the cursor stays unanswered.
+    expect(sentToProgram(ptys[0])).toBe('')
+    ptys[0].data('\x1b[?1049h\x1b[3;7H\x1b[6n')
+    await sm.snapshot(s.id)
+    expect(sentToProgram(ptys[0])).toBe('\x1b[3;7R')
   })
 })

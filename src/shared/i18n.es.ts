@@ -452,6 +452,11 @@ export const es: Record<string, string> = {
   'Topito is on': 'Topito está activado',
   'Turn on Topito': 'Activar a Topito',
   'Hi! I’m Topito, the new mascot of stepbro terminal. I’ll be your trusty sidekick!': '¡Hola! Soy Topito, la nueva mascota de stepbro terminal. ¡Seré tu mascota de confianza!',
+  'Agents that measure the terminal as they start, like Clyra, get their answers.': 'Los agentes que miden el terminal al arrancar, como Clyra, reciben sus respuestas.',
+  'An agent opened straight from its button, like Clyra, no longer lays its screen out in slivers, a word broken over several rows: what it asks the terminal as it starts is answered.':
+    'Un agente abierto desde su botón, como Clyra, ya no reparte su pantalla en tiras, con una palabra partida en varias filas: lo que le pregunta al terminal al arrancar recibe respuesta.',
+  'The Mac installer opens on a window of its own, with the app on one side, Applications on the other and an arrow between them.':
+    'El instalador de Mac abre una ventana propia, con la app a un lado, Aplicaciones al otro y una flecha entre las dos.',
   'Agents come back whole after an update, their buttons answer a click, and the app rests while you look elsewhere.':
     'Los agentes vuelven enteros después de actualizar, sus botones responden al clic y la app descansa mientras miras otra cosa.',
   'Text and icons over a translucent window no longer carry a shadow around them.': 'El texto y los iconos sobre la ventana translúcida ya no llevan una sombra alrededor.',

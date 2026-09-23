@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { conptyReply, hasQuery, isControlOnly, stripProbeReplies, stripStaleReplies } from './conptyReply'
+import { conptyReply, dropOwedReplies, hasQuery, isControlOnly, probeQueries, stripProbeReplies, stripStaleReplies } from './conptyReply'
 
 describe('conptyReply', () => {
   it('answers the device-attributes probe', () => {
@@ -95,5 +95,27 @@ describe('stripStaleReplies', () => {
 
   it('keeps the rest of a chunk that carried an answer along with it', () => {
     expect(stripStaleReplies(`${ESC}]11;rgb:1616/1616/1919${ST}ls`)).toBe('ls')
+  })
+})
+
+describe('the answers owed to ConPTY\'s probe', () => {
+  it('counts what ConPTY asked', () => {
+    expect(probeQueries('\x1b[6n\x1b[c')).toEqual({ da: 1, cpr: 1 })
+    expect(probeQueries('\x1b[?9001h\x1b[?1004h\x1b[0c')).toEqual({ da: 1, cpr: 0 })
+    expect(probeQueries('\x1b[H\x1b[2J')).toEqual({ da: 0, cpr: 0 })
+  })
+
+  it('drops exactly the answers owed, and lets the next ones through', () => {
+    const owed = { da: 1, cpr: 1 }
+    expect(dropOwedReplies('\x1b[1;1R\x1b[?1;2c', owed)).toBe('')
+    expect(owed).toEqual({ da: 0, cpr: 0 })
+    // The program's own question, answered afterwards.
+    expect(dropOwedReplies('\x1b[3;7R', owed)).toBe('\x1b[3;7R')
+  })
+
+  it('keeps what a person typed alongside', () => {
+    const owed = { da: 0, cpr: 1 }
+    expect(dropOwedReplies('ls\x1b[1;1R -la', owed)).toBe('ls -la')
+    expect(dropOwedReplies('\x1b[?1;2c', owed)).toBe('\x1b[?1;2c')
   })
 })
