@@ -1,0 +1,68 @@
+<!doctype html>
+<!--
+  The picture behind the Mac installer's window: the app's name, an arrow from the app to the
+  Applications folder, and one line saying what to do. Finder draws the two icons and their names
+  on top, at the places electron-builder.yml gives them, so this only leaves room for them.
+  Rendered to build/dmg-background.png and its @2x by scripts/dmg-background.cjs.
+-->
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      @font-face {
+        font-family: 'Hanken Grotesk';
+        src: url('../../node_modules/@fontsource-variable/hanken-grotesk/files/hanken-grotesk-latin-wght-normal.woff2') format('woff2');
+        font-weight: 100 900;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 540px;
+        height: 380px;
+        overflow: hidden;
+      }
+      body {
+        position: relative;
+        font-family: 'Hanken Grotesk', -apple-system, sans-serif;
+        background:
+          radial-gradient(420px 200px at 50% 190px, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0) 70%),
+          linear-gradient(180deg, #f7f6f4 0%, #eeede9 100%);
+        -webkit-font-smoothing: antialiased;
+      }
+      .name {
+        position: absolute;
+        top: 46px;
+        width: 100%;
+        text-align: center;
+        font-size: 19px;
+        font-weight: 620;
+        letter-spacing: -0.015em;
+        color: #1c1b1a;
+      }
+      .arrow {
+        position: absolute;
+        left: 214px;
+        top: 168px;
+      }
+      .hint {
+        position: absolute;
+        top: 318px;
+        width: 100%;
+        text-align: center;
+        font-size: 12.5px;
+        font-weight: 500;
+        letter-spacing: 0.005em;
+        color: #8c8881;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="name">stepbro terminal</div>
+    <!-- From the app on the left to Applications on the right, with a slight lift in the middle. -->
+    <svg class="arrow" width="112" height="44" viewBox="0 0 112 44" fill="none">
+      <path d="M6 26 C 34 10, 70 10, 98 24" stroke="#a19d96" stroke-width="2" stroke-linecap="round" />
+      <path d="M88 15 L 99 24.5 L 86 29" stroke="#a19d96" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+    </svg>
+    <div class="hint">Drag stepbro terminal to Applications</div>
+  </body>
+</html>
