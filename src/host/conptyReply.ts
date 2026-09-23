@@ -45,6 +45,30 @@ export function stripProbeReplies(input: string): string {
   return input.replace(PROBE_REPLIES, '')
 }
 
+/** How many answers a terminal owes for what ConPTY asked in `chunk`: device attributes, and the cursor. */
+export interface Owed {
+  da: number
+  cpr: number
+}
+
+export function probeQueries(chunk: string): Owed {
+  return { da: (chunk.match(/\x1b\[0?c/g) ?? []).length, cpr: (chunk.match(/\x1b\[6n/g) ?? []).length }
+}
+
+/**
+ * Takes out of a view's input the answers it gave to ConPTY's own probe, and no others: as many
+ * device-attribute and cursor answers as are still owed, oldest first. What is left, including the
+ * answers to whatever the program itself asked afterwards, goes on. `owed` counts down as it goes.
+ */
+export function dropOwedReplies(input: string, owed: Owed): string {
+  return input.replace(PROBE_REPLIES, (reply) => {
+    const kind = reply.endsWith('c') ? 'da' : 'cpr'
+    if (owed[kind] <= 0) return reply
+    owed[kind]--
+    return ''
+  })
+}
+
 /**
  * A program asking the terminal about itself: which colours it draws in (OSC 10, 11 and 12, sent
  * with a "?"), what kind of terminal it is, where the cursor sits. Programs ask at startup and

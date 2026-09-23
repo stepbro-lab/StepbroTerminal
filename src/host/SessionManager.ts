@@ -29,7 +29,7 @@ import { log } from './log'
 import { CpuMeter, processChildren, readProcesses, subtree } from './procStats'
 import { mapLimit, sampled } from '@shared/async'
 import { busyMarkerFor, busyOnScreen, waitingForApproval } from './screenPrompts'
-import { conptyReply, hasQuery, isControlOnly, stripProbeReplies, stripStaleReplies } from './conptyReply'
+import { conptyReply, dropOwedReplies, hasQuery, isControlOnly, probeQueries, stripStaleReplies, type Owed } from './conptyReply'
 import { agentOf } from './handoff'
 import { pacePieces } from './pace'
 import { isOwnEndpoint, previewUrlIn } from './previewUrl'
@@ -55,6 +55,8 @@ export interface SessionManagerOpts {
 
 /** How long after asking the terminal about itself an answer is still worth passing on. */
 const REPLY_WINDOW_MS = 2000
+/** How long a window's answers to ConPTY's startup probe are waited for, to be dropped. */
+const OWED_MS = 2000
 
 interface Live {
   s: Session
@@ -88,8 +90,16 @@ interface Live {
   generation: number
   /** From a launch configuration: typed into the pane once it first settles, then forgotten. */
   runOnStart?: string
-  /** ConPTY is still probing the terminal (nothing printable yet); the host answers and views must not. */
+  /**
+   * ConPTY is still probing the terminal: its question about the terminal is not answered yet and
+   * nothing printable has come. It holds the program back until the host answers, so everything
+   * asked until then is ConPTY's, and everything after is the program's own.
+   */
   probing: boolean
+  /** Answers a window still owes ConPTY's probe, which the host has already given: dropped when they come. */
+  owed?: Owed & { until: number }
+  /** Chunks of ConPTY's probe the host's copy of the screen has yet to read; what it answers them stays in. */
+  probeParsing: number
   /** When the program last asked the terminal about itself; an answer after that is worth passing on. */
   askedAt?: number
 }
@@ -436,13 +446,19 @@ export class SessionManager extends EventEmitter {
     const l = this.live.get(id)
     if (!l?.pty) return
     let text = Buffer.from(bytes).toString('utf8')
-    if (l.probing) {
-      // A view attached while the shell starts answers ConPTY's probes as well (a restored
+    const owed = l.owed
+    if (owed && Date.now() < owed.until && owed.da + owed.cpr > 0) {
+      // A window attached while the program starts answers ConPTY's probe as well (a restored
       // session does: its pane is on screen before the shell is respawned). The host has already
-      // answered, and a second answer reaches the shell as typed text, "[?1;2c" at the prompt.
-      text = stripProbeReplies(text)
-      if (!text) return
-      bytes = Buffer.from(text, 'utf8')
+      // answered, and a second answer reaches the shell as typed text, "[?1;2c" at the prompt. Just
+      // those answers go, counted; whatever the program asks afterwards is answered in full, and a
+      // full-screen agent such as Clyra measures its text with those answers as it starts.
+      const kept = dropOwedReplies(text, owed)
+      if (kept !== text) {
+        if (!kept) return
+        text = kept
+        bytes = Buffer.from(text, 'utf8')
+      }
     } else if (Date.now() - (l.askedAt ?? 0) > REPLY_WINDOW_MS) {
       // Nothing asked the terminal anything recently, so an answer arriving now is one the
       // window worked out for output it was catching up on, long after the program gave up
@@ -775,13 +791,13 @@ export class SessionManager extends EventEmitter {
    * moment it starts, and a window only takes the session a moment later, once its pane has
    * settled: nobody answered those first questions, which a full-screen agent asks to measure its
    * text with. With a window watching, the window
-   * answers, as a terminal would, and this stays quiet; so it does while ConPTY is still probing,
-   * which the host answers on its own.
+   * answers, as a terminal would, and this stays quiet; so it does for ConPTY's own probe, which
+   * the host answers by itself, and whose question about the cursor must not be answered at all.
    */
   private answerWhenUnseen(l: Live, screen: HeadlessTerminal): void {
     screen.onData((reply) => {
       if (screen !== l.screen || !l.pty) return
-      if (this.opts.viewed?.(l.s.id) || l.probing) return
+      if (this.opts.viewed?.(l.s.id) || l.probeParsing > 0) return
       l.pty.write(reply)
     })
   }
@@ -812,7 +828,8 @@ export class SessionManager extends EventEmitter {
       flow: new OutputPressure(),
       screenBytes: 0,
       generation: 0,
-      probing: false
+      probing: false,
+      probeParsing: 0
     }
     this.answerWhenUnseen(l, screen)
     return l
@@ -907,25 +924,46 @@ export class SessionManager extends EventEmitter {
     // ConPTY is Windows' alone. Anywhere else nothing probes the terminal on the program's behalf,
     // and a window held open for it only swallowed the answers to what the program itself asked.
     l.probing = process.platform === 'win32'
+    l.owed = undefined
+    l.probeParsing = 0
     l.askedAt = Date.now()
     p.onData((data) => {
       if (l.pty !== p) return
       // Whenever the program asks the terminal about itself, an answer becomes worth passing on
       // again: it is waiting for one, wherever it is in its life.
       if (hasQuery(data)) l.askedAt = Date.now()
+      let probe = false
       if (l.probing) {
         // Answer ConPTY's probes only while nothing printable has arrived yet: the shell is still
         // blocked waiting, and ConPTY consumes the reply. The moment real output shows (the prompt),
         // the shell is interactive; injecting a reply then would land it at the prompt and PSReadLine
         // would read "[?1;2c" as typed input and ring the bell. So close the window without answering.
         if (isControlOnly(data)) {
+          probe = true
+          // A window watching now sees these questions too and will answer them; those answers
+          // are owed and dropped, the host having given its own.
+          if (this.opts.viewed?.(s.id)) {
+            const q = probeQueries(data)
+            l.owed = { da: (l.owed?.da ?? 0) + q.da, cpr: (l.owed?.cpr ?? 0) + q.cpr, until: Date.now() + OWED_MS }
+          }
           const reply = conptyReply(data)
-          if (reply) p.write(reply)
+          if (reply) {
+            p.write(reply)
+            // ConPTY lets the program go on this answer; whatever is asked from here is its own.
+            l.probing = false
+          }
         } else {
           l.probing = false
         }
       }
+      if (probe) l.probeParsing++
       this.onOutput(l, data)
+      if (probe) {
+        const generation = l.generation
+        void l.drained.then(() => {
+          if (generation === l.generation) l.probeParsing--
+        })
+      }
     })
     p.onExit(({ exitCode }) => {
       if (l.pty !== p) return

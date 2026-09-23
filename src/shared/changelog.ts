@@ -19,6 +19,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.1.0-beta.23',
+    date: '2026-09-22',
+    headline: 'Agents that measure the terminal as they start, like Clyra, get their answers.',
+    changes: [
+      { kind: 'fixed', text: 'An agent opened straight from its button, like Clyra, no longer lays its screen out in slivers, a word broken over several rows: what it asks the terminal as it starts is answered.' },
+      { kind: 'improved', text: 'The Mac installer opens on a window of its own, with the app on one side, Applications on the other and an arrow between them.' }
+    ]
+  },
+  {
     version: '0.1.0-beta.22',
     date: '2026-09-22',
     headline: 'Agents come back whole after an update, their buttons answer a click, and the app rests while you look elsewhere.',
