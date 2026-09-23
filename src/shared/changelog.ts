@@ -20,8 +20,8 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     version: '0.1.0-beta.22',
-    date: '2026-09-20',
-    headline: 'A calmer window: no shadow behind the text, and nothing over the menu.',
+    date: '2026-09-22',
+    headline: 'Agents come back whole after an update, their buttons answer a click, and the app rests while you look elsewhere.',
     changes: [
       { kind: 'new', text: 'The bar at the top edge can be kept open: in Settings, under Appearance, it can be told not to tuck itself away.' },
       { kind: 'improved', text: 'Much less energy while an agent works and the window is behind another or minimised: nothing is drawn where nobody can see it, and the spinners slow down or stop.' },
