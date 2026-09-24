@@ -48,6 +48,9 @@ export class TitleCapture {
       if (code < 0x20) continue
       if (this.line.length < 512) this.line += ch
     }
+    // An escape sequence arrives whole; an ESC ending what was typed is the Escape key, pressed on
+    // its own, and the next key is a key of its own too.
+    this.escape = false
     return null
   }
 
@@ -81,4 +84,27 @@ export function detectAgentFromCommand(line: string): string | null {
     .replace(/\.(exe|cmd|bat|ps1)$/i, '')
     .toLowerCase()
   return AGENT_BINARIES[name] ?? null
+}
+
+/** What an agent is told to start a conversation over: the title the old one gave no longer fits. */
+const STARTS_OVER = /^\/(clear|new|reset|resume|continue)(\s|$)/i
+
+/** Whether a line typed into an agent leaves the conversation it names behind. */
+export function startsOver(line: string): boolean {
+  return STARTS_OVER.test(line.trim())
+}
+
+/**
+ * The title a typed line gives a session still without one, or null when it names nothing. In an
+ * agent, the first prompt names the session: not the command that launched the agent, not a
+ * slash command, not the answer to one of its menus ("1", "y"). A shell's first command names it.
+ */
+export function titleFromLine(line: string, inAgent: boolean): string | null {
+  const t = line.trim()
+  if (detectAgentFromCommand(t)) return null
+  if (!inAgent) return t || null
+  if (t.startsWith('/')) return null
+  // A menu answer or a keystroke: too short, or no word in it.
+  if (t.length < 3 || !/\p{L}{2}/u.test(t)) return null
+  return t
 }

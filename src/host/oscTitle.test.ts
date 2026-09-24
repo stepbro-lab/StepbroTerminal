@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isBoringTitle, isOwnNameTitle, OscTitleParser, stripTitleGlyph, withoutFolder } from './oscTitle'
+import { isBoringTitle, isOwnNameTitle, namesOf, OscTitleParser, stripTitleGlyph, withoutFolder } from './oscTitle'
 
 const b = (s: string) => Buffer.from(s)
 
@@ -15,6 +15,13 @@ describe('isOwnNameTitle', () => {
   it('sees through the folder name Codex uses as its title', () => {
     expect(isOwnNameTitle('StepTerminal', 'codex', 'StepTerminal')).toBe(true)
     expect(isOwnNameTitle('step-terminal', 'codex', 'Step Terminal')).toBe(true)
+  })
+
+  it('sees through the name of what a preset of your own runs', () => {
+    const names = namesOf('clyradirect', '/opt/homebrew/bin/npx', ['-y', 'clyra-cli@0.1.0-beta.18'])
+    expect(isOwnNameTitle('Clyra', names, 'x')).toBe(true)
+    expect(isOwnNameTitle('Fix the login redirect', names, 'x')).toBe(false)
+    expect(isOwnNameTitle('Claude Code', namesOf('mine', 'C:\\bin\\claude.exe'), 'x')).toBe(true)
   })
 
   it('keeps a title that says something', () => {
@@ -75,5 +82,14 @@ describe('stripTitleGlyph', () => {
     expect(stripTitleGlyph('OC | Saludo de prueba')).toBe('Saludo de prueba')
     expect(stripTitleGlyph('npm run dev')).toBe('npm run dev')
     expect(stripTitleGlyph('C:\\dev')).toBe('C:\\dev')
+  })
+})
+
+describe('namesOf', () => {
+  it('names the package a runner starts, and never a prompt passed along', () => {
+    expect(namesOf('x', 'npx', ['-y', '@scope/some-agent@2'])).toEqual(['x', 'npx', 'some-agent'])
+    expect(namesOf('x', 'pnpm', ['dlx', 'clyra-cli'])).toEqual(['x', 'pnpm', 'clyra-cli'])
+    expect(namesOf('x', 'claude', ['fix the bug'])).toEqual(['x', 'claude'])
+    expect(namesOf('x', 'npx', ['fix the bug'])).toEqual(['x', 'npx'])
   })
 })

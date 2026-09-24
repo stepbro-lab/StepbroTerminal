@@ -227,3 +227,40 @@ describe("answers a program asks the terminal for as it starts", () => {
     expect(sentToProgram(ptys[0])).toBe('\x1b[3;7R')
   })
 })
+
+describe('names a session after what it is asked', () => {
+  const agent = (): Session => sm.create({ projectPath: dir, presetId: 'claude', cols: 80, rows: 24, launch: { command: process.execPath, args: [], hooks: false } })
+  const type = (id: string, text: string): void => sm.input(id, Buffer.from(text))
+  const title = (id: string) => sm.list().find((s) => s.id === id)!
+
+  it('takes an agent\'s first prompt, past slash commands and menu answers', () => {
+    const s = agent()
+    type(s.id, '/model\r')
+    type(s.id, '2\r')
+    expect(title(s.id).titleSource).toBe('none')
+    type(s.id, 'fix the login bug\r')
+    expect(title(s.id)).toMatchObject({ title: 'fix the login bug', titleSource: 'input' })
+    type(s.id, 'and add a test\r')
+    expect(title(s.id).title).toBe('fix the login bug')
+  })
+
+  it('waits for the prompt when the agent is started by hand in a shell', () => {
+    const s = create()
+    type(s.id, 'claude\r')
+    expect(title(s.id).titleSource).toBe('none')
+    type(s.id, 'explain the host\r')
+    expect(title(s.id).title).toBe('explain the host')
+  })
+
+  it('lets a fresh conversation name the session again, but never a name you gave it', () => {
+    const s = agent()
+    type(s.id, 'fix the login bug\r')
+    type(s.id, '/clear\r')
+    type(s.id, 'write the release notes\r')
+    expect(title(s.id).title).toBe('write the release notes')
+    sm.rename(s.id, 'Mine')
+    type(s.id, '/new\r')
+    type(s.id, 'something else\r')
+    expect(title(s.id)).toMatchObject({ title: 'Mine', titleSource: 'user' })
+  })
+})

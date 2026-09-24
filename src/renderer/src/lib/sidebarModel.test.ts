@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { canResume, orderRows, type SidebarSession } from './sidebarModel'
+import { canResume, defaultTitle, orderRows, type SidebarSession } from './sidebarModel'
 
 const row = (id: string, order: number, view: number | null = null, pinned = false): SidebarSession =>
   ({ key: id, id, title: id, status: 'idle', presetId: 'shell', pinned, lastAt: 0, view, session: { order, createdAt: order } }) as unknown as SidebarSession
@@ -36,5 +36,13 @@ describe('canResume', () => {
     expect(canResume(endedShellClaude)).toBe(true)
     expect(canResume(plainShell)).toBe(false)
     expect(canResume(noId)).toBe(false)
+  })
+})
+
+describe('defaultTitle', () => {
+  it('goes by the agent started in a shell until a prompt names the session', () => {
+    expect(defaultTitle({ presetId: 'shell', agent: { detectedPreset: 'claude' } } as never)).toBe('Claude')
+    expect(defaultTitle({ presetId: 'shell', agent: {} } as never)).toBe('Shell')
+    expect(defaultTitle({ presetId: 'codex', agent: {} } as never)).toBe('Codex')
   })
 })
