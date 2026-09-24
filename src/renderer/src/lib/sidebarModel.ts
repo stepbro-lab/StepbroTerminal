@@ -111,8 +111,10 @@ export function canResume(s: Session): boolean {
 }
 
 export function defaultTitle(s: Session): string {
-  if (s.presetId === 'shell') return 'Shell'
-  return s.presetId.charAt(0).toUpperCase() + s.presetId.slice(1)
+  // An agent started by hand in a shell goes by the agent until its first prompt names the session.
+  const id = s.presetId === 'shell' ? s.agent?.detectedPreset : s.presetId
+  if (!id) return 'Shell'
+  return id.charAt(0).toUpperCase() + id.slice(1)
 }
 
 export function flatSessions(model: SidebarProject[]): SidebarSession[] {

@@ -455,6 +455,10 @@ export const es: Record<string, string> = {
   'Agents that measure the terminal as they start, like Clyra, get their answers.': 'Los agentes que miden el terminal al arrancar, como Clyra, reciben sus respuestas.',
   'An agent opened straight from its button, like Clyra, no longer lays its screen out in slivers, a word broken over several rows: what it asks the terminal as it starts is answered.':
     'Un agente abierto desde su botón, como Clyra, ya no reparte su pantalla en tiras, con una palabra partida en varias filas: lo que le pregunta al terminal al arrancar recibe respuesta.',
+  'Sessions name themselves after their first prompt: not a slash command, not a menu answer, not the command that started the agent, and a new conversation (/clear, /new, /resume) names them again. A name you give one stays.':
+    'Las sesiones se nombran con su primer prompt: no con un comando con barra, ni con la respuesta a un menú, ni con el comando que abrió el agente, y una conversación nueva (/clear, /new, /resume) les vuelve a dar nombre. El nombre que tú les pongas se queda.',
+  'A key typed right after Escape is no longer lost from the prompt a session remembers.':
+    'La tecla que escribes justo después de Escape ya no se pierde del prompt que recuerda la sesión.',
   'The Mac installer opens on a window of its own, with the app on one side, Applications on the other and an arrow between them.':
     'El instalador de Mac abre una ventana propia, con la app a un lado, Aplicaciones al otro y una flecha entre las dos.',
   'Agents come back whole after an update, their buttons answer a click, and the app rests while you look elsewhere.':

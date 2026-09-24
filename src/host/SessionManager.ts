@@ -6,8 +6,8 @@ import * as nodePty from 'node-pty'
 import { Terminal as HeadlessTerminal } from '@xterm/headless'
 import { SerializeAddon } from '@xterm/addon-serialize'
 import type { CreateSessionOpts, HostStats, LiveClaude, Session, SessionStats } from '@shared/types'
-import { TitleCapture, detectAgentFromCommand } from './titleCapture'
-import { OscTitleParser, isBoringTitle, isOwnNameTitle, stripTitleGlyph, withoutFolder } from './oscTitle'
+import { TitleCapture, detectAgentFromCommand, startsOver, titleFromLine } from './titleCapture'
+import { OscTitleParser, isBoringTitle, isOwnNameTitle, namesOf, stripTitleGlyph, withoutFolder } from './oscTitle'
 import { projectName } from '@shared/paths'
 import { reduceStatus, type ReducerEvent } from './statusReducer'
 import {
@@ -472,20 +472,27 @@ export class SessionManager extends EventEmitter {
     }
     const line = l.lines.feed(bytes)
     if (line) {
-      if (l.s.titleSource === 'none') {
-        l.s.title = line
+      const agent = detectAgentFromCommand(line)
+      const inAgent = l.s.launch.hooks || !!l.s.agent.detectedPreset || l.s.presetId !== 'shell'
+      // A fresh conversation in the same agent: the title it had came from the old one.
+      if (inAgent && startsOver(line) && (l.s.titleSource === 'input' || l.s.titleSource === 'osc')) {
+        l.s.title = ''
+        l.s.titleSource = 'none'
+        this.emitSession(l)
+      }
+      const title = l.s.titleSource === 'none' ? titleFromLine(line, inAgent) : null
+      if (title) {
+        l.s.title = title
         l.s.titleSource = 'input'
         this.emitSession(l)
       }
-      const agent = detectAgentFromCommand(line)
       if (agent && agent !== l.s.agent.detectedPreset && !l.s.launch.hooks) {
         l.s.agent.detectedPreset = agent
         l.s.agent.lastPreset = agent
         this.emitSession(l)
       }
       // Lines typed into an agent are prompts worth remembering; the launch command itself is not.
-      const isAgent = l.s.launch.hooks || !!l.s.agent.detectedPreset || l.s.presetId !== 'shell'
-      if (isAgent && !agent && line.length >= 2) {
+      if (inAgent && !agent && line.length >= 2) {
         this.emit('prompt', {
           ts: Date.now(),
           sessionId: l.s.id,
@@ -1130,7 +1137,7 @@ export class SessionManager extends EventEmitter {
     if (s.titleSource === 'user') return
     const folder = projectName(s.projectPath)
     const t = withoutFolder(stripTitleGlyph(title), folder)
-    if (isBoringTitle(t) || isOwnNameTitle(t, agentOf(s), folder)) return
+    if (isBoringTitle(t) || isOwnNameTitle(t, namesOf(agentOf(s), s.launch.command, s.launch.args), folder)) return
     if (s.title === t && s.titleSource === 'osc') return
     s.title = t.slice(0, 120)
     s.titleSource = 'osc'

@@ -88,11 +88,14 @@ const plain = (s: string): string => s.toLowerCase().replace(/[^\p{L}\p{N}]+/gu,
  * An agent's title that only says who it is, or where: OpenCode titles its window "OpenCode",
  * Codex names the folder. Neither tells two sessions apart, so the first prompt names the session instead.
  */
-export function isOwnNameTitle(title: string, agent: string, folder: string): boolean {
+export function isOwnNameTitle(title: string, agent: string | string[], folder: string): boolean {
   const t = plain(title)
   if (!t) return true
-  const a = plain(agent)
-  if (a && (t === a || t === `${a}code` || t === `${a}cli` || t === `${a}agent`)) return true
+  // Any name the agent goes by: its preset, and for a preset of your own, what it runs.
+  for (const name of Array.isArray(agent) ? agent : [agent]) {
+    const a = plain(name)
+    if (a && [a, `${a}code`, `${a}cli`, `${a}agent`].some((n) => n === t || n === `${t}code` || n === `${t}cli` || n === `${t}agent`)) return true
+  }
   // Codex's stand-in while it thinks of a name for the thread.
   if (t === 'renaming') return true
   const f = plain(folder)
@@ -106,4 +109,22 @@ export function isBoringTitle(t: string): boolean {
   if (BORING.test(s)) return true
   if (/^[A-Za-z]:\\/.test(s) || s.startsWith('/') || s.startsWith('~')) return true
   return false
+}
+
+/** What runs a package by name, which is then the program's name: npx, bunx, pnpm dlx, uvx. */
+const RUNNERS = new Set(['npx', 'bunx', 'pnpx', 'uvx', 'pipx', 'pnpm', 'yarn', 'bun'])
+
+/**
+ * The names a session's program goes by, for telling its own name apart from a title: the agent,
+ * the command it launches, and the package a runner starts ("npx -y clyra-cli@1.0" runs clyra-cli).
+ * Other arguments stay out: one of them may be the prompt itself.
+ */
+export function namesOf(agent: string, command: string, args: readonly string[] = []): string[] {
+  const base = (s: string): string => s.split(/[\\/]/).pop()!.replace(/\.(exe|cmd|bat|ps1)$/i, '')
+  const names = [agent, base(command)]
+  if (RUNNERS.has(base(command).toLowerCase())) {
+    const pkg = args.find((a) => !a.startsWith('-') && !['dlx', 'x', 'exec', 'run'].includes(a))
+    if (pkg && /^[\w@./-]+$/.test(pkg)) names.push(base(pkg.replace(/(.)@[^/]*$/, '$1')))
+  }
+  return names.filter(Boolean)
 }
