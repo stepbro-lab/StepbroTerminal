@@ -6,8 +6,8 @@ import type { Session } from '@shared/types'
 import { SessionManager } from './SessionManager'
 
 const ptys = vi.hoisted(() => [] as any[])
-vi.mock('node-pty', () => ({ spawn: () => {
-  const p = { pid: 1234 + ptys.length, pause: vi.fn(), resume: vi.fn(), kill: vi.fn(), resize: vi.fn(), write: vi.fn(),
+vi.mock('node-pty', () => ({ spawn: (_file: string, args: string[]) => {
+  const p = { args, pid: 1234 + ptys.length, pause: vi.fn(), resume: vi.fn(), kill: vi.fn(), resize: vi.fn(), write: vi.fn(),
     onData(fn: (s: string) => void) { this.data = fn }, onExit(fn: (e: { exitCode: number }) => void) { this.exit = fn },
     data: (_: string) => {}, exit: (_: { exitCode: number }) => {} }
   ptys.push(p)
@@ -262,5 +262,34 @@ describe('names a session after what it is asked', () => {
     type(s.id, '/new\r')
     type(s.id, 'something else\r')
     expect(title(s.id)).toMatchObject({ title: 'Mine', titleSource: 'user' })
+  })
+})
+
+describe('picks a Claude Code conversation back up only when there is one', () => {
+  const claudeSession = async (saved: boolean): Promise<Session> => {
+    const config = path.join(dir, 'claude')
+    const s = sm.create({ projectPath: dir, presetId: 'claude', cols: 80, rows: 24,
+      launch: { command: process.execPath, args: ['--session-id', '{sessionId}'], resumeArgs: ['--resume', '{sessionId}'], env: { CLAUDE_CONFIG_DIR: config }, hooks: true } })
+    if (saved) {
+      await fs.mkdir(path.join(config, 'projects', 'p'), { recursive: true })
+      await fs.writeFile(path.join(config, 'projects', 'p', `${s.agent.sessionId}.jsonl`), '{}\n')
+    }
+    return s
+  }
+  const lastArgs = (): string => JSON.stringify(ptys.at(-1).args)
+
+  it('resumes a conversation that was saved', async () => {
+    const s = await claudeSession(true)
+    sm.restart(s.id)
+    expect(lastArgs()).toContain('--resume')
+    expect(lastArgs()).not.toContain('--session-id')
+  })
+
+  it('starts over, with the same id, when no prompt ever saved one', async () => {
+    const s = await claudeSession(false)
+    sm.restart(s.id)
+    expect(lastArgs()).toContain('--session-id')
+    expect(lastArgs()).not.toContain('--resume')
+    expect(lastArgs()).toContain(s.agent.sessionId!)
   })
 })

@@ -34,6 +34,7 @@ import { agentOf } from './handoff'
 import { pacePieces } from './pace'
 import { isOwnEndpoint, previewUrlIn } from './previewUrl'
 import { SessionLog, altScreenBefore, readLogTail } from './SessionLog'
+import { claudeConversationExists, startsResumed } from './resumeChoice'
 import { OutputPressure } from './OutputPressure'
 
 export interface SessionManagerOpts {
@@ -874,7 +875,9 @@ export class SessionManager extends EventEmitter {
     const mcpConfig = tryWrite('mcp config', () => writeMcpConfig(this.opts.hooksDir, s.id, mcpUrl))
     const plugin = this.opts.opencodePlugin
     const opencodeConfig = plugin ? tryWrite('opencode config', () => writeOpencodeConfig(this.opts.hooksDir, s.id, mcpUrl, plugin, env['OPENCODE_CONFIG'])) : ''
-    const template = resume && s.launch.resumeArgs ? s.launch.resumeArgs : s.launch.args
+    const resumed = startsResumed(s.launch, s.agent.sessionId, resume, (id) => claudeConversationExists(id, env['CLAUDE_CONFIG_DIR']))
+    if (resume && !resumed) log('starting over: no saved conversation to resume', s.id, s.agent.sessionId)
+    const template = resumed ? s.launch.resumeArgs! : s.launch.args
     const args = substituteArgs(template, { sessionId, hooksSettings, mcpConfig, mcpUrl })
     // Resolve against the plain PATH, before the shims go in front of it.
     const resolved = resolveCommand(s.launch.command, env)
