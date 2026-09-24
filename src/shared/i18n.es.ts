@@ -452,9 +452,14 @@ export const es: Record<string, string> = {
   'Topito is on': 'Topito está activado',
   'Turn on Topito': 'Activar a Topito',
   'Hi! I’m Topito, the new mascot of stepbro terminal. I’ll be your trusty sidekick!': '¡Hola! Soy Topito, la nueva mascota de stepbro terminal. ¡Seré tu mascota de confianza!',
+  'On branch {branch}': 'En la rama {branch}',
+  'Worktree on {branch}': 'Worktree en la rama {branch}',
+  'Detached at {commit}': 'Desacoplado en {commit}',
   'Agents that measure the terminal as they start, like Clyra, get their answers.': 'Los agentes que miden el terminal al arrancar, como Clyra, reciben sus respuestas.',
   'An agent opened straight from its button, like Clyra, no longer lays its screen out in slivers, a word broken over several rows: what it asks the terminal as it starts is answered.':
     'Un agente abierto desde su botón, como Clyra, ya no reparte su pantalla en tiras, con una palabra partida en varias filas: lo que le pregunta al terminal al arrancar recibe respuesta.',
+  'The branch a project has checked out shows beside its name in the sidebar and in the middle of the top bar, and follows a switch within seconds; a worktree and a detached checkout have marks of their own.':
+    'La rama que tiene un proyecto aparece junto a su nombre en la barra lateral y en el centro de la barra de arriba, y sigue un cambio de rama en segundos; un worktree y un checkout desacoplado tienen su propia marca.',
   'Sessions name themselves after their first prompt: not a slash command, not a menu answer, not the command that started the agent, and a new conversation (/clear, /new, /resume) names them again. A name you give one stays.':
     'Las sesiones se nombran con su primer prompt: no con un comando con barra, ni con la respuesta a un menú, ni con el comando que abrió el agente, y una conversación nueva (/clear, /new, /resume) les vuelve a dar nombre. El nombre que tú les pongas se queda.',
   'A Codex session keeps its name while Codex waits on you, instead of turning into ". ] Action Required".':

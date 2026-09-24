@@ -3,6 +3,7 @@ import type { SidebarProject } from '@/lib/sidebarModel'
 import { useUi } from '@/stores/ui'
 import { newShell, projectMenu, toggleProjectCollapsed } from '@/lib/actions'
 import { FolderIcon } from './DotSpinner'
+import { BranchLabel } from '../BranchLabel'
 import { t } from '@/lib/i18n'
 
 /** The drag type of a folder row on its way to a new place in the sidebar. */
@@ -59,8 +60,12 @@ export function ProjectRow({ project, isActiveProject, insert, onDragStart, onDr
             style={{ transform: open ? 'rotate(90deg)' : undefined }}
           />
         </span>
-        <span className="row-title font-semibold tracking-[-0.005em]" style={{ color: isActiveProject ? 'var(--text)' : 'var(--text-secondary)' }}>
-          {project.name}
+        <span className="flex min-w-0 items-center gap-2">
+          <span className="row-title font-semibold tracking-[-0.005em]" style={{ color: isActiveProject ? 'var(--text)' : 'var(--text-secondary)' }}>
+            {project.name}
+          </span>
+          {/* Only the project you are in: a branch on every folder would be noise. */}
+          {isActiveProject && <BranchLabel path={project.path} />}
         </span>
         <button
           className="icon-btn h-5 w-5 opacity-0 group-hover:opacity-100"

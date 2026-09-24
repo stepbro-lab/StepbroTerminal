@@ -1,5 +1,6 @@
 import type {
   FileDiff,
+  GitBranch,
   GitChanges,
   HistorySession,
   PromptRecord,
@@ -62,6 +63,7 @@ export interface InvokeMap {
   'prompts:list': () => PromptRecord[]
   'git:changes': (projectPath: string, since: number, touched: string[]) => GitChanges
   'git:diff': (root: string, rel: string, untracked: boolean) => FileDiff
+  'git:branch': (projectPath: string) => GitBranch | null
   'git:revert': (root: string, rel: string, untracked: boolean) => void
   'workspace:get': () => WorkspaceState | null
   'updates:state': () => UpdateState
