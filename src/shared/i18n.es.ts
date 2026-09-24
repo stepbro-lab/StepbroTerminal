@@ -462,6 +462,8 @@ export const es: Record<string, string> = {
     'La rama que tiene un proyecto aparece junto a su nombre en la barra lateral y en el centro de la barra de arriba, y sigue un cambio de rama en segundos; un worktree y un checkout desacoplado tienen su propia marca.',
   'Sessions name themselves after their first prompt: not a slash command, not a menu answer, not the command that started the agent, and a new conversation (/clear, /new, /resume) names them again. A name you give one stays.':
     'Las sesiones se nombran con su primer prompt: no con un comando con barra, ni con la respuesta a un menú, ni con el comando que abrió el agente, y una conversación nueva (/clear, /new, /resume) les vuelve a dar nombre. El nombre que tú les pongas se queda.',
+  'Restarting a Claude Code session no longer fails with "No conversation found with session ID" or "Session ID is already in use": it picks the conversation back up when Claude saved one, and starts a new one when no prompt was ever sent.':
+    'Reiniciar una sesión de Claude Code ya no falla con "No conversation found with session ID" ni con "Session ID is already in use": retoma la conversación si Claude la guardó, y empieza una nueva si nunca se le mandó un prompt.',
   'A Codex session keeps its name while Codex waits on you, instead of turning into ". ] Action Required".':
     'Una sesión de Codex conserva su nombre mientras Codex espera tu respuesta, en vez de convertirse en ". ] Action Required".',
   'A key typed right after Escape is no longer lost from the prompt a session remembers.':

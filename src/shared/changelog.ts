@@ -26,6 +26,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       { kind: 'fixed', text: 'An agent opened straight from its button, like Clyra, no longer lays its screen out in slivers, a word broken over several rows: what it asks the terminal as it starts is answered.' },
       { kind: 'new', text: 'The branch a project has checked out shows beside its name in the sidebar and in the middle of the top bar, and follows a switch within seconds; a worktree and a detached checkout have marks of their own.' },
       { kind: 'improved', text: 'Sessions name themselves after their first prompt: not a slash command, not a menu answer, not the command that started the agent, and a new conversation (/clear, /new, /resume) names them again. A name you give one stays.' },
+      { kind: 'fixed', text: 'Restarting a Claude Code session no longer fails with "No conversation found with session ID" or "Session ID is already in use": it picks the conversation back up when Claude saved one, and starts a new one when no prompt was ever sent.' },
       { kind: 'fixed', text: 'A Codex session keeps its name while Codex waits on you, instead of turning into ". ] Action Required".' },
       { kind: 'fixed', text: 'A key typed right after Escape is no longer lost from the prompt a session remembers.' },
       { kind: 'improved', text: 'The Mac installer opens on a window of its own, with the app on one side, Applications on the other and an arrow between them.' }
