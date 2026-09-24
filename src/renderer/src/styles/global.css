@@ -215,6 +215,19 @@ button:disabled {
   min-width: 0;
 }
 
+/* The branch beside a project's name: quiet, and the first to give up room to the name. */
+.branch-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+  flex-shrink: 1000;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
 /* ---- terminal card ---- */
 /* Flat on the frame: no border, no shadow; the change of surface is the edge. */
 .card {
@@ -788,6 +801,21 @@ kbd {
   display: flex;
   align-items: center;
   height: 100%;
+}
+/* Where you are, centred in the bar: the project and its branch. Clicks go through to the bar. */
+.topbar-title {
+  position: absolute;
+  left: 0;
+  right: 0;
+  justify-content: center;
+  gap: 8px;
+  pointer-events: none;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.topbar-title > * {
+  max-width: 32vw;
 }
 /* Windows and Linux: minimize, maximize and close at the right end. */
 .caption {
