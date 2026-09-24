@@ -69,6 +69,8 @@ const BORING = /^(windows powershell|powershell|pwsh|cmd|command prompt|bash|zsh
 export function stripTitleGlyph(t: string): string {
   return t
     .replace(/\s*[\u2800-\u28ff]+\s*/g, ' ')
+    // Codex's blinking mark while it waits on you: "[ . ] Action Required", "[ ! ] Action Required".
+    .replace(/^\s*\[\s*[^\]\p{L}\p{N}]{0,3}\s*\]\s*/u, '')
     .replace(/^[^\p{L}\p{N}\s]{1,2}\s+/u, '')
     .replace(/^OC \| /, '')
     .replace(/\s{2,}/g, ' ')
@@ -96,8 +98,9 @@ export function isOwnNameTitle(title: string, agent: string | string[], folder: 
     const a = plain(name)
     if (a && [a, `${a}code`, `${a}cli`, `${a}agent`].some((n) => n === t || n === `${t}code` || n === `${t}cli` || n === `${t}agent`)) return true
   }
-  // Codex's stand-in while it thinks of a name for the thread.
-  if (t === 'renaming') return true
+  // Codex's stand-in while it thinks of a name for the thread, and what it shows while it waits on
+  // you: a state, which the sidebar shows by itself, not a name.
+  if (t === 'renaming' || t === 'actionrequired') return true
   const f = plain(folder)
   return !!f && t === f
 }
