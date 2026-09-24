@@ -24,6 +24,14 @@ describe('isOwnNameTitle', () => {
     expect(isOwnNameTitle('Claude Code', namesOf('mine', 'C:\\bin\\claude.exe'), 'x')).toBe(true)
   })
 
+  it('keeps the name when Codex only says it waits on you', () => {
+    for (const raw of ['[ . ] Action Required | KServices', '[ ! ] Action Required | KServices']) {
+      const t = withoutFolder(stripTitleGlyph(raw), 'KServices')
+      expect(t).toBe('Action Required')
+      expect(isOwnNameTitle(t, 'codex', 'KServices')).toBe(true)
+    }
+  })
+
   it('keeps a title that says something', () => {
     expect(isOwnNameTitle('Fix the login redirect', 'claude', 'StepTerminal')).toBe(false)
     expect(isOwnNameTitle('Codex: reviewing tests', 'codex', 'StepTerminal')).toBe(false)
