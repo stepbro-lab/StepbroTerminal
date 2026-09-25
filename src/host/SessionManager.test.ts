@@ -293,3 +293,31 @@ describe('picks a Claude Code conversation back up only when there is one', () =
     expect(lastArgs()).toContain(s.agent.sessionId!)
   })
 })
+
+describe('a name kept from an earlier version', () => {
+  const saved = (over: Partial<Session>): Session => ({ id: randomId(), projectPath: dir, presetId: 'shell', title: '', titleSource: 'none', pinned: false,
+    order: 0, createdAt: 0, updatedAt: 0, status: 'exited', statusAt: 0, alive: false, cols: 80, rows: 24, agent: {},
+    launch: { command: process.execPath, args: [], hooks: false }, ...over } as Session)
+  let n = 0
+  const randomId = (): string => `kept-${++n}`
+  const reload = async (sessions: Session[]): Promise<Session[]> => {
+    await fs.writeFile(path.join(dir, 'state.json'), JSON.stringify({ version: 1, sessions }))
+    const again = new SessionManager({ stateFile: path.join(dir, 'state.json'), logDir: path.join(dir, 'logs'), hooksDir: path.join(dir, 'hooks'),
+      binDir: path.join(dir, 'bin'), hookUrl: () => 'http://127.0.0.1:1/hooks', mcpUrl: () => 'http://127.0.0.1:1/mcp', scrollback: 5000, baseEnv: process.env })
+    again.load()
+    return again.list()
+  }
+
+  it('goes when today it would not be taken, and stays otherwise', async () => {
+    const [codex, typed, prompt, mine] = await reload([
+      saved({ presetId: 'codex', title: '! ] Action Required', titleSource: 'osc' }),
+      saved({ title: 'claude --dangerously-skip-permissions', titleSource: 'input' }),
+      saved({ presetId: 'codex', title: 'fix the overlay banner', titleSource: 'input' }),
+      saved({ title: 'Action Required', titleSource: 'user' })
+    ])
+    expect(codex).toMatchObject({ title: '', titleSource: 'none' })
+    expect(typed).toMatchObject({ title: '', titleSource: 'none' })
+    expect(prompt).toMatchObject({ title: 'fix the overlay banner', titleSource: 'input' })
+    expect(mine).toMatchObject({ title: 'Action Required', titleSource: 'user' })
+  })
+})
