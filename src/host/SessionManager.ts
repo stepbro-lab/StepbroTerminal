@@ -274,6 +274,15 @@ export class SessionManager extends EventEmitter {
       s.leftRunning = wasAlive
       if (typeof s.order !== 'number') s.order = s.createdAt
       if (s.previewUrl && isOwnEndpoint(s.previewUrl)) s.previewUrl = undefined
+      // A name an earlier version took that would not be taken now, such as Codex's "Action Required"
+      // or the command that launched an agent, goes; the next prompt or title names the session.
+      const stale =
+        (s.titleSource === 'osc' && !this.nameFromOsc(s, s.title)) ||
+        (s.titleSource === 'input' && !titleFromLine(s.title, s.launch.hooks || s.presetId !== 'shell'))
+      if (stale) {
+        s.title = ''
+        s.titleSource = 'none'
+      }
       const l = this.newLive(s)
       l.restorePending = true
       this.live.set(s.id, l)
@@ -1135,12 +1144,19 @@ export class SessionManager extends EventEmitter {
     }
   }
 
+  /** A window title an agent sent, as a session name; null when it only says who or where it is. */
+  private nameFromOsc(s: Session, title: string): string | null {
+    const folder = projectName(s.projectPath)
+    const t = withoutFolder(stripTitleGlyph(title), folder)
+    if (isBoringTitle(t) || isOwnNameTitle(t, namesOf(agentOf(s), s.launch.command, s.launch.args), folder)) return null
+    return t
+  }
+
   private onOscTitle(l: Live, title: string): void {
     const s = l.s
     if (s.titleSource === 'user') return
-    const folder = projectName(s.projectPath)
-    const t = withoutFolder(stripTitleGlyph(title), folder)
-    if (isBoringTitle(t) || isOwnNameTitle(t, namesOf(agentOf(s), s.launch.command, s.launch.args), folder)) return
+    const t = this.nameFromOsc(s, title)
+    if (!t) return
     if (s.title === t && s.titleSource === 'osc') return
     s.title = t.slice(0, 120)
     s.titleSource = 'osc'

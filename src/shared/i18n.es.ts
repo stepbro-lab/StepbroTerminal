@@ -464,8 +464,8 @@ export const es: Record<string, string> = {
     'Las sesiones se nombran con su primer prompt: no con un comando con barra, ni con la respuesta a un menú, ni con el comando que abrió el agente, y una conversación nueva (/clear, /new, /resume) les vuelve a dar nombre. El nombre que tú les pongas se queda.',
   'Restarting a Claude Code session no longer fails with "No conversation found with session ID" or "Session ID is already in use": it picks the conversation back up when Claude saved one, and starts a new one when no prompt was ever sent.':
     'Reiniciar una sesión de Claude Code ya no falla con "No conversation found with session ID" ni con "Session ID is already in use": retoma la conversación si Claude la guardó, y empieza una nueva si nunca se le mandó un prompt.',
-  'A Codex session keeps its name while Codex waits on you, instead of turning into ". ] Action Required".':
-    'Una sesión de Codex conserva su nombre mientras Codex espera tu respuesta, en vez de convertirse en ". ] Action Required".',
+  'A Codex session keeps its name while Codex waits on you, instead of turning into ". ] Action Required"; a session that already had, and one named after the command that launched its agent, are named again by their next prompt.':
+    'Una sesión de Codex conserva su nombre mientras Codex espera tu respuesta, en vez de convertirse en ". ] Action Required"; una que ya se llamaba así, o con el comando que abrió su agente, recibe nombre de nuevo con su siguiente prompt.',
   'A key typed right after Escape is no longer lost from the prompt a session remembers.':
     'La tecla que escribes justo después de Escape ya no se pierde del prompt que recuerda la sesión.',
   'The Mac installer opens on a window of its own, with the app on one side, Applications on the other and an arrow between them.':
