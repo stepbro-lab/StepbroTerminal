@@ -455,7 +455,8 @@ export const es: Record<string, string> = {
   'On branch {branch}': 'En la rama {branch}',
   'Worktree on {branch}': 'Worktree en la rama {branch}',
   'Detached at {commit}': 'Desacoplado en {commit}',
-  'Agents that measure the terminal as they start, like Clyra, get their answers.': 'Los agentes que miden el terminal al arrancar, como Clyra, reciben sus respuestas.',
+  'Sessions name themselves after what you ask, show their branch, and come back without an invalid session id.':
+    'Las sesiones se nombran con lo que les pides, muestran su rama y vuelven sin un ID de sesión inválido.',
   'An agent opened straight from its button, like Clyra, no longer lays its screen out in slivers, a word broken over several rows: what it asks the terminal as it starts is answered.':
     'Un agente abierto desde su botón, como Clyra, ya no reparte su pantalla en tiras, con una palabra partida en varias filas: lo que le pregunta al terminal al arrancar recibe respuesta.',
   'The branch a project has checked out shows beside its name in the sidebar and in the middle of the top bar, and follows a switch within seconds; a worktree and a detached checkout have marks of their own.':
@@ -466,6 +467,8 @@ export const es: Record<string, string> = {
     'Reiniciar una sesión de Claude Code ya no falla con "No conversation found with session ID" ni con "Session ID is already in use": retoma la conversación si Claude la guardó, y empieza una nueva si nunca se le mandó un prompt.',
   'A Codex session keeps its name while Codex waits on you, instead of turning into ". ] Action Required"; a session that already had, and one named after the command that launched its agent, are named again by their next prompt.':
     'Una sesión de Codex conserva su nombre mientras Codex espera tu respuesta, en vez de convertirse en ". ] Action Required"; una que ya se llamaba así, o con el comando que abrió su agente, recibe nombre de nuevo con su siguiente prompt.',
+  'A terminal opened while the window was behind another is drawn from the start, instead of staying blank until the window is clicked.':
+    'Un terminal abierto con la ventana detrás de otra se dibuja desde el principio, en vez de quedarse en blanco hasta hacer clic en la ventana.',
   'A key typed right after Escape is no longer lost from the prompt a session remembers.':
     'La tecla que escribes justo después de Escape ya no se pierde del prompt que recuerda la sesión.',
   'The Mac installer opens on a window of its own, with the app on one side, Applications on the other and an arrow between them.':
