@@ -60,6 +60,8 @@ mac:
   # Same artwork with room around it, the way Dock icons are drawn.
   icon: build/icon-mac.png
   category: public.app-category.developer-tools
+  # Apple Silicon is the Mac most people have: its installer goes by the plain name.
+  defaultArch: arm64
   hardenedRuntime: false
   # Lets Finder and the Dock accept a folder dropped on the app: it opens as a project.
   extendInfo:
@@ -76,7 +78,9 @@ mac:
 # them with the name, an arrow between the two and what to do (build/dmg/background.html, drawn by
 # pnpm dmg:background). The positions are where the picture leaves room for them.
 dmg:
-  title: stepbro terminal
+  # Both disk images are built at once, and one named like the other mounts over it: each needs a
+  # volume name of its own. ${arch} is empty for the default architecture, Apple Silicon.
+  title: stepbro terminal${arch}
   background: build/dmg-background.png
   window:
     width: 540
