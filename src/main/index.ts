@@ -1,4 +1,4 @@
-import { app, BrowserWindow, nativeTheme } from 'electron'
+import { app, BrowserWindow, nativeTheme, Notification } from 'electron'
 import { join, resolve } from 'node:path'
 import fs from 'node:fs'
 import { claudeDir, hostLogPath } from '@shared/paths'
@@ -23,6 +23,8 @@ import { applyGlobalKeys, releaseGlobalKeys } from './globalKeys'
 import { setLanguage } from './i18n'
 import { APP_ID, applyShortcutIcons, ensureWindowsShortcut, migrateUserData } from './branding'
 import { Updates } from './updates'
+import { closesToTray } from './closeToTray'
+import { t } from './i18n'
 import { folderArgs, onlyFolders } from './openFolders'
 import { workspaceKeyFromUrl } from './stepUrl'
 import type { Ctx } from './context'
@@ -242,14 +244,39 @@ async function boot(): Promise<void> {
   registerIpc(ctx)
   setLanguage(ctx.prefs.language)
   buildAppMenu(ctx)
-  ctx.win = createWindow(ctx.prefs)
+  // Set once the app is really going (from the tray, for an update, or with the system): the
+  // window then closes for good instead of going to the tray.
+  let quitting = false
+  const openWindow = (): BrowserWindow => {
+    const w = createWindow(ctx.prefs)
+    w.on('close', (e) => {
+      if (!closesToTray(process.platform, ctx.prefs, ctx.tray.isUp, quitting)) return
+      e.preventDefault()
+      w.hide()
+      if (!ctx.prefs.trayHintShown) {
+        ctx.setPrefs({ trayHintShown: true })
+        if (Notification.isSupported()) {
+          new Notification({
+            title: t('stepbro terminal is still running'),
+            body: t('Your sessions go on, and you will hear when one needs you. Open it from the tray icon; quit it from there too.')
+          }).show()
+        }
+      }
+    })
+    // Windows ending the session closes every window; nothing should hold that up.
+    w.on('session-end', () => {
+      quitting = true
+    })
+    w.on('closed', () => {
+      if (ctx.win === w) ctx.win = null
+    })
+    return w
+  }
+  ctx.win = openWindow()
   forward = (line: string): void => ctx.emit('diag', line)
   applyGlobalKeys(ctx)
   log(`app ${VERSION} on ${process.platform} ${process.arch}, host entry ${hostEntry()}`)
   ctx.updates.start()
-  ctx.win.on('closed', () => {
-    ctx.win = null
-  })
   ctx.tray.create()
   // An update rewrites the Windows shortcuts with the default icon; a chosen color logo goes back on them.
   if (ctx.prefs.logo && ctx.prefs.logo !== 'light') applyShortcutIcons(ctx.prefs.logo)
@@ -268,7 +295,7 @@ async function boot(): Promise<void> {
     if (url && handleStepUrl(ctx, url) && !url.startsWith('step://focus/') && !workspaceKeyFromUrl(url)) return
     // A folder dropped on the icon while the app is already open: hand it over and come forward.
     openFolders(ctx, folderArgs(argv, cwd, [app.getAppPath(), process.execPath]))
-    if (!ctx.win) ctx.win = createWindow(ctx.prefs)
+    if (!ctx.win) ctx.win = openWindow()
     if (ctx.win.isMinimized()) ctx.win.restore()
     ctx.win.show()
     ctx.win.focus()
@@ -276,17 +303,13 @@ async function boot(): Promise<void> {
   const launchUrl = stepUrlIn(process.argv)
   if (launchUrl) handleStepUrl(ctx, launchUrl)
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      ctx.win = createWindow(ctx.prefs)
-      ctx.win.on('closed', () => {
-        ctx.win = null
-      })
-    }
+    if (BrowserWindow.getAllWindows().length === 0) ctx.win = openWindow()
   })
   app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') app.quit()
   })
   app.on('before-quit', () => {
+    quitting = true
     // Never kill the host: sessions must survive the app.
     client.disconnect()
     history.stop()

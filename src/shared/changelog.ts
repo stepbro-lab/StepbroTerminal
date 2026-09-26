@@ -19,6 +19,14 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.1.0-beta.24',
+    date: '2026-09-26',
+    headline: 'On Windows, closing the window keeps the app in the tray.',
+    changes: [
+      { kind: 'new', text: 'On Windows, closing the window no longer quits the app: it stays in the tray and keeps telling you when a session finishes or needs you. Open it again from the tray icon, and quit it from there; in Settings, under Advanced, closing can quit it as before.' }
+    ]
+  },
+  {
     version: '0.1.0-beta.23',
     date: '2026-09-26',
     headline: 'Sessions name themselves after what you ask, show their branch, and come back without an invalid session id.',

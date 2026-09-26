@@ -224,6 +224,13 @@ export interface Prefs {
    * edge. Off, it stays open and the terminal sits below it. On unless turned off.
    */
   barHides?: boolean
+  /**
+   * Windows: closing the window leaves the app running in the tray, still telling you when a
+   * session needs you, until it is quit from there. On unless turned off.
+   */
+  closeToTray?: boolean
+  /** Whether the app has said once that it went on running in the tray when its window closed. */
+  trayHintShown?: boolean
   /** Topito, the mole between the buttons at the foot of the sidebar. Off until turned on. */
   topito?: boolean
   /** The newest version whose changes have been shown; what came after it opens once after an update. */

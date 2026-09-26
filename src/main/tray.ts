@@ -57,6 +57,11 @@ export class StepTray {
     this.refresh()
   }
 
+  /** Whether the icon is up: the system may have no tray to put it in. */
+  get isUp(): boolean {
+    return this.tray !== null
+  }
+
   destroy(): void {
     this.tray?.destroy()
     this.tray = null
