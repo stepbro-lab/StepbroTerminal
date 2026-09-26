@@ -39,6 +39,12 @@ jobs:
       - name: Check the packaged host starts
         run: pnpm exec electron-builder --dir && node scripts/smoke-packaged-host.mjs
 
+      # Spotlight indexes every disk image the moment it is mounted, and while it does the image
+      # cannot be ejected: "hdiutil detach" fails as busy and the installer is never finished.
+      - name: Keep Spotlight off the disk images
+        if: runner.os == 'macOS'
+        run: sudo mdutil -a -i off
+
       - name: Build and publish
         env:
           # Fine-grained token with contents:write on StepbroTerminal-releases.
