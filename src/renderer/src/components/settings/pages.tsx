@@ -499,9 +499,17 @@ function UpdatesSection() {
 
 export function AdvancedPage() {
   const hostState = useData((s) => s.hostState)
+  const [p, upd] = usePrefsPage()
   return (
     <>
       <UpdatesSection />
+      {window.step.platform === 'win32' && (
+        <Section title={t('Closing the window')} description={t('Your sessions keep running either way. In the tray, the app also keeps telling you when one finishes or needs you.')}>
+          <Row label={t('Keep running in the tray')} hint={t('Off, closing the window quits the app.')}>
+            <Toggle value={p.closeToTray !== false} onChange={(closeToTray) => upd({ closeToTray })} />
+          </Row>
+        </Section>
+      )}
       <Section
         title={t('Session host')}
         description={t('A small background process owns every shell so they survive the window. Restarting it ends the shells that are open right now.')}
