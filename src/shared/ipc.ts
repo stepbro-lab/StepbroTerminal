@@ -30,6 +30,8 @@ export interface CreateRequest {
   title?: string
   /** From a launch configuration: typed into the pane once it first settles. */
   runOnStart?: string
+  /** Start there rather than in the project's folder, still under the project. */
+  startDir?: string
 }
 
 /** Renderer -> main request/response channels. */

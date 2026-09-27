@@ -45,7 +45,11 @@ function showNewSession(id: string): void {
 
 export const newShell = (projectPath: string): Promise<Session | null> => createSession(projectPath, 'shell')
 
-/** Opens a new shell beside (or under) a pane (the focused one by default), in the same folder. */
+/**
+ * Opens a new shell beside (or under) a pane (the focused one by default), in the folder that
+ * pane's shell is in now, which may be deeper than the project's after a cd; it stays under the
+ * same project.
+ */
 export async function splitWithNewShell(dir: SplitDir, besideId?: string): Promise<void> {
   const ui = useUi.getState()
   if (besideId && besideId !== ui.activeId) ui.setActive(besideId)
@@ -56,7 +60,8 @@ export async function splitWithNewShell(dir: SplitDir, besideId?: string): Promi
     return
   }
   try {
-    const s = await window.step.invoke('host:create', { projectPath, presetId: 'shell', ...currentDims() })
+    const startDir = current?.projectPath === projectPath ? current.cwd : undefined
+    const s = await window.step.invoke('host:create', { projectPath, presetId: 'shell', startDir, ...currentDims() })
     useData.getState().patchSession(s)
     useUi.getState().split(dir, s.id)
   } catch (e: any) {

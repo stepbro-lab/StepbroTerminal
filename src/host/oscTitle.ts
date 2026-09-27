@@ -1,15 +1,35 @@
 /**
- * Streaming parser for OSC 0/2 window-title sequences: ESC ] 0 ; title BEL  (or ESC \ terminator).
- * Feed raw PTY output chunks; returns the titles completed in that chunk.
+ * Streaming parser for the OSC sequences a session's program uses to say where it is: window
+ * titles (OSC 0 and 2) and the working directory, as OSC 7 (file://host/path, what posix shells
+ * send) or OSC 9;9 (a path, what PowerShell and cmd send, as for Windows Terminal). Each is
+ * ESC ] … ended by BEL or ESC \. Feed raw PTY output chunks; each call returns the titles
+ * completed in that chunk, and `takeCwd` the last directory reported since it was last asked.
  */
 export class OscTitleParser {
-  private state: 'text' | 'esc' | 'osc-num' | 'osc-title' | 'osc-esc' = 'text'
+  private state: 'text' | 'esc' | 'osc-num' | 'osc-9' | 'osc-body' | 'osc-esc' | 'osc-skip' | 'osc-skip-esc' = 'text'
   private num = ''
-  private title = ''
+  private sub = ''
+  /** What the sequence being read carries. */
+  private kind: 'title' | 'cwd7' | 'cwd9' = 'title'
+  private body = ''
+  private cwd: string | null = null
 
   feed(chunk: Uint8Array): string[] {
     const out: string[] = []
     const text = Buffer.from(chunk).toString('utf8')
+    const done = (): void => {
+      if (this.kind === 'title') out.push(this.body)
+      else {
+        const dir = cwdFromOsc(this.kind === 'cwd7' ? 7 : 9, this.body)
+        if (dir) this.cwd = dir
+      }
+      this.state = 'text'
+    }
+    const begin = (kind: 'title' | 'cwd7' | 'cwd9'): void => {
+      this.kind = kind
+      this.body = ''
+      this.state = 'osc-body'
+    }
     for (let i = 0; i < text.length; i++) {
       const ch = text[i]
       switch (this.state) {
@@ -20,42 +40,79 @@ export class OscTitleParser {
           if (ch === ']') {
             this.state = 'osc-num'
             this.num = ''
-          } else this.state = 'text'
+          } else this.state = ch === '\x1b' ? 'esc' : 'text'
           break
         case 'osc-num':
           if (ch >= '0' && ch <= '9') this.num += ch
           else if (ch === ';') {
-            if (this.num === '0' || this.num === '2') {
-              this.state = 'osc-title'
-              this.title = ''
-            } else this.state = 'osc-skip' as any
+            if (this.num === '0' || this.num === '2') begin('title')
+            else if (this.num === '7') begin('cwd7')
+            else if (this.num === '9') {
+              this.sub = ''
+              this.state = 'osc-9'
+            } else this.state = 'osc-skip'
           } else this.state = 'text'
           break
-        case 'osc-title':
-          if (ch === '\x07') {
-            out.push(this.title)
-            this.state = 'text'
-          } else if (ch === '\x1b') this.state = 'osc-esc'
-          else if (this.title.length < 256) this.title += ch
+        case 'osc-9':
+          // OSC 9 carries several things; 9;9 is the working directory.
+          if (ch >= '0' && ch <= '9') this.sub += ch
+          else if (ch === ';' && this.sub === '9') begin('cwd9')
+          else this.state = ch === '\x07' ? 'text' : ch === '\x1b' ? 'osc-skip-esc' : 'osc-skip'
+          break
+        case 'osc-body':
+          if (ch === '\x07') done()
+          else if (ch === '\x1b') this.state = 'osc-esc'
+          else if (this.body.length < (this.kind === 'title' ? 256 : 4096)) this.body += ch
           break
         case 'osc-esc':
-          if (ch === '\\') {
-            out.push(this.title)
-            this.state = 'text'
-          } else {
-            this.state = 'osc-title'
-            if (this.title.length < 256) this.title += ch
+          if (ch === '\\') done()
+          else {
+            this.state = 'osc-body'
+            if (this.body.length < 4096) this.body += ch
           }
           break
-        default:
-          // osc-skip: consume until BEL or ST
+        case 'osc-skip':
           if (ch === '\x07') this.state = 'text'
-          else if (ch === '\x1b') this.state = 'osc-skip-esc' as any
-          else if ((this.state as string) === 'osc-skip-esc') this.state = ch === '\\' ? 'text' : ('osc-skip' as any)
+          else if (ch === '\x1b') this.state = 'osc-skip-esc'
+          break
+        case 'osc-skip-esc':
+          this.state = ch === '\\' ? 'text' : ch === '\x1b' ? 'osc-skip-esc' : 'osc-skip'
+          break
       }
     }
     return out
   }
+
+  /** The working directory the program last reported, once: null when nothing new came. */
+  takeCwd(): string | null {
+    const c = this.cwd
+    this.cwd = null
+    return c
+  }
+}
+
+/**
+ * A directory out of OSC 7 ("file://host/Users/me/app", percent-encoded, a Windows path as
+ * "file://host/C:/Users/me") or OSC 9;9 ("C:\Users\me", quoted or not). Null for anything that is
+ * not an absolute path.
+ */
+export function cwdFromOsc(kind: 7 | 9, raw: string): string | null {
+  let p = raw.trim()
+  if (kind === 7) {
+    const m = /^file:\/\/[^/]*(\/.*)$/i.exec(p)
+    if (!m) return null
+    p = m[1]
+    try {
+      p = decodeURIComponent(p)
+    } catch {
+      /* sent without encoding: taken as it is */
+    }
+    if (/^\/[A-Za-z]:[\\/]/.test(p)) p = p.slice(1).replace(/\//g, '\\')
+  } else {
+    if (p.length >= 2 && p.startsWith('"') && p.endsWith('"')) p = p.slice(1, -1)
+  }
+  if (!p || p.includes('\0')) return null
+  return p.startsWith('/') || /^[A-Za-z]:[\\/]/.test(p) || p.startsWith('\\\\') ? p : null
 }
 
 const BORING = /^(windows powershell|powershell|pwsh|cmd|command prompt|bash|zsh|fish|sh|terminal|administrator: .*|.*: (bash|zsh|fish|sh))$/i

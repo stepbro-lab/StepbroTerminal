@@ -226,25 +226,36 @@ export function applyAgentWrap(env: Record<string, string>, w: AgentWrap, binDir
  * hooks and notes: PowerShell gets functions, cmd gets doskey macros, other shells find the
  * shims on PATH. Anything that is not a plain interactive shell is left alone.
  */
-export function shellArgsWithAgents(file: string, args: string[], w: AgentWrap, platform: NodeJS.Platform = process.platform): string[] {
-  if (!w.claude && !w.codex) return args
+export function shellArgsWithAgents(file: string, args: string[], w: AgentWrap, platform: NodeJS.Platform = process.platform, env?: Record<string, string>): string[] {
   const base = (file.split(/[\\/]/).pop() ?? '').toLowerCase().replace(/\.exe$/, '')
   if (base === 'powershell' || base === 'pwsh') {
     if (args.some((a) => /^-(c|command|f|file|encodedcommand)$/i.test(a))) return args
-    const defs: string[] = []
+    const defs: string[] = [POWERSHELL_CWD]
     if (w.claude) defs.push('function claude { & $env:STEP_REAL_CLAUDE --settings $env:STEP_HOOKS_SETTINGS --mcp-config $env:STEP_MCP_CONFIG @args }')
     if (w.codex) defs.push('function codex { & $env:STEP_REAL_CODEX -c $env:STEP_CODEX_MCP_ARG @args }')
     return [...args, '-NoExit', '-Command', defs.join('; ')]
   }
   if (base === 'cmd' && platform === 'win32') {
     if (args.some((a) => /^\/[kc]$/i.test(a))) return args
+    // cmd has no prompt hook, but its prompt can carry an escape: the folder goes out as OSC 9;9.
+    if (env) env['PROMPT'] = '$E]9;9;$P$E\\' + (env['PROMPT'] || '$P$G')
     const macros: string[] = []
     if (w.claude) macros.push('doskey claude="%STEP_REAL_CLAUDE%" --settings "%STEP_HOOKS_SETTINGS%" --mcp-config "%STEP_MCP_CONFIG%" $*')
     if (w.codex) macros.push('doskey codex="%STEP_REAL_CODEX%" -c %STEP_CODEX_MCP_ARG% $*')
-    return [...args, '/k', macros.join(' & ')]
+    return macros.length ? [...args, '/k', macros.join(' & ')] : args
   }
   return args
 }
+
+/**
+ * PowerShell tells the terminal which folder it is in at every prompt, as OSC 9;9 (what Windows
+ * Terminal reads for the same reason), so a pane split from it opens there. It wraps whatever
+ * prompt the profile set up, oh-my-posh and the like, and calls that first so the prompt still
+ * sees how the last command went. Single quotes and [char] only: this travels on the command line.
+ */
+const POWERSHELL_CWD =
+  "$global:__stepPrompt = $function:prompt; function global:prompt { $s = & $global:__stepPrompt; $l = $executionContext.SessionState.Path.CurrentLocation; if ($l.Provider.Name -eq 'FileSystem') { [Console]::Write([char]27 + ']9;9;' + $l.ProviderPath + [char]27 + [char]92) }; $s }"
+
 
 /**
  * Shell functions named like the agents, for posix shells. A function wins over anything on
@@ -257,6 +268,22 @@ export function shellArgsWithAgents(file: string, args: string[], w: AgentWrap, 
 const POSIX_FUNCTIONS = `if [ -n "$STEP_REAL_CLAUDE" ]; then claude() { "$STEP_REAL_CLAUDE" --settings "$STEP_HOOKS_SETTINGS" --mcp-config "$STEP_MCP_CONFIG" "$@"; }; fi
 if [ -n "$STEP_REAL_CODEX" ]; then codex() { "$STEP_REAL_CODEX" -c "mcp_servers.stepbro.url=\\"$STEP_MCP_URL\\"" "$@"; }; fi
 `
+
+/**
+ * The shell tells the terminal which folder it is in at every prompt, as OSC 7, so a pane split
+ * from it opens there. A % in the path is encoded; the rest goes as it is, the sequence ending
+ * where the BEL is.
+ */
+const ZSH_CWD =
+  '_step_report_cwd() { printf \'\\e]7;file://%s%s\\a\' "$HOST" "${PWD//\\%/%25}"; }\n' +
+  'autoload -Uz add-zsh-hook 2>/dev/null && add-zsh-hook precmd _step_report_cwd\n'
+const BASH_CWD =
+  '_step_report_cwd() { printf \'\\e]7;file://%s%s\\a\' "$HOSTNAME" "${PWD//\\%/%25}"; }\n' +
+  'PROMPT_COMMAND="_step_report_cwd${PROMPT_COMMAND:+;$PROMPT_COMMAND}"\n'
+const FISH_CWD =
+  'function __step_report_cwd --on-event fish_prompt\n' +
+  "    printf '\\e]7;file://%s%s\\a' $hostname (string replace -a '%' '%25' -- $PWD)\n" +
+  'end\n'
 
 /** zsh reads its files from ZDOTDIR; each of ours runs the user's own file of the same name first. */
 function zshFile(name: string, tail = ''): string {
@@ -291,7 +318,7 @@ export function writeShims(binDir: string): void {
   // zsh: the whole startup sequence, ours wrapping the user's.
   write('zsh/.zshenv', zshFile('.zshenv'))
   write('zsh/.zprofile', zshFile('.zprofile'))
-  write('zsh/.zshrc', zshFile('.zshrc', POSIX_FUNCTIONS))
+  write('zsh/.zshrc', zshFile('.zshrc', POSIX_FUNCTIONS + ZSH_CWD))
   write('zsh/.zlogin', zshFile('.zlogin'))
   // bash: what a login shell would read, then the functions.
   write(
@@ -302,7 +329,7 @@ for _step_f in "$HOME/.bash_profile" "$HOME/.bash_login" "$HOME/.profile"; do
   if [ -f "$_step_f" ]; then . "$_step_f"; break; fi
 done
 unset _step_f
-${POSIX_FUNCTIONS}`
+${POSIX_FUNCTIONS}${BASH_CWD}`
   )
   // fish: its own syntax, run after the normal startup.
   write(
@@ -314,7 +341,7 @@ end
 if set -q STEP_REAL_CODEX
     function codex; "$STEP_REAL_CODEX" -c "mcp_servers.stepbro.url=\\"$STEP_MCP_URL\\"" $argv; end
 end
-`
+${FISH_CWD}`
   )
 }
 
@@ -323,8 +350,8 @@ end
  * --rcfile, fish through -C. Returns the arguments to use; the environment is changed in place.
  * Shells that already run a command, and shells we do not know, are left with the shims on PATH.
  */
-export function posixShellWithAgents(file: string, args: string[], w: AgentWrap, env: Record<string, string>, binDir: string): string[] {
-  if (!w.claude && !w.codex) return args
+export function posixShellWithAgents(file: string, args: string[], _w: AgentWrap, env: Record<string, string>, binDir: string): string[] {
+  // Always, agents or not: the files also have the shell report its folder.
   const base = (file.split(/[\\/]/).pop() ?? '').replace(/\.exe$/i, '')
   if (args.some((a) => a === '-c' || a === '--command' || a === '-C')) return args
   if (base === 'zsh') {

@@ -234,6 +234,7 @@ async function createSession(ctx: Ctx, req: CreateRequest): Promise<Session> {
     rows: req.rows,
     title: req.title,
     runOnStart: req.runOnStart,
+    startDir: req.startDir,
     agentSessionId: req.resumeId,
     resume: !!req.resumeId
   })

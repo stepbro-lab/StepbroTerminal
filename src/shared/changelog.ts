@@ -23,6 +23,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-09-26',
     headline: 'On Windows, closing the window keeps the app in the tray.',
     changes: [
+      { kind: 'fixed', text: 'A pane split from a shell opens in the folder that shell is in now, not the project\'s: after a cd into a subfolder, the new pane starts there too, and stays under the same project. Every shell says where it is at each prompt, PowerShell with oh-my-posh included.' },
       { kind: 'new', text: 'On Windows, closing the window no longer quits the app: it stays in the tray and keeps telling you when a session finishes or needs you. Open it again from the tray icon, and quit it from there; in Settings, under Advanced, closing can quit it as before.' }
     ]
   },
