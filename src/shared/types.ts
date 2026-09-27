@@ -106,6 +106,10 @@ export interface Session {
   launch: LaunchSpec
   /** Last local dev-server URL seen in the output, for the preview pane. */
   previewUrl?: string
+  /** Where the process starts, when not in the project's folder: a pane split from a shell that had moved. */
+  startDir?: string
+  /** The directory the shell last said it is in (OSC 7 or 9;9, at each prompt); gone with the process. */
+  cwd?: string
 }
 
 export interface CreateSessionOpts {
@@ -114,6 +118,8 @@ export interface CreateSessionOpts {
   launch: LaunchSpec
   cols: number
   rows: number
+  /** Where the process starts when not in the project's folder: a pane split from a shell that had moved. */
+  startDir?: string
   title?: string
   agentSessionId?: string
   /** Launch with `launch.resumeArgs` (needs agentSessionId). */

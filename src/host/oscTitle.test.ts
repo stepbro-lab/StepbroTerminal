@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isBoringTitle, isOwnNameTitle, namesOf, OscTitleParser, stripTitleGlyph, withoutFolder } from './oscTitle'
+import { cwdFromOsc, isBoringTitle, isOwnNameTitle, namesOf, OscTitleParser, stripTitleGlyph, withoutFolder } from './oscTitle'
 
 const b = (s: string) => Buffer.from(s)
 
@@ -99,5 +99,40 @@ describe('namesOf', () => {
     expect(namesOf('x', 'pnpm', ['dlx', 'clyra-cli'])).toEqual(['x', 'pnpm', 'clyra-cli'])
     expect(namesOf('x', 'claude', ['fix the bug'])).toEqual(['x', 'claude'])
     expect(namesOf('x', 'npx', ['fix the bug'])).toEqual(['x', 'npx'])
+  })
+})
+
+describe('the working directory a shell reports', () => {
+  it('reads OSC 7 from zsh, bash and fish, and OSC 9;9 from PowerShell and cmd', () => {
+    const p = new OscTitleParser()
+    p.feed(b('\x1b]7;file://mac.local/Users/me/My%20App\x07'))
+    expect(p.takeCwd()).toBe('/Users/me/My App')
+    expect(p.takeCwd()).toBeNull()
+    p.feed(b('PS> \x1b]9;9;C:\\Users\\me\\frontend_voucher_landing\x1b\\'))
+    expect(p.takeCwd()).toBe('C:\\Users\\me\\frontend_voucher_landing')
+    p.feed(b('\x1b]9;9;"D:\\work dir"\x07'))
+    expect(p.takeCwd()).toBe('D:\\work dir')
+  })
+
+  it('follows a sequence split across chunks, and keeps the last one', () => {
+    const p = new OscTitleParser()
+    expect(p.feed(b('out\x1b]7;file://h/tmp/a\x07\x1b]0;Title\x07\x1b]7;file://h/Users/me/pro'))).toEqual(['Title'])
+    expect(p.takeCwd()).toBe('/tmp/a')
+    p.feed(b('ject\x1b\\ more'))
+    expect(p.takeCwd()).toBe('/Users/me/project')
+  })
+
+  it('leaves other OSC 9 messages and titles alone', () => {
+    const p = new OscTitleParser()
+    expect(p.feed(b('\x1b]9;4;1;50\x07\x1b]9;Build done\x07\x1b]2;Next\x07'))).toEqual(['Next'])
+    expect(p.takeCwd()).toBeNull()
+  })
+
+  it('takes only absolute paths', () => {
+    expect(cwdFromOsc(7, 'file://host/C:/Users/me/app')).toBe('C:\\Users\\me\\app')
+    expect(cwdFromOsc(7, 'file:///home/me/100%')).toBe('/home/me/100%')
+    expect(cwdFromOsc(7, 'http://host/x')).toBeNull()
+    expect(cwdFromOsc(9, 'relative\\dir')).toBeNull()
+    expect(cwdFromOsc(9, '\\\\server\\share')).toBe('\\\\server\\share')
   })
 })

@@ -6,8 +6,8 @@ import type { Session } from '@shared/types'
 import { SessionManager } from './SessionManager'
 
 const ptys = vi.hoisted(() => [] as any[])
-vi.mock('node-pty', () => ({ spawn: (_file: string, args: string[]) => {
-  const p = { args, pid: 1234 + ptys.length, pause: vi.fn(), resume: vi.fn(), kill: vi.fn(), resize: vi.fn(), write: vi.fn(),
+vi.mock('node-pty', () => ({ spawn: (_file: string, args: string[], opts: { cwd?: string }) => {
+  const p = { args, cwd: opts?.cwd, pid: 1234 + ptys.length, pause: vi.fn(), resume: vi.fn(), kill: vi.fn(), resize: vi.fn(), write: vi.fn(),
     onData(fn: (s: string) => void) { this.data = fn }, onExit(fn: (e: { exitCode: number }) => void) { this.exit = fn },
     data: (_: string) => {}, exit: (_: { exitCode: number }) => {} }
   ptys.push(p)
@@ -319,5 +319,29 @@ describe('a name kept from an earlier version', () => {
     expect(typed).toMatchObject({ title: '', titleSource: 'none' })
     expect(prompt).toMatchObject({ title: 'fix the overlay banner', titleSource: 'input' })
     expect(mine).toMatchObject({ title: 'Action Required', titleSource: 'user' })
+  })
+})
+
+describe('the folder a shell is in', () => {
+  it('follows what the shell reports, and forgets it with the process', () => {
+    const s = create()
+    ptys[0].data('\x1b]7;file://host/Users/me/app\x07$ ')
+    expect(sm.list().find((x) => x.id === s.id)!.cwd).toBe('/Users/me/app')
+    ptys[0].data('\x1b]9;9;C:\\work\\landing\x1b\\PS> ')
+    expect(sm.list().find((x) => x.id === s.id)!.cwd).toBe('C:\\work\\landing')
+    sm.restart(s.id)
+    expect(sm.list().find((x) => x.id === s.id)!.cwd).toBeUndefined()
+  })
+
+  it('starts a split pane where it was split from, under the same project', async () => {
+    const deeper = path.join(dir, 'frontend_voucher_landing')
+    await fs.mkdir(deeper)
+    const s = sm.create({ projectPath: dir, presetId: 'shell', cols: 80, rows: 24, startDir: deeper, launch: { command: process.execPath, args: [], hooks: false } })
+    expect(ptys.at(-1).cwd).toBe(deeper)
+    expect(s.projectPath).toBe(dir)
+    // Gone since: the project's folder instead of a shell that cannot start.
+    await fs.rm(deeper, { recursive: true })
+    sm.restart(s.id)
+    expect(ptys.at(-1).cwd).toBe(dir)
   })
 })

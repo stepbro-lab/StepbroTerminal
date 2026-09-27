@@ -328,7 +328,8 @@ export class SessionManager extends EventEmitter {
       cols: opts.cols || 80,
       rows: opts.rows || 24,
       agent: { sessionId: opts.agentSessionId ?? (opts.launch.hooks ? id : undefined) },
-      launch: opts.launch
+      launch: opts.launch,
+      startDir: opts.startDir && opts.startDir !== opts.projectPath ? opts.startDir : undefined
     }
     const l = this.newLive(s)
     l.runOnStart = opts.runOnStart?.trim() || undefined
@@ -866,6 +867,8 @@ export class SessionManager extends EventEmitter {
     s.updatedAt = now
     s.error = undefined
     s.leftRunning = false
+    // A new process starts where it is told to; the last one's directory went with it.
+    s.cwd = undefined
     const env = ptyEnv(this.opts.baseEnv, { ...(s.launch.env ?? {}), STEP_SESSION_ID: s.id })
     const sessionId = s.agent.sessionId ?? s.id
     // Every session gets its hook and notes files. Agents started from the menu take them as
@@ -910,12 +913,12 @@ export class SessionManager extends EventEmitter {
     try {
       applyAgentWrap(env, wrap, this.opts.binDir)
       const full = [...resolved.argsPrefix, ...args]
-      const shellArgs = process.platform === 'win32' ? shellArgsWithAgents(resolved.file, full, wrap) : posixShellWithAgents(resolved.file, full, wrap, env, this.opts.binDir)
+      const shellArgs = process.platform === 'win32' ? shellArgsWithAgents(resolved.file, full, wrap, process.platform, env) : posixShellWithAgents(resolved.file, full, wrap, env, this.opts.binDir)
       p = nodePty.spawn(resolved.file, shellArgs, {
         name: 'xterm-256color',
         cols: s.cols,
         rows: s.rows,
-        cwd: s.projectPath,
+        cwd: startDirOf(s),
         env,
         useConpty: true,
         // node-pty bundles a recent ConPTY (1.23+); the one in Windows misplaces the cursor with TUI apps.
@@ -1005,6 +1008,11 @@ export class SessionManager extends EventEmitter {
     l.log?.append(bytes)
     this.emit('output', l.s.id, bytes)
     for (const t of l.osc.feed(bytes)) this.onOscTitle(l, t)
+    const cwd = l.osc.takeCwd()
+    if (cwd && cwd !== l.s.cwd) {
+      l.s.cwd = cwd
+      this.emitSession(l)
+    }
     this.spotPreviewUrl(l, data)
     const now = Date.now()
     l.lastOutputAt = now
@@ -1302,4 +1310,16 @@ export class SessionManager extends EventEmitter {
       })
     )
   }
+}
+
+/** The folder a session's process starts in: where it was split from, while that still exists. */
+function startDirOf(s: Session): string {
+  if (s.startDir) {
+    try {
+      if (fs.statSync(s.startDir).isDirectory()) return s.startDir
+    } catch {
+      /* gone since: the project's folder instead */
+    }
+  }
+  return s.projectPath
 }

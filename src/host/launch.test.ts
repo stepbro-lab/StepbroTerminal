@@ -57,7 +57,21 @@ describe('agents typed inside a shell', () => {
     expect(shellArgsWithAgents('pwsh', ['-Command', 'x'], w, 'win32')).toEqual(['-Command', 'x'])
     expect(shellArgsWithAgents('C:\\c\\claude.exe', ['--settings', 'x'], w, 'win32')).toEqual(['--settings', 'x'])
     expect(shellArgsWithAgents('/bin/zsh', ['-l'], w, 'darwin')).toEqual(['-l'])
-    expect(shellArgsWithAgents('pwsh', [], { ...w, claude: undefined }, 'win32')).toEqual([])
+  })
+
+  it('has PowerShell and cmd say which folder they are in, agents or not', () => {
+    const none = { ...w, claude: undefined, codex: undefined }
+    const ps = shellArgsWithAgents('pwsh', [], none, 'win32')
+    expect(ps.slice(0, 2)).toEqual(['-NoExit', '-Command'])
+    // It wraps the prompt the profile set up, oh-my-posh or not, and calls it first.
+    expect(ps[2]).toContain('$global:__stepPrompt = $function:prompt')
+    expect(ps[2]).toContain('$s = & $global:__stepPrompt')
+    expect(ps[2]).toContain("']9;9;' + $l.ProviderPath")
+    // It travels on the command line: no double quotes to escape.
+    expect(ps[2]).not.toContain('"')
+    const env: Record<string, string> = { PROMPT: '$P$G' }
+    expect(shellArgsWithAgents('cmd.exe', [], none, 'win32', env)).toEqual([])
+    expect(env['PROMPT']).toBe('$E]9;9;$P$E\\$P$G')
   })
 
   it('gives cmd doskey macros', () => {
@@ -114,8 +128,10 @@ describe('posix shells define the agent functions', () => {
     expect(posixShellWithAgents('/bin/zsh', ['-c', 'ls'], w, env, '/b')).toEqual(['-c', 'ls'])
     expect(posixShellWithAgents('/bin/dash', ['-l'], w, env, '/b')).toEqual(['-l'])
     expect(posixShellWithAgents('/usr/local/bin/claude', ['--settings', 'x'], w, env, '/b')).toEqual(['--settings', 'x'])
-    expect(posixShellWithAgents('/bin/zsh', ['-l'], { ...w, claude: undefined }, env, '/b')).toEqual(['-l'])
     expect(env['ZDOTDIR']).toBeUndefined()
+    // Agents or not, a plain zsh gets our files: they also have it say which folder it is in.
+    expect(posixShellWithAgents('/bin/zsh', ['-l'], { ...w, claude: undefined, codex: undefined }, env, '/b')).toEqual(['-l'])
+    expect(env['ZDOTDIR']).toBe(path.join('/b', 'zsh'))
   })
 
   it('writes rc files that run the user\'s own files first and then define the functions', () => {
@@ -145,6 +161,40 @@ describe('posix shells define the agent functions', () => {
     const args = posixShellWithAgents(bash, ['-l'], w, env as Record<string, string>, tmp).map(posix)
     const r = spawnSync(bash, args, { env, input: 'claude --version\nexit\n', encoding: 'utf8' })
     expect(r.stdout).toContain('ARGS:--settings /h/s.json --mcp-config /h/s.mcp.json --version')
+  })
+})
+
+describe('shells say which folder they are in', () => {
+  // No agent at all: the folder is reported all the same.
+  const w = { hooksSettings: '/h/s.json', mcpConfig: '/h/s.mcp.json', mcpUrl: 'http://h/mcp' }
+  const run = (shell: string, args: string[], env: Record<string, string>, input: string): string =>
+    spawnSync(shell, args, { env, input, encoding: 'utf8', timeout: 20_000 }).stdout ?? ''
+
+  it('a real zsh reports each folder it moves to, percent and spaces and all', () => {
+    const zsh = process.platform === 'win32' ? null : findOnPath('zsh', process.env)
+    if (!zsh) return
+    writeShims(tmp)
+    const dir = path.join(tmp, 'my 100% dir')
+    fs.mkdirSync(dir)
+    const env = { ...process.env, HOME: tmp } as Record<string, string>
+    delete env['ZDOTDIR']
+    const args = posixShellWithAgents(zsh, ['-i'], w, env, tmp)
+    const out = run(zsh, args, env, `cd '${dir}'\nexit\n`)
+    expect(out).toContain('\x1b]7;file://')
+    expect(out).toContain(dir.replace(/%/g, '%25') + '\x07')
+  })
+
+  it('a real bash does too', () => {
+    const bash = process.platform === 'win32' ? null : findOnPath('bash', process.env)
+    if (!bash) return
+    writeShims(tmp)
+    const dir = path.join(tmp, 'other dir')
+    fs.mkdirSync(dir)
+    const env = { ...process.env, HOME: tmp } as Record<string, string>
+    const args = posixShellWithAgents(bash, ['-l'], w, env, tmp)
+    const out = run(bash, args, env, `cd '${dir}'\nexit\n`)
+    expect(out).toContain('\x1b]7;file://')
+    expect(out).toContain(dir + '\x07')
   })
 })
 
