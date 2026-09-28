@@ -23,6 +23,8 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-09-26',
     headline: 'On Windows, closing the window keeps the app in the tray.',
     changes: [
+      { kind: 'improved', text: 'The dot at the top right is a bell now: a spinner while agents work, a blue dot on it when something finished that you have not seen, amber when a session needs you. Clicking it lists what needs you, what is working and what finished.' },
+      { kind: 'improved', text: 'The Notes button only shows once there is a note. The shortcut still opens them, and the first note brings the button out.' },
       { kind: 'improved', text: 'The voice agent is gone: the talk button and keys, reading aloud, the glow and the Voice page in Settings. A Gemini key saved for it is deleted from this machine.' },
       { kind: 'improved', text: 'The top bar is clean again: no project name and branch in its middle. The branch still shows beside the project in the sidebar.' },
       { kind: 'fixed', text: 'A pane split from a shell opens in the folder that shell is in now, not the project\'s: after a cd into a subfolder, the new pane starts there too, and stays under the same project. Every shell says where it is at each prompt, PowerShell with oh-my-posh included.' },

@@ -21,6 +21,8 @@
   --accent-soft: rgba(93, 95, 95, 0.14);
   --on-accent: #ffffff;
   --attention: #e8a317;
+  /* Finished and not yet looked at: the dot on the title bar's bell. */
+  --unread: #3b82f6;
   --danger: #ba1a1a;
   --success: #2f8f5b;
   --shadow-card: 0 1px 2px rgba(28, 27, 27, 0.05), 0 10px 30px rgba(28, 27, 27, 0.08);
@@ -59,6 +61,7 @@
   --accent-soft: rgba(223, 223, 222, 0.16);
   --on-accent: #2f3131;
   --attention: #f5b640;
+  --unread: #60a5fa;
   --danger: #ffb4ab;
   --success: #4cc38a;
   --shadow-card: none;
