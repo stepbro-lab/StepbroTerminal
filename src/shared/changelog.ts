@@ -23,6 +23,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-09-26',
     headline: 'On Windows, closing the window keeps the app in the tray.',
     changes: [
+      { kind: 'improved', text: 'A new folder icon in the sidebar: soft back, solid front, and a front that leans forward when the project is open. No more dark line across it.' },
       { kind: 'improved', text: 'The dot at the top right is a bell now: a spinner while agents work, a blue dot on it when something finished that you have not seen, amber when a session needs you. Clicking it lists what needs you, what is working and what finished.' },
       { kind: 'improved', text: 'The Notes button only shows once there is a note. The shortcut still opens them, and the first note brings the button out.' },
       { kind: 'improved', text: 'The voice agent is gone: the talk button and keys, reading aloud, the glow and the Voice page in Settings. A Gemini key saved for it is deleted from this machine.' },
