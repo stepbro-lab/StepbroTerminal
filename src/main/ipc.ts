@@ -6,7 +6,7 @@ import { hostLogPath, normalizeProjectPath, stepDir } from '@shared/paths'
 import { join } from 'node:path'
 import { readTranscriptDetails, transcriptPath } from './claude/transcript'
 import { buildLaunchSpec } from './presets/launchSpec'
-import { gitBranch, gitChanges, gitDiff, gitRevert } from './git'
+import { gitChanges, gitDiff, gitRevert } from './git'
 import { loadWorkspace, saveWorkspace } from './prefs'
 import type { Ctx } from './context'
 import { t } from './i18n'
@@ -145,7 +145,6 @@ export function registerIpc(ctx: Ctx): void {
   handle('prompts:list', () => ctx.prompts.list())
   handle('git:changes', (projectPath, since, touched) => gitChanges(projectPath, since, touched))
   handle('git:diff', (root, rel, untracked) => gitDiff(root, rel, untracked))
-  handle('git:branch', (projectPath) => gitBranch(projectPath))
   handle('git:revert', (root, rel, untracked) => gitRevert(root, rel, untracked))
   handle('workspace:get', () => loadWorkspace())
   handle('updates:state', () => ctx.updates.state)

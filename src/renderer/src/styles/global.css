@@ -215,19 +215,6 @@ button:disabled {
   min-width: 0;
 }
 
-/* The branch beside a project's name: quiet, and the first to give up room to the name. */
-.branch-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  min-width: 0;
-  flex-shrink: 1000;
-  font-size: 11.5px;
-  font-weight: 500;
-  color: var(--text-muted);
-  font-variant-numeric: tabular-nums;
-}
-
 /* ---- terminal card ---- */
 /* Flat on the frame: no border, no shadow; the change of surface is the edge. */
 .card {

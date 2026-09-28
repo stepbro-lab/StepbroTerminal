@@ -44,15 +44,6 @@ export interface GitChanges {
   files: ChangedFile[]
 }
 
-/** What a project has checked out: a branch, or a commit when HEAD is detached. */
-export interface GitBranch {
-  /** The branch, or the commit's short hash when detached. */
-  name: string
-  detached: boolean
-  /** The folder is a linked worktree of another checkout. */
-  worktree: boolean
-}
-
 /** One file's diff ready to draw: a unified diff, or the reason there is none to show. */
 export interface FileDiff {
   kind: 'text' | 'binary' | 'large' | 'empty' | 'error'
