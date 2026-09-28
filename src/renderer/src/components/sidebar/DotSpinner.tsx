@@ -1,3 +1,4 @@
+import { useId } from 'react'
 import { SPINNER, useUi } from '@/stores/ui'
 
 /**
@@ -25,20 +26,30 @@ export function DotSpinner({ size = 14, color = 'currentColor', animate = true }
   )
 }
 
-/** Filled folder mark, the way a system icon set draws it. */
+/**
+ * A project's folder: the back and its tab soft, the front solid and fading a touch toward the
+ * bottom, the way a Finder folder reads; open, the front leans forward. Drawn in the text colour
+ * so it follows the theme, with no dark line across it to go muddy on a dark frame.
+ */
 export function FolderIcon({ size = 14, open = false }: { size?: number; open?: boolean }) {
+  const fade = `folder-${useId()}`
   return (
     <svg width={size} height={size} viewBox="0 0 16 16" aria-hidden="true">
+      <defs>
+        <linearGradient id={fade} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="currentColor" stopOpacity="1" />
+          <stop offset="1" stopColor="currentColor" stopOpacity="0.78" />
+        </linearGradient>
+      </defs>
+      <path
+        d="M1.5 4A1.5 1.5 0 0 1 3 2.5h2.9c.42 0 .82.18 1.1.48l.72.77H13A1.5 1.5 0 0 1 14.5 5.25V12A1.5 1.5 0 0 1 13 13.5H3A1.5 1.5 0 0 1 1.5 12V4z"
+        fill="currentColor"
+        opacity="0.38"
+      />
       {open ? (
-        <>
-          <path d="M1.5 4.2A1.7 1.7 0 0 1 3.2 2.5h3.1c.5 0 .9.2 1.2.5l.9.9h4.4a1.7 1.7 0 0 1 1.7 1.7v.9H1.5V4.2z" fill="currentColor" opacity="0.55" />
-          <path d="M1.2 7.4h13.6l-1.2 5.1a1.7 1.7 0 0 1-1.65 1.3H4.05a1.7 1.7 0 0 1-1.65-1.3L1.2 7.4z" fill="currentColor" />
-        </>
+        <path d="M3.95 6.6H14.6a.9.9 0 0 1 .86 1.16l-1.42 4.72a1.45 1.45 0 0 1-1.39 1.02H2.6a1 1 0 0 1-.96-1.3l1.4-4.9a.95.95 0 0 1 .91-.7z" fill={`url(#${fade})`} />
       ) : (
-        <>
-          <path d="M1.5 4.2A1.7 1.7 0 0 1 3.2 2.5h3.1c.5 0 .9.2 1.2.5l.9.9h4.4a1.7 1.7 0 0 1 1.7 1.7v6.6a1.7 1.7 0 0 1-1.7 1.7H3.2a1.7 1.7 0 0 1-1.7-1.7V4.2z" fill="currentColor" />
-          <path d="M1.5 6.2h13v1H1.5z" fill="#000" opacity="0.18" />
-        </>
+        <rect x="1.5" y="5.4" width="13" height="8.1" rx="1.5" fill={`url(#${fade})`} />
       )}
     </svg>
   )

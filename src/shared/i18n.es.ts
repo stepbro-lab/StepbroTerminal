@@ -433,6 +433,8 @@ export const es: Record<string, string> = {
     'El punto de arriba a la derecha ahora es una campana: un indicador girando mientras los agentes trabajan, un punto azul cuando algo terminó y no lo has visto, y en ámbar cuando una sesión te necesita. Al pulsarla ves lo que te necesita, lo que está trabajando y lo que terminó.',
   'The Notes button only shows once there is a note. The shortcut still opens them, and the first note brings the button out.':
     'El botón de Notas solo aparece cuando hay alguna nota. El atajo las sigue abriendo, y la primera nota hace que aparezca el botón.',
+  'A new folder icon in the sidebar: soft back, solid front, and a front that leans forward when the project is open. No more dark line across it.':
+    'Nuevo icono de carpeta en la barra lateral: fondo suave, frente sólido y un frente que se inclina hacia delante cuando el proyecto está abierto. Sin la raya oscura de antes.',
   'stepbro terminal is still running': 'stepbro terminal sigue abierto',
   'Your sessions go on, and you will hear when one needs you. Open it from the tray icon; quit it from there too.': 'Tus sesiones siguen y te avisará cuando una te necesite. Ábrelo desde el icono de la bandeja; ciérralo del todo desde ahí también.',
   'Closing the window': 'Al cerrar la ventana',
