@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { AudioLines, Copy, Minus, PanelLeft, Settings, Square, X } from 'lucide-react'
 import { useUi } from '@/stores/ui'
-import { useData } from '@/stores/data'
-import { BranchLabel } from './BranchLabel'
 import { usePrefs } from '@/stores/prefs'
 import { ActivityPulse } from './ActivityPulse'
 import { UpdatePill } from './UpdatePill'
@@ -168,22 +166,6 @@ function CaptionButtons() {
  * The main process watches the pointer while the bar is open, since the bar is a drag region and
  * the page cannot see the pointer over it.
  */
-/** The project of the session in front, and the branch it has checked out. */
-function WhereTitle() {
-  const activeId = useUi((s) => s.activeId)
-  const activeProject = useUi((s) => s.activeProject)
-  const sessionPath = useData((s) => (activeId ? s.sessions[activeId]?.projectPath : undefined))
-  const path = sessionPath ?? activeProject
-  if (!path) return null
-  const name = path.split(/[\\/]/).filter(Boolean).pop() ?? path
-  return (
-    <div className="topbar-buttons topbar-title">
-      <span className="truncate">{name}</span>
-      <BranchLabel path={path} />
-    </div>
-  )
-}
-
 export function TopBar() {
   const fullscreen = useUi((s) => s.fullscreen)
   // Kept open for good when the bar is set not to tuck itself away.
@@ -319,7 +301,6 @@ export function TopBar() {
         />
       )}
       <div ref={ref} className={open ? 'topbar drag' : 'topbar'} data-open={open}>
-        <WhereTitle />
         {/* The sidebar's button stays at the left, over the sidebar, after a Mac's traffic lights. The
             rest take the end the system's own buttons leave free: the right on a Mac, the left elsewhere. */}
         {mac ? (

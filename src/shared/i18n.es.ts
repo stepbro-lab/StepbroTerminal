@@ -457,6 +457,8 @@ export const es: Record<string, string> = {
     'En Windows, cerrar la ventana ya no cierra la app: se queda en la bandeja y te sigue avisando cuando una sesión termina o te necesita. Se vuelve a abrir desde el icono de la bandeja y se cierra del todo desde ahí; en Ajustes, en Avanzado, puedes hacer que cerrar la cierre como antes.',
   'A pane split from a shell opens in the folder that shell is in now, not the project\'s: after a cd into a subfolder, the new pane starts there too, and stays under the same project. Every shell says where it is at each prompt, PowerShell with oh-my-posh included.':
     'Un panel dividido desde una shell se abre en la carpeta donde está esa shell ahora, no en la del proyecto: tras un cd a una subcarpeta, el panel nuevo arranca ahí también y sigue bajo el mismo proyecto. Cada shell dice dónde está en cada prompt, PowerShell con oh-my-posh incluido.',
+  'The top bar is clean again: no project name and branch in its middle. The branch still shows beside the project in the sidebar.':
+    'La barra de arriba vuelve a estar limpia: sin el nombre del proyecto y la rama en el centro. La rama se sigue viendo junto al proyecto en la barra lateral.',
   'stepbro terminal is still running': 'stepbro terminal sigue abierto',
   'Your sessions go on, and you will hear when one needs you. Open it from the tray icon; quit it from there too.': 'Tus sesiones siguen y te avisará cuando una te necesite. Ábrelo desde el icono de la bandeja; ciérralo del todo desde ahí también.',
   'Closing the window': 'Al cerrar la ventana',
