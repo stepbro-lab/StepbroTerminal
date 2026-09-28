@@ -2,6 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { app } from 'electron'
 import type { Prefs, WorkspaceState } from '@shared/types'
+import { dropRetiredPrefs } from './retiredPrefs'
 
 export const defaultPrefs: Prefs = {
   theme: 'system',
@@ -57,7 +58,10 @@ export function loadPrefs(): Prefs {
     }
     // A switch for the translucent frame came before its opacity; it never shipped, but it may be on disk.
     if (raw && 'translucentFrame' in raw) delete raw.translucentFrame
-    return { ...defaultPrefs, ...raw }
+    const prefs = { ...defaultPrefs, ...raw }
+    // What the voice agent kept, its Gemini key above all, goes with it, and off disk straight away.
+    if (raw && dropRetiredPrefs(prefs)) savePrefs(prefs)
+    return prefs
   } catch {
     // No preferences yet: a first launch, with nothing that changed since a version it never ran.
     return { ...defaultPrefs, seenVersion: app.getVersion() }

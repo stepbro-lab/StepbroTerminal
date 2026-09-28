@@ -6,8 +6,6 @@ import { flatSessions, type SidebarProject } from './sidebarModel'
 import { registry } from '@/terminal/TerminalRegistry'
 import { jumpToAttention } from './attention'
 import { useNotes } from '@/stores/notes'
-import { useVoice } from '@/stores/voice'
-import { selectionOrScreen } from './voice/app'
 import { displayChord, matchShortcut, resolveBindings, type Bindings, type ShortcutId, type ShortcutMatch } from '@shared/keybindings'
 import { t } from '@/lib/i18n'
 
@@ -47,18 +45,6 @@ export function runCommand(cmd: Command): void {
       break
     case 'settings':
       ui.setSettingsOpen(!ui.settingsOpen)
-      break
-    case 'voice':
-      // Held rather than toggled; the key coming up ends the turn (see App).
-      useVoice.getState().press()
-      break
-    case 'voice-anywhere':
-      // The system normally answers this one before the window ever sees it. It lands here when
-      // another program already holds the key, or when talking from anywhere has been turned off.
-      useVoice.getState().toggle()
-      break
-    case 'read-aloud':
-      readAloud()
       break
     case 'restart-session':
       if (ui.activeId) restartSession(ui.activeId)
@@ -154,16 +140,6 @@ export function jumpTo(n: number): void {
 }
 
 /** Window-level handler. Returns true when the event was consumed. */
-/** Reads what is selected in the pane in front, or what is on its screen when nothing is. */
-function readAloud(): void {
-  const text = selectionOrScreen()
-  if (!text.trim()) {
-    useUi.getState().toast(t('There is nothing on screen to read.'), 'info')
-    return
-  }
-  useVoice.getState().read(text)
-}
-
 export function handleKeydown(ev: KeyboardEvent): boolean {
   if (capture) {
     capture(ev)
@@ -192,9 +168,8 @@ export function handleKeydown(ev: KeyboardEvent): boolean {
   }
   const m = commandFor(ev)
   if (!m) return false
-  // A key held down repeats, dozens of times a second. Talking is already talking by the second
-  // one, so the rest are swallowed and go no further: not to the store, and not to the terminal.
-  if (ev.repeat) return m.id === 'voice' || m.id === 'voice-anywhere'
+  // A key held down repeats, dozens of times a second; a shortcut acts once.
+  if (ev.repeat) return false
   if (m.id === 'jump') {
     if (m.digit) jumpTo(m.digit)
     return true

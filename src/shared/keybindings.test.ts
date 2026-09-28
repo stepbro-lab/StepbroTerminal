@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { chordFromEvent, displayParts, heldBySystem, matchShortcut, parseChord, resolveBindings, takesAKeyFromTheTerminal, toAccelerator, validateChord, type KeyLike } from './keybindings'
+import { chordFromEvent, displayParts, matchShortcut, parseChord, resolveBindings, toAccelerator, validateChord, type KeyLike } from './keybindings'
 
 const ev = (over: Partial<KeyLike>): KeyLike => ({ key: '', code: '', ctrlKey: false, altKey: false, shiftKey: false, metaKey: false, ...over })
 
@@ -115,73 +115,3 @@ describe('display and accelerators', () => {
   })
 })
 
-describe('a key held rather than tapped', () => {
-  it('lets talking take a bare key, which a tapped shortcut may not', () => {
-    // Held for as long as you speak, so the comfortable key is one under a finger, not a chord.
-    expect(validateChord('.', false, 'voice')).toBeNull()
-    expect(validateChord('T', false, 'voice')).toBeNull()
-    expect(validateChord('.', false, 'palette')).toMatch(/Ctrl or Alt/)
-    expect(validateChord('.', false)).toMatch(/Ctrl or Alt/)
-  })
-
-  it('still refuses the keys a terminal cannot do without', () => {
-    for (const key of ['Enter', 'Tab', 'Escape', 'Backspace', 'Space']) {
-      expect(validateChord(key, false, 'voice'), key).toMatch(/needed in the terminal/)
-    }
-  })
-
-  it('still refuses what copy and paste have spoken for', () => {
-    expect(validateChord('Mod+V', false, 'voice')).toMatch(/copy and paste/)
-  })
-})
-
-describe('a key the system holds rather than the window', () => {
-  it('knows which shortcut that is', () => {
-    expect(heldBySystem('voice-anywhere')).toBe(true)
-    expect(heldBySystem('voice')).toBe(false)
-  })
-
-  it('refuses a key on its own, which talking in the window is allowed', () => {
-    // It would be taken from every program on the machine, not only from the terminal: a bare F5
-    // or full stop bound here would stop working everywhere the moment it was set.
-    expect(validateChord('.', false, 'voice-anywhere')).toMatch(/Ctrl or Alt/)
-    expect(validateChord('F5', false, 'voice-anywhere')).toMatch(/Ctrl or Alt/)
-    expect(validateChord('Shift+F5', false, 'voice-anywhere')).toMatch(/Ctrl or Alt/)
-    expect(validateChord('Mod+Shift+Space', false, 'voice-anywhere')).toBeNull()
-  })
-
-  it('has a default the system can be asked for', () => {
-    const chord = resolveBindings({}, false)['voice-anywhere']
-    expect(validateChord(chord!, false, 'voice-anywhere')).toBeNull()
-    expect(toAccelerator(chord)).toBe('CommandOrControl+Shift+Space')
-  })
-
-  it('leaves the terminal every key it had', () => {
-    expect(takesAKeyFromTheTerminal(resolveBindings({}, false)['voice-anywhere'])).toBe(false)
-  })
-})
-
-describe('takesAKeyFromTheTerminal', () => {
-  it('is true only for a key the terminal would otherwise have received', () => {
-    expect(takesAKeyFromTheTerminal('.')).toBe(true)
-    expect(takesAKeyFromTheTerminal('Shift+.')).toBe(true)
-    expect(takesAKeyFromTheTerminal('F4')).toBe(false)
-    expect(takesAKeyFromTheTerminal('Mod+Shift+M')).toBe(false)
-    expect(takesAKeyFromTheTerminal(null)).toBe(false)
-  })
-})
-
-describe('a bare key bound to talking', () => {
-  const key = (over: Partial<KeyLike> = {}): KeyLike => ({ key: '.', code: 'Period', ctrlKey: false, altKey: false, shiftKey: false, metaKey: false, ...over }) as KeyLike
-
-  it('is recognized as the shortcut, which is what keeps it out of the terminal', () => {
-    // A key the app claims is a key xterm is told to ignore; one it does not claim is typed.
-    const bindings = resolveBindings({ voice: '.' }, false)
-    expect(matchShortcut(key(), bindings, false)?.id).toBe('voice')
-  })
-
-  it('is typed as usual once it is not bound to anything', () => {
-    const bindings = resolveBindings({ voice: null }, false)
-    expect(matchShortcut(key(), bindings, false)).toBeNull()
-  })
-})

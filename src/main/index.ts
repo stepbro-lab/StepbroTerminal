@@ -19,7 +19,6 @@ import { PreviewBridge } from './preview'
 import { PromptLog } from './prompts'
 import { registerIpc } from './ipc'
 import { buildAppMenu } from './menu'
-import { applyGlobalKeys, releaseGlobalKeys } from './globalKeys'
 import { setLanguage } from './i18n'
 import { APP_ID, applyShortcutIcons, ensureWindowsShortcut, migrateUserData } from './branding'
 import { Updates } from './updates'
@@ -171,9 +170,6 @@ async function boot(): Promise<void> {
       if (partial.addedProjects || partial.hiddenProjects) ctx.emitProjects()
       if (partial.keybindings) buildAppMenu(ctx)
       if (partial.topito !== undefined) sendTopito(ctx)
-      // The key the system holds for talking: its chord, whether it is wanted, and whether there
-      // is anything to talk to all decide whether it should still be held.
-      if (partial.keybindings || partial.voiceAnywhere !== undefined || partial.geminiApiKey !== undefined) applyGlobalKeys(ctx)
       if (partial.logo !== undefined) {
         // The other logo, everywhere the app can change it while it runs: window or Dock, the tray,
         // and on Windows the shortcuts, so it holds when the app is closed or pinned.
@@ -274,7 +270,6 @@ async function boot(): Promise<void> {
   }
   ctx.win = openWindow()
   forward = (line: string): void => ctx.emit('diag', line)
-  applyGlobalKeys(ctx)
   log(`app ${VERSION} on ${process.platform} ${process.arch}, host entry ${hostEntry()}`)
   ctx.updates.start()
   ctx.tray.create()
@@ -315,7 +310,6 @@ async function boot(): Promise<void> {
     history.stop()
     live.stop()
     ctx.tray.destroy()
-    releaseGlobalKeys()
   })
 }
 

@@ -12,9 +12,7 @@ import { addDroppedFolders, openWorkspaceByKey } from '@/lib/actions'
 import { useSidebarModel } from '@/lib/useSidebarModel'
 import { Sidebar } from '@/components/sidebar/Sidebar'
 import { TopBar, useWindowCorners } from '@/components/Chrome'
-import { useVoice } from '@/stores/voice'
 import { startTopito, topitoSay } from '@/lib/topito/director'
-import { SelectionRead } from '@/components/pane/SelectionRead'
 import { TerminalPane } from '@/components/pane/TerminalPane'
 import { CommandPalette } from '@/components/CommandPalette'
 import { SettingsView } from '@/components/settings/SettingsView'
@@ -87,19 +85,11 @@ export default function App() {
       s.on('win:fullscreen', (f) => useUi.getState().setFullscreen(f)),
       s.on('ui:openFolder', (p) => void addDroppedFolders([p])),
       s.on('ui:openWorkspace', (k) => void openWorkspaceByKey(k)),
-      // The key the system holds, pressed while another program was in front.
-      s.on('ui:voiceToggle', () => useVoice.getState().toggle()),
       s.on('ui:topito', (say) => topitoSay(say))
     ]
     const stopTopito = startTopito()
     void s.invoke('win:isMaximized').then((m) => useUi.getState().setMaximized(m))
     void s.invoke('notes:list').then((notes) => useNotes.getState().receive(notes))
-    // Talking is held, not toggled, and the key can come up anywhere: in a terminal, over a
-    // menu, or after the window lost focus altogether. Any of those ends the turn. (voice-keyup)
-    const onKeyUp = (): void => useVoice.getState().releaseHeld()
-    const onBlur = (): void => useVoice.getState().releaseHeld()
-    window.addEventListener('keyup', onKeyUp, true)
-    window.addEventListener('blur', onBlur)
 
     const onKey = (ev: KeyboardEvent): void => {
       if (handleKeydown(ev)) {
@@ -129,8 +119,6 @@ export default function App() {
       offs.forEach((off) => off())
       stopTopito()
       window.removeEventListener('keydown', onKey, true)
-      window.removeEventListener('keyup', onKeyUp, true)
-      window.removeEventListener('blur', onBlur)
       document.removeEventListener('dragover', swallowFileDrop)
       document.removeEventListener('drop', swallowFileDrop)
       mq.removeEventListener('change', onMq)
@@ -222,7 +210,6 @@ export default function App() {
       </div>
       {settingsOpen && <SettingsView />}
       <TopBar />
-      <SelectionRead />
       <CommandPalette />
       <NotesPanel />
       <NoteFlight />

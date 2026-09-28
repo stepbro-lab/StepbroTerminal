@@ -8,13 +8,12 @@ import { usePrefs } from './stores/prefs'
 import { registry } from './terminal/TerminalRegistry'
 import { useUpdates } from '@/stores/updates'
 import { useNotes } from '@/stores/notes'
-import { useVoice } from '@/stores/voice'
 import * as actions from '@/lib/actions'
 import { useHandoff } from '@/stores/handoff'
 
 if (import.meta.env.DEV) {
   // Handy for poking at state from DevTools while developing.
-  ;(window as any).__step = { useUi, useData, usePrefs, useUpdates, useNotes, useHandoff, useVoice, registry, actions }
+  ;(window as any).__step = { useUi, useData, usePrefs, useUpdates, useNotes, useHandoff, registry, actions }
 }
 
 /** The whole tree remounts when the language changes, so every string is read again. */

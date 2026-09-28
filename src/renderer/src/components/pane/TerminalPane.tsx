@@ -19,7 +19,6 @@ import { HostBanner } from './HostBanner'
 import { PreviewPane } from './PreviewPane'
 import { ChangesPane } from './ChangesPane'
 import { TopitoCorner } from '../topito/Topito'
-import { VoiceGlow } from './VoiceGlow'
 import { t } from '@/lib/i18n'
 import { describeSessionError } from '@/lib/sessionErrors'
 
@@ -73,7 +72,6 @@ export function TerminalPane() {
           {SESSION_RAIL && <SessionRail />}
           <DropTarget className="card relative flex h-full w-full flex-col">
             {connected ? <EmptyState /> : <HostBanner />}
-            <VoiceGlow />
           </DropTarget>
           {previewPanels}
         </div>
@@ -277,7 +275,6 @@ function PaneCard({ id, connected, multi, bare, underRail }: { id: string; conne
         </div>
       )}
       {zone && <DropHighlight zone={zone} />}
-      {focused && <VoiceGlow />}
     </div>
   )
 }
