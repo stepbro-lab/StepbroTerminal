@@ -425,8 +425,8 @@ export const es: Record<string, string> = {
     'En Windows, cerrar la ventana ya no cierra la app: se queda en la bandeja y te sigue avisando cuando una sesión termina o te necesita. Se vuelve a abrir desde el icono de la bandeja y se cierra del todo desde ahí; en Ajustes, en Avanzado, puedes hacer que cerrar la cierre como antes.',
   'A pane split from a shell opens in the folder that shell is in now, not the project\'s: after a cd into a subfolder, the new pane starts there too, and stays under the same project. Every shell says where it is at each prompt, PowerShell with oh-my-posh included.':
     'Un panel dividido desde una shell se abre en la carpeta donde está esa shell ahora, no en la del proyecto: tras un cd a una subcarpeta, el panel nuevo arranca ahí también y sigue bajo el mismo proyecto. Cada shell dice dónde está en cada prompt, PowerShell con oh-my-posh incluido.',
-  'The top bar is clean again: no project name and branch in its middle. The branch still shows beside the project in the sidebar.':
-    'La barra de arriba vuelve a estar limpia: sin el nombre del proyecto y la rama en el centro. La rama se sigue viendo junto al proyecto en la barra lateral.',
+  'Cleaner chrome: no project name and branch in the middle of the top bar, and no branch beside the project in the sidebar.':
+    'Una interfaz más limpia: sin el nombre del proyecto y la rama en el centro de la barra de arriba, y sin la rama junto al proyecto en la barra lateral.',
   'The voice agent is gone: the talk button and keys, reading aloud, the glow and the Voice page in Settings. A Gemini key saved for it is deleted from this machine.':
     'El agente de voz ya no está: ni el botón y las teclas para hablar, ni leer en voz alta, ni el brillo, ni la página de Voz en Ajustes. La clave de Gemini guardada para él se borra de este equipo.',
   'The dot at the top right is a bell now: a spinner while agents work, a blue dot on it when something finished that you have not seen, amber when a session needs you. Clicking it lists what needs you, what is working and what finished.':
@@ -439,9 +439,6 @@ export const es: Record<string, string> = {
   'Your sessions keep running either way. In the tray, the app also keeps telling you when one finishes or needs you.': 'Tus sesiones siguen funcionando en cualquier caso. En la bandeja, la app además te sigue avisando cuando una termina o te necesita.',
   'Keep running in the tray': 'Seguir en la bandeja',
   'Off, closing the window quits the app.': 'Desactivado, cerrar la ventana cierra la app.',
-  'On branch {branch}': 'En la rama {branch}',
-  'Worktree on {branch}': 'Worktree en la rama {branch}',
-  'Detached at {commit}': 'Desacoplado en {commit}',
   'Sessions name themselves after what you ask, show their branch, and come back without an invalid session id.':
     'Las sesiones se nombran con lo que les pides, muestran su rama y vuelven sin un ID de sesión inválido.',
   'An agent opened straight from its button, like Clyra, no longer lays its screen out in slivers, a word broken over several rows: what it asks the terminal as it starts is answered.':

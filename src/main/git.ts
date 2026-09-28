@@ -1,7 +1,7 @@
 import { execFile } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
-import type { ChangedFile, FileDiff, GitBranch, GitChanges } from '@shared/types'
+import type { ChangedFile, FileDiff, GitChanges } from '@shared/types'
 import { mapLimit } from '@shared/async'
 
 function git(cwd: string, args: string[], maxBuffer = 8 * 1024 * 1024): Promise<string> {
@@ -15,37 +15,6 @@ async function repoRoot(cwd: string): Promise<string | null> {
     return (await git(cwd, ['rev-parse', '--show-toplevel'])).trim().replace(/\//g, path.sep)
   } catch {
     return null
-  }
-}
-
-/**
- * What the project has checked out, read from git's own files rather than by running git: it is
- * asked every few seconds for the project on screen, and a process each time would cost more
- * than the answer is worth. Null outside a repository.
- */
-export async function gitBranch(projectPath: string): Promise<GitBranch | null> {
-  let dir = path.resolve(projectPath)
-  for (;;) {
-    const dotGit = path.join(dir, '.git')
-    const stat = await fs.promises.stat(dotGit).catch(() => null)
-    if (stat) {
-      let gitDir = dotGit
-      if (stat.isFile()) {
-        // A linked worktree (or a submodule): ".git" is a file naming where its git dir is.
-        const m = /^gitdir:\s*(.+)$/m.exec(await fs.promises.readFile(dotGit, 'utf8').catch(() => ''))
-        if (!m) return null
-        gitDir = path.resolve(dir, m[1].trim())
-      }
-      const head = (await fs.promises.readFile(path.join(gitDir, 'HEAD'), 'utf8').catch(() => '')).trim()
-      if (!head) return null
-      const worktree = /[\\/]worktrees[\\/][^\\/]+$/.test(gitDir)
-      const ref = /^ref:\s*refs\/heads\/(.+)$/.exec(head)
-      if (ref) return { name: ref[1], detached: false, worktree }
-      return /^[0-9a-f]{7,}$/i.test(head) ? { name: head.slice(0, 7), detached: true, worktree } : null
-    }
-    const up = path.dirname(dir)
-    if (up === dir) return null
-    dir = up
   }
 }
 
