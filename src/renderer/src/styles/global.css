@@ -852,6 +852,18 @@ kbd {
   background: color-mix(in srgb, var(--text) 14%, transparent);
 }
 
+/* The dot on the title bar's bell: something finished that you have not seen, or amber, someone
+   waiting on you. It sits on the bell's shoulder, the way a badge does. */
+.bell-dot {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  pointer-events: none;
+}
+
 /* ---- the session rail: the folder's sessions, floating in the top-right corner ---- */
 /* The motion lives in SessionRail.tsx, which writes the springs out as variables: --q (0 at rest,
    1 open) and --y for each row, --m for the well, --fq for the footer, --span for the height of

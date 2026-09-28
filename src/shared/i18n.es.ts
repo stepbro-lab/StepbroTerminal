@@ -106,10 +106,13 @@ export const es: Record<string, string> = {
   '{n} need you': '{n} te necesitan',
   '{n} working': '{n} trabajando',
   'All quiet': 'Todo tranquilo',
+  'Finished, not seen yet: {n}': 'Terminadas sin ver: {n}',
   next: 'siguiente',
   waiting: 'esperando',
   error: 'error',
   done: 'terminado',
+  Working: 'Trabajando',
+  working: 'trabajando',
   'Nothing needs you right now': 'Nada te necesita ahora mismo',
   '{session} needs you': '{session} te necesita',
   '{agent} is waiting on an approval — tap to answer in the terminal.': '{agent} está esperando una aprobación. Toca para responder en el terminal.',
@@ -426,6 +429,10 @@ export const es: Record<string, string> = {
     'La barra de arriba vuelve a estar limpia: sin el nombre del proyecto y la rama en el centro. La rama se sigue viendo junto al proyecto en la barra lateral.',
   'The voice agent is gone: the talk button and keys, reading aloud, the glow and the Voice page in Settings. A Gemini key saved for it is deleted from this machine.':
     'El agente de voz ya no está: ni el botón y las teclas para hablar, ni leer en voz alta, ni el brillo, ni la página de Voz en Ajustes. La clave de Gemini guardada para él se borra de este equipo.',
+  'The dot at the top right is a bell now: a spinner while agents work, a blue dot on it when something finished that you have not seen, amber when a session needs you. Clicking it lists what needs you, what is working and what finished.':
+    'El punto de arriba a la derecha ahora es una campana: un indicador girando mientras los agentes trabajan, un punto azul cuando algo terminó y no lo has visto, y en ámbar cuando una sesión te necesita. Al pulsarla ves lo que te necesita, lo que está trabajando y lo que terminó.',
+  'The Notes button only shows once there is a note. The shortcut still opens them, and the first note brings the button out.':
+    'El botón de Notas solo aparece cuando hay alguna nota. El atajo las sigue abriendo, y la primera nota hace que aparezca el botón.',
   'stepbro terminal is still running': 'stepbro terminal sigue abierto',
   'Your sessions go on, and you will hear when one needs you. Open it from the tray icon; quit it from there too.': 'Tus sesiones siguen y te avisará cuando una te necesite. Ábrelo desde el icono de la bandeja; ciérralo del todo desde ahí también.',
   'Closing the window': 'Al cerrar la ventana',

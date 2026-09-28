@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useLayoutEffect, useState } from 'react'
 import { NotebookPen } from 'lucide-react'
 import gsap from 'gsap'
 import { useNotes } from '@/stores/notes'
@@ -10,7 +10,17 @@ export function NoteFlight() {
   const arrived = useNotes((s) => s.arrived)
   const landed = useNotes((s) => s.landed)
 
-  const spec = useMemo<FlightSpec | null>(() => {
+  // Worked out once the page has drawn what the note brought: the first note is what puts the
+  // Notes button on screen at all, and until then there is nowhere for it to fly to.
+  const [spec, setSpec] = useState<FlightSpec | null>(null)
+  useLayoutEffect(() => {
+    const next = flightFor()
+    // Nothing to fly to (the button is not on screen): let the note through without a flight.
+    if (arrived && !next) landed()
+    setSpec(next)
+  }, [arrived, landed])
+
+  function flightFor(): FlightSpec | null {
     if (!arrived) return null
     const target = document.querySelector<HTMLElement>('[data-notes-target]')
     if (!target) return null
@@ -29,12 +39,8 @@ export function NoteFlight() {
         if (badge) gsap.fromTo(badge, { y: 0 }, { y: -3, duration: 0.14, yoyo: true, repeat: 1, ease: 'power1.inOut' })
       }
     }
-  }, [arrived])
+  }
 
-  // Nothing to fly to (the button is not on screen): let the note through without a flight.
-  useEffect(() => {
-    if (arrived && !spec) landed()
-  }, [arrived, spec, landed])
   // The Notes button lives in the bar along the top edge: it opens for the flight and stays open until it lands.
   useEffect(() => {
     if (spec) window.dispatchEvent(new Event(OPEN_BAR))
