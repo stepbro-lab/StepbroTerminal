@@ -802,21 +802,6 @@ kbd {
   align-items: center;
   height: 100%;
 }
-/* Where you are, centred in the bar: the project and its branch. Clicks go through to the bar. */
-.topbar-title {
-  position: absolute;
-  left: 0;
-  right: 0;
-  justify-content: center;
-  gap: 8px;
-  pointer-events: none;
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--text-secondary);
-}
-.topbar-title > * {
-  max-width: 32vw;
-}
 /* Windows and Linux: minimize, maximize and close at the right end. */
 .caption {
   display: flex;
