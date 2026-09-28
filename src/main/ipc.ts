@@ -1,4 +1,4 @@
-import { app, clipboard, dialog, ipcMain, Menu, shell, systemPreferences } from 'electron'
+import { app, clipboard, dialog, ipcMain, Menu, shell } from 'electron'
 import fs from 'node:fs'
 import type { CreateRequest, InvokeMap, SendMap } from '@shared/ipc'
 import type { MenuItemSpec, Session } from '@shared/types'
@@ -8,7 +8,6 @@ import { readTranscriptDetails, transcriptPath } from './claude/transcript'
 import { buildLaunchSpec } from './presets/launchSpec'
 import { gitBranch, gitChanges, gitDiff, gitRevert } from './git'
 import { loadWorkspace, saveWorkspace } from './prefs'
-import { globalKeyHeld } from './globalKeys'
 import type { Ctx } from './context'
 import { t } from './i18n'
 import { barWatch, windowButtons } from './window'
@@ -166,16 +165,6 @@ export function registerIpc(ctx: Ctx): void {
   })
   handle('app:revealPath', (p) => shell.showItemInFolder(p))
   handle('app:paths', () => ({ data: stepDir(), hostLog: hostLogPath() }))
-
-  // ---- talking ----
-
-  handle('voice:keyHeld', () => !!globalKeyHeld())
-  handle('voice:askForMicrophone', async () => {
-    // Windows and Linux ask through the page itself; macOS asks the system, once, and remembers.
-    if (process.platform !== 'darwin') return true
-    if (systemPreferences.getMediaAccessStatus('microphone') === 'granted') return true
-    return systemPreferences.askForMediaAccess('microphone')
-  })
 
   // ---- resource use (Settings > Advanced) ----
   handle('stats:get', async () => {

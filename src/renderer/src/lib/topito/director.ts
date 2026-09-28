@@ -1,7 +1,6 @@
 import type { Session, TopitoSay } from '@shared/types'
 import { useData } from '@/stores/data'
 import { useUi } from '@/stores/ui'
-import { useVoice } from '@/stores/voice'
 import { useHandoff } from '@/stores/handoff'
 import { useNotes } from '@/stores/notes'
 import { useTopito, type TopitoLine } from '@/stores/topito'
@@ -18,8 +17,7 @@ import { ambientClip, clipForMood, moments, newlyWaiting } from './mood'
 
 /**
  * An agent's tool changes every few seconds, and a mole that changed what he was doing that often
- * would only twitch. A new look has to hold this long before he takes it up; the voice agent is
- * the exception, since what you say and what it answers should show the moment it happens.
+ * would only twitch. A new look has to hold this long before he takes it up.
  */
 const SETTLE_MS = 2500
 
@@ -32,7 +30,7 @@ export function startTopito(): () => void {
 
   const reconsider = (now: boolean): void => {
     const data = useData.getState()
-    const next = ambientClip({ voice: useVoice.getState().state, hostConnecting: data.hostState.kind === 'connecting', sessions: Object.values(data.sessions) })
+    const next = ambientClip({ hostConnecting: data.hostState.kind === 'connecting', sessions: Object.values(data.sessions) })
     if (next === target) return
     target = next
     window.clearTimeout(pending)
@@ -49,9 +47,6 @@ export function startTopito(): () => void {
     }
     if (d.sessions !== was.sessions || d.hostState !== was.hostState) reconsider(false)
   })
-  const offVoice = useVoice.subscribe((v, was) => {
-    if (v.state !== was.state) reconsider(true)
-  })
   const offHandoff = useHandoff.subscribe((h, was) => {
     if (h.pending && h.pending !== was.pending) topito().play('letter')
   })
@@ -64,7 +59,6 @@ export function startTopito(): () => void {
   return () => {
     window.clearTimeout(pending)
     offData()
-    offVoice()
     offHandoff()
     offNotes()
   }

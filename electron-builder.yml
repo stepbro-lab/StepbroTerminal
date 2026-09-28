@@ -65,8 +65,6 @@ mac:
   hardenedRuntime: false
   # Lets Finder and the Dock accept a folder dropped on the app: it opens as a project.
   extendInfo:
-    # Without this line macOS ends the app the moment it asks to listen, rather than asking you.
-    NSMicrophoneUsageDescription: stepbro terminal listens while you hold the talk key, so it can write down what you say as a prompt.
     CFBundleDocumentTypes:
       - CFBundleTypeName: Folder
         CFBundleTypeRole: Viewer

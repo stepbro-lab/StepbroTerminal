@@ -45,7 +45,7 @@ describe('clipForTool', () => {
 })
 
 describe('ambientClip', () => {
-  const quiet = { voice: 'off' as const, hostConnecting: false }
+  const quiet = { hostConnecting: false }
 
   it('sleeps with nothing going on', () => {
     expect(ambientClip({ ...quiet, sessions: [] })).toBe('sleep')
@@ -67,11 +67,9 @@ describe('ambientClip', () => {
     expect(ambientClip({ ...quiet, sessions })).toBe('sleep')
   })
 
-  it('puts the voice agent and the connection first', () => {
+  it('puts the connection first', () => {
     const sessions = [session({ id: 'a', status: 'attention' })]
-    expect(ambientClip({ voice: 'talking', hostConnecting: false, sessions })).toBe('listen')
-    expect(ambientClip({ voice: 'answering', hostConnecting: false, sessions })).toBe('talk')
-    expect(ambientClip({ voice: 'off', hostConnecting: true, sessions })).toBe('search')
+    expect(ambientClip({ hostConnecting: true, sessions })).toBe('search')
   })
 })
 

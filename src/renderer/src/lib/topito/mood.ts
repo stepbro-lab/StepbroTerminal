@@ -6,10 +6,7 @@ import type { TopitoClipName } from './frames'
  * checked on its own: the director (director.ts) feeds it the stores and plays what it returns.
  */
 
-export type VoiceLook = 'off' | 'connecting' | 'ready' | 'talking' | 'answering' | 'error'
-
 export interface TopitoWorld {
-  voice: VoiceLook
   hostConnecting: boolean
   sessions: Session[]
 }
@@ -40,14 +37,12 @@ const live = (s: Session): boolean => s.alive && !s.archived
 const agentOf = (s: Session): string => s.agent.detectedPreset ?? s.presetId
 
 /**
- * The look Topito keeps while nothing in particular is happening, most pressing first: the voice
- * agent, then the connection to the host, then anyone waiting on the person, then work under way,
- * and asleep when there is none.
+ * The look Topito keeps while nothing in particular is happening, most pressing first: the
+ * connection to the host, then anyone waiting on the person, then work under way, and asleep when
+ * there is none.
  */
 export function ambientClip(w: TopitoWorld): TopitoClipName {
-  if (w.voice === 'talking') return 'listen'
-  if (w.voice === 'answering') return 'talk'
-  if (w.voice === 'connecting' || w.hostConnecting) return 'search'
+  if (w.hostConnecting) return 'search'
   const open = w.sessions.filter(live)
   if (open.some((s) => s.status === 'attention' || s.status === 'error')) return 'peek'
   const working = open.filter((s) => s.status === 'working' || s.status === 'starting')

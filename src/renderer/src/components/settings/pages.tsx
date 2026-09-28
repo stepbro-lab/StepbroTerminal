@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import type { CustomPreset, LaunchConfig, LaunchPane, Prefs } from '@shared/types'
 import { usePrefs } from '@/stores/prefs'
@@ -8,16 +8,11 @@ import { launchWorkspace } from '@/lib/actions'
 import { blankPane, newLaunchConfig, workspaceUrl } from '@/lib/launchConfigs'
 import { ACCENTS } from '@/theme/accents'
 import { DEFAULT_LOGO, LOGOS } from '@/lib/logos'
-import { DEFAULT_VOICE_MODEL } from '@/lib/voice/protocol'
-import { listMics } from '@/lib/voice/audio'
-import { Keys } from '../Keys'
-import { useBinding } from '@/lib/shortcuts'
 import type { LogoId } from '@shared/types'
 import { LANGUAGES } from '@shared/i18n'
-import { takesAKeyFromTheTerminal } from '@shared/keybindings'
 import { canBlurBehind } from '@shared/frame'
 import { AgentLogo } from '../sidebar/AgentLogo'
-import { Footer, Row, Section, Segmented, Select, Slider, SmallButton, TextArea, TextField, Toggle } from './controls'
+import { Footer, Row, Section, Segmented, Slider, SmallButton, TextArea, TextField, Toggle } from './controls'
 import { ResourceSections } from './Resources'
 import { playNotificationSound } from '@/lib/sound'
 import { useUpdates } from '@/stores/updates'
@@ -315,116 +310,6 @@ function CustomLaunchers({ list, onChange }: { list: CustomPreset[]; onChange: (
         </button>
       </div>
     </div>
-  )
-}
-
-/** Everything about talking to the terminal: the key it speaks through, how it sounds, what it hears. */
-export function VoicePage() {
-  const [p, upd] = usePrefsPage()
-  const chord = useBinding('voice')
-  const anywhere = useBinding('voice-anywhere')
-  const setPage = useUi((s) => s.setSettingsPage)
-  const [mics, setMics] = useState<Array<{ id: string; label: string }>>([])
-  useEffect(() => {
-    // Asked again whenever something is plugged in or unplugged, and once the names arrive:
-    // before the microphone has been allowed even once, the machine hands back blank labels.
-    const look = (): void => void listMics().then(setMics)
-    look()
-    navigator.mediaDevices?.addEventListener?.('devicechange', look)
-    return () => navigator.mediaDevices?.removeEventListener?.('devicechange', look)
-  }, [])
-  return (
-    <>
-      <Section title="Gemini" description={t('It listens and answers through Gemini, so it needs a key. The key stays on this machine.')}>
-        <Row label={t('API key')} hint={t('Kept on this machine, in the app preferences.')}>
-          <TextField value={p.geminiApiKey ?? ''} placeholder="AIza…" mono secret width={300} onChange={(v) => upd({ geminiApiKey: v.trim() || undefined })} />
-          <SmallButton onClick={() => void window.step.invoke('app:openExternal', 'https://aistudio.google.com/apikey')}>{t('Get a key')}</SmallButton>
-        </Row>
-        <Row label={t('Model')} hint={t('Any Gemini model that listens and speaks: their names end in live or native-audio.')}>
-          <TextField
-            value={p.voiceModel ?? ''}
-            placeholder={DEFAULT_VOICE_MODEL}
-            mono
-            width={300}
-            list={['models/gemini-3.8-live', 'models/gemini-3.1-flash-live-preview', 'models/gemini-2.5-flash-native-audio-latest']}
-            onChange={(v) => upd({ voiceModel: v.trim() || undefined })}
-          />
-        </Row>
-        <Row label={t('Its voice')} hint={t('How it sounds. Takes effect the next time you open it.')}>
-          <Segmented
-            value={p.voiceName ?? 'Puck'}
-            options={[
-              { value: 'Puck', label: 'Puck' },
-              { value: 'Kore', label: 'Kore' },
-              { value: 'Aoede', label: 'Aoede' },
-              { value: 'Charon', label: 'Charon' }
-            ]}
-            onChange={(voiceName) => upd({ voiceName })}
-          />
-        </Row>
-      </Section>
-      <Section title={t('Reading out loud')} description={t('Select anything in a terminal, right-click and it reads it to you. Headings, asterisks and boxes are left out, so it reads the words rather than the marks around them.')}>
-        <Row label={t('Pace')}>
-          <Segmented
-            value={p.readSpeed ?? 'normal'}
-            options={[
-              { value: 'slow', label: t('Slow') },
-              { value: 'normal', label: t('Normal') },
-              { value: 'fast', label: t('Fast') }
-            ]}
-            onChange={(readSpeed) => upd({ readSpeed })}
-          />
-        </Row>
-      </Section>
-
-      <Section title={t('Microphone')} description={t('Which microphone it listens through. Names only appear once you have let it listen at least once.')}>
-        <Row label={t('Input')} hint={mics.length ? undefined : t('No microphone found on this machine.')}>
-          <Select
-            value={p.voiceInput ?? ''}
-            options={[
-              { value: '', label: t('System default') },
-              ...mics.map((m) => ({ value: m.id, label: m.label })),
-              // The one that was chosen stays on the list while the machine is still being asked,
-              // and while it is unplugged, so a choice is never quietly swapped for the default.
-              ...(p.voiceInput && !mics.some((m) => m.id === p.voiceInput) ? [{ value: p.voiceInput, label: t('The one you chose (not found right now)') }] : [])
-            ]}
-            width={300}
-            onChange={(voiceInput) => upd({ voiceInput: voiceInput || undefined })}
-          />
-        </Row>
-      </Section>
-
-      <Section title={t('What it can do')} description={t('It writes prompts on the input line of the session you mean, for you to read and send. It never sends one on its own, and it can open terminals, split panes and read what is on screen.')}>
-        <Row
-          label={t('Hold to talk')}
-          hint={
-            takesAKeyFromTheTerminal(chord)
-              ? t('That key now belongs to talking and will not reach the terminal. Change it in Shortcuts.')
-              : t('Hold the key while you speak and let go when you finish, or hold the button beside the notes. This one can be any key at all, even a full stop.')
-          }
-        >
-          {/* The keys are worth pressing on: a shortcut shown is a shortcut somebody will try to change. */}
-          <button className="key-cap-btn" title={t('Change it in Shortcuts')} onClick={() => setPage('shortcuts')}>
-            {chord ? <Keys chord={chord} /> : <span className="text-[12.5px] text-muted">{t('No key set')}</span>}
-          </button>
-        </Row>
-        <Row
-          label={t('From any app')}
-          hint={
-            !p.geminiApiKey?.trim()
-              ? t('It starts working once there is a key above.')
-              : p.voiceAnywhere === false
-                ? t('Only the window listens. Turn this on and the key answers wherever you are.')
-                : t('This one belongs to the whole machine, so it answers with any program in front. Press it to start talking and again to send; a pill over what you are doing shows it is listening.')
-          }
-        >
-          <Toggle value={p.voiceAnywhere !== false} onChange={(voiceAnywhere) => upd({ voiceAnywhere })} />
-          <button className="key-cap-btn" title={t('Change it in Shortcuts')} onClick={() => setPage('shortcuts')}>
-            {anywhere ? <Keys chord={anywhere} /> : <span className="text-[12.5px] text-muted">{t('No key set')}</span>}
-          </button>
-        </Row>
-      </Section>
-    </>
   )
 }
 

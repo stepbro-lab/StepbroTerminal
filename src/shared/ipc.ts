@@ -84,10 +84,6 @@ export interface InvokeMap {
   'app:paths': () => { data: string; hostLog: string }
   /** Shows a file selected in Finder, Explorer or the file manager. */
   'app:revealPath': (path: string) => void
-  /** macOS asks before a program may listen; answered once and remembered. True when it may. */
-  'voice:askForMicrophone': () => boolean
-  /** Whether the system is holding the talk-from-any-app key; false when another program has it. */
-  'voice:keyHeld': () => boolean
 }
 
 /** Renderer -> main fire-and-forget channels. */
@@ -153,8 +149,6 @@ export interface EventMap {
   'ui:handoff': (handoff: Handoff) => void
   /** An agent asked Topito to tell the person something, through the stepbro MCP server. */
   'ui:topito': (say: TopitoSay) => void
-  /** The key the system holds for talking was pressed: start a turn, or end the one under way. */
-  'ui:voiceToggle': () => void
   'win:maximized': (maximized: boolean) => void
   /**
    * Whether the window can be seen: false once minimised or hidden, true when it is back. The page

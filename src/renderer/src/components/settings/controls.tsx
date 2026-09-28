@@ -136,29 +136,6 @@ export function TextField({
   )
 }
 
-/** One of a list, for lists longer than a row of segments: the machine's microphones, say. */
-export function Select<T extends string>({
-  value,
-  options,
-  width = 260,
-  onChange
-}: {
-  value: T
-  options: Array<{ value: T; label: string }>
-  width?: number
-  onChange: (v: T) => void
-}) {
-  return (
-    <select className="field h-7 text-[12.5px]" style={{ width }} value={value} onChange={(e) => onChange(e.target.value as T)}>
-      {options.map((o) => (
-        <option key={o.value} value={o.value}>
-          {o.label}
-        </option>
-      ))}
-    </select>
-  )
-}
-
 export function SmallButton({ children, onClick, tone = 'secondary' }: { children: React.ReactNode; onClick: () => void; tone?: 'secondary' | 'danger' }) {
   return (
     <button

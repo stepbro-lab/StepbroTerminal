@@ -212,19 +212,6 @@ export interface Prefs {
   claudePath?: string
   /** DeepSeek serves an Anthropic-shaped API; with a key, Claude Code runs on its models as the DeepSeek preset. */
   deepseekApiKey?: string
-  /** Talking to the terminal: the key for Gemini's live API, and the model and voice it speaks with. */
-  geminiApiKey?: string
-  voiceModel?: string
-  voiceName?: string
-  /** Which microphone it listens through; the system default when unset. */
-  voiceInput?: string
-  /** How quickly it reads a selection out loud. */
-  readSpeed?: 'slow' | 'normal' | 'fast'
-  /**
-   * Whether the system holds the talk-from-any-app key, so pressing it answers while another
-   * program is in front. On unless turned off, and only ever while there is a Gemini key.
-   */
-  voiceAnywhere?: boolean
   /**
    * The bar at the top edge tucks itself away and comes back when the pointer reaches the
    * edge. Off, it stays open and the terminal sits below it. On unless turned off.
