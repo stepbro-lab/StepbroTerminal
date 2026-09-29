@@ -343,7 +343,9 @@ function buildServer(deps: McpDeps, sessionId: string): McpServer {
   const preview = (op: BrowserOp, timeoutMs?: number): Promise<BrowserResult> => deps.browser(sessionId, op, timeoutMs)
   const where = (r: BrowserResult): string => `${r.title || '(no title)'} — ${r.url}`
   const failed = (e: unknown) => text(`Preview: ${String((e as Error)?.message ?? e)}`)
-  const TARGET = 'A CSS selector, or text=… for the visible text of a link, button or other element (a partial match will do).'
+  const TARGET = 'A ref from the page outline (e12: the surest), a CSS selector, or text=… for the visible text of a link, button or other element (a partial match will do).'
+  /** The page as it is after an action, when the action brought it back. */
+  const withPage = (head: string, after?: string): string => (after ? `${head}\n\n${after}` : head)
 
   server.registerTool(
     'open_preview',
@@ -360,7 +362,7 @@ function buildServer(deps: McpDeps, sessionId: string): McpServer {
       if (!/^https?:\/\//i.test(target)) return text(`Only http:// and https:// addresses open in the preview; "${target}" is neither.`)
       try {
         const r = await preview({ kind: 'open', url: target }, 45_000)
-        return text(`Opened ${where(r)} in the preview pane. preview_screenshot shows it; preview_read gives its text or an outline of what is on it.`)
+        return text(withPage(`Opened ${where(r)} in the preview pane. Its outline is below: act on it with the refs; preview_screenshot shows how it looks.`, r.after))
       } catch (e) {
         return failed(e)
       }
@@ -390,7 +392,7 @@ function buildServer(deps: McpDeps, sessionId: string): McpServer {
     {
       title: 'Read the page in the preview pane',
       description:
-        'What the page in the preview pane says. "outline" lists its title, headings, links, buttons and form fields, each in a form you can pass as a target to preview_click and preview_type; "text" is everything readable on it; "html" is its markup. A target narrows any of them to one element.',
+        'What the page in the preview pane says. "outline" is the page in reading order: headings, its text, and every link, button and field with a ref ([e12]) to pass as the target of preview_click, preview_type and preview_scroll; it also says which are checked, disabled, offscreen or filled in. "text" is everything readable on it; "html" is its markup. A target narrows any of them to one element. Clicks and typing already return the outline as the page is after them, so read again only when something else changed it.',
       inputSchema: {
         what: z.enum(['outline', 'text', 'html']).optional().describe('outline by default'),
         target: z.string().optional().describe(TARGET)
@@ -430,13 +432,13 @@ function buildServer(deps: McpDeps, sessionId: string): McpServer {
     'preview_click',
     {
       title: 'Click something in the preview pane',
-      description: 'Clicks a link, button or other element on the page, then reports where the page is.',
+      description: 'Clicks a link, button or other element on the page, then returns the page outline as it is once the click has had its effect (a new page loaded, or the page done changing), with fresh refs.',
       inputSchema: { target: z.string().describe(TARGET) }
     },
     async ({ target }) => {
       try {
         const r = await preview({ kind: 'click', target })
-        return text(`${r.text ?? 'Clicked.'}\nNow at ${where(r)}.`)
+        return text(withPage(`${r.text ?? 'Clicked.'}\nNow at ${where(r)}.`, r.after))
       } catch (e) {
         return failed(e)
       }
@@ -447,7 +449,7 @@ function buildServer(deps: McpDeps, sessionId: string): McpServer {
     'preview_type',
     {
       title: 'Type into a field in the preview pane',
-      description: 'Puts text into an input, textarea or editable element, replacing what was there; with submit, presses Enter afterwards.',
+      description: 'Puts text into an input, textarea or editable element, replacing what was there; with submit, presses Enter afterwards. Returns the page outline as it is afterwards.',
       inputSchema: {
         target: z.string().describe(TARGET),
         text: z.string().max(20000),
@@ -457,7 +459,7 @@ function buildServer(deps: McpDeps, sessionId: string): McpServer {
     async ({ target, text: body, submit }) => {
       try {
         const r = await preview({ kind: 'type', target, text: body, submit })
-        return text(`${r.text ?? 'Typed.'}\nNow at ${where(r)}.`)
+        return text(withPage(`${r.text ?? 'Typed.'}\nNow at ${where(r)}.`, r.after))
       } catch (e) {
         return failed(e)
       }

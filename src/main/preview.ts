@@ -1,11 +1,13 @@
 import { webContents, type WebContents } from 'electron'
 import type { BrowserOp, BrowserResult } from '@shared/types'
-import { arriveScript, clickScript, evalScript, focusScript, hasPresenceScript, hidePresenceScript, readScript, scrollScript, showPresenceScript, typedScript, type Who } from './previewScripts'
+import { arriveScript, clickScript, evalScript, focusScript, hasPresenceScript, hidePresenceScript, outlineScript, readScript, scrollScript, showPresenceScript, typedScript, type Who } from './previewScripts'
 
 interface Pane {
   wcId: number
   console: Array<{ at: number; level: string; text: string }>
   off: () => void
+  /** The next ref an outline hands out: counted for the whole session, across pages. */
+  nextRef: number
 }
 
 export interface PreviewDeps {
@@ -22,6 +24,8 @@ const CONSOLE_KEEP = 200
 const ATTACH_MS = 15_000
 const LOAD_MS = 20_000
 const SHOT_WIDTH = 1200
+/** How much of the page comes back with a click or a typed field: enough to act on next without reading again. */
+const AFTER_MAX = 9000
 
 /**
  * The preview pane, driven from the main process on an agent's behalf. The renderer owns the
@@ -43,7 +47,7 @@ export class PreviewBridge {
     const old = this.panes.get(sessionId)
     if (old?.wcId === wcId) return
     old?.off()
-    const pane: Pane = { wcId, console: old?.console ?? [], off: () => {} }
+    const pane: Pane = { wcId, console: old?.console ?? [], off: () => {}, nextRef: old?.nextRef ?? 1 }
     // Electron 32+ hands console messages as one details object; older builds as separate arguments.
     const onConsole = (...args: unknown[]): void => {
       const d = args[0] as { message?: string; level?: string | number }
@@ -90,28 +94,27 @@ export class PreviewBridge {
         return { ...at(), png }
       }
       case 'read':
+        if (op.what === 'outline') return { ...at(), text: await this.outline(sessionId, wc, op.target) }
         return { ...at(), text: String(await wc.executeJavaScript(readScript(op.what, op.target), true)) }
       case 'scroll':
         return { ...at(), text: String(await wc.executeJavaScript(scrollScript(op.to, op.target, who), true)) }
       case 'click': {
         const text = String(await wc.executeJavaScript(clickScript(op.target, who), true))
-        await settled(wc, 1500)
-        await this.stay(wc, who)
-        return { ...at(), text }
+        const after = await this.after(sessionId, wc, who)
+        return { ...at(), text, after }
       }
       case 'type': {
         const field = String(await wc.executeJavaScript(focusScript(op.target, who), true))
         await typeLikeAPerson(wc, op.text)
         await wc.executeJavaScript(typedScript, true).catch(() => undefined)
         if (op.submit) {
-          await sleep(200)
+          await sleep(60)
           wc.sendInputEvent({ type: 'keyDown', keyCode: 'Return' })
           wc.sendInputEvent({ type: 'char', keyCode: 'Return' })
           wc.sendInputEvent({ type: 'keyUp', keyCode: 'Return' })
-          await settled(wc, 1500)
-          await this.stay(wc, who)
         }
-        return { ...at(), text: `Typed ${op.text.length} characters into ${field}${op.submit ? ' and pressed Enter' : ''}.` }
+        const after = await this.after(sessionId, wc, who)
+        return { ...at(), text: `Typed ${op.text.length} characters into ${field}${op.submit ? ' and pressed Enter' : ''}.`, after }
       }
       case 'eval':
         return { ...at(), text: clip(String(await wc.executeJavaScript(evalScript(op.js), true)), 20_000) }
@@ -122,6 +125,28 @@ export class PreviewBridge {
         return { ...at(), text: clip(lines.join('\n'), 30_000) }
       }
     }
+  }
+
+  /** The page's outline, with refs that carry on from the last ones this session was given. */
+  private async outline(sessionId: string, wc: WebContents, target?: string, max?: number, settle = false): Promise<string> {
+    const pane = this.panes.get(sessionId)
+    const raw = String(await wc.executeJavaScript(outlineScript(pane?.nextRef ?? 1, target, max, settle), true))
+    const { text, next } = JSON.parse(raw) as { text: string; next: number }
+    if (pane && next > pane.nextRef) pane.nextRef = next
+    return text
+  }
+
+  /**
+   * What the page is once an action has had its effect, so the agent can go on without reading it
+   * again: after a navigation, once the new page has loaded; otherwise once the page has stopped
+   * changing. A link starts its navigation within a moment of the click, and only then is there a
+   * load to wait for.
+   */
+  private async after(sessionId: string, wc: WebContents, who: Who): Promise<string> {
+    await sleep(40)
+    if (wc.isLoading()) await settled(wc, 8000)
+    await this.stay(wc, who)
+    return this.outline(sessionId, wc, undefined, AFTER_MAX, true).catch(() => '')
   }
 
   /** After a click or a submit the page may be a new one; the cursor comes back where it was. */
@@ -156,7 +181,9 @@ export class PreviewBridge {
     }
     await settled(wc, LOAD_MS)
     await wc.executeJavaScript(arriveScript(who), true).catch(() => undefined)
-    return { url: wc.getURL(), title: wc.getTitle() }
+    // The page comes back with the opening, so the agent can act on it straight away.
+    const after = await this.outline(sessionId, wc, undefined, AFTER_MAX, true).catch(() => '')
+    return { url: wc.getURL(), title: wc.getTitle(), after }
   }
 
   private waitAttached(sessionId: string): Promise<Pane> {
@@ -182,23 +209,24 @@ const clip = (s: string, n: number): string => (s.length > n ? `${s.slice(0, n)}
 const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms))
 
 /**
- * Text goes in a character at a time, at a typing pace, so the person sees it being written:
- * the first stretch letter by letter, the rest of a long text in one go so it does not drag on.
+ * Text goes in a character at a time, quickly, so the person sees it being written without the
+ * agent waiting on it: the first stretch letter by letter, in about a third of a second, and the rest
+ * of a long text in one go.
  */
 async function typeLikeAPerson(wc: WebContents, text: string): Promise<void> {
   const chars = Array.from(text)
-  const oneByOne = chars.slice(0, 60)
-  const delay = Math.max(18, Math.min(55, Math.round(1400 / Math.max(1, oneByOne.length))))
+  const oneByOne = chars.slice(0, 40)
+  const delay = Math.max(6, Math.min(22, Math.round(300 / Math.max(1, oneByOne.length))))
   for (const ch of oneByOne) {
     await wc.insertText(ch)
-    await sleep(delay + Math.round(Math.random() * 20))
+    await sleep(delay + Math.round(Math.random() * 8))
   }
   if (chars.length > oneByOne.length) await wc.insertText(chars.slice(oneByOne.length).join(''))
 }
 
 /** Resolves once the page stops loading, or after `ms` if it never does. */
 function settled(wc: WebContents, ms: number): Promise<void> {
-  if (!wc.isLoading()) return new Promise((r) => setTimeout(r, 150))
+  if (!wc.isLoading()) return Promise.resolve()
   return new Promise((resolve) => {
     let done = false
     const finish = (): void => {

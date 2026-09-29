@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { arriveScript, clickScript, evalScript, focusScript, hasPresenceScript, hidePresenceScript, readScript, scrollScript, showPresenceScript, typedScript } from './previewScripts'
+import { arriveScript, clickScript, evalScript, focusScript, hasPresenceScript, hidePresenceScript, outlineScript, readScript, scrollScript, showPresenceScript, typedScript } from './previewScripts'
 
 const who = { name: 'Codex', color: '#10a37f' }
 
@@ -12,7 +12,8 @@ const parses = (js: string): boolean => {
 describe('preview scripts', () => {
   it('are valid JavaScript for every shape of request', () => {
     expect(parses(arriveScript(who))).toBe(true)
-    expect(parses(readScript('outline'))).toBe(true)
+    expect(parses(outlineScript(1))).toBe(true)
+    expect(parses(outlineScript(40, 'e12', 9000, true))).toBe(true)
     expect(parses(readScript('text', 'main'))).toBe(true)
     expect(parses(readScript('html', 'text=Sign in'))).toBe(true)
     expect(parses(scrollScript('down', undefined, who))).toBe(true)
@@ -49,8 +50,24 @@ describe('preview scripts', () => {
   })
 
   it('finds by visible text as well as by selector', () => {
-    const js = readScript('outline')
+    const js = outlineScript(1)
     expect(js).toContain("target.startsWith('text=')")
     expect(js).toContain('document.querySelector(target)')
+  })
+
+  it('hands every usable element a ref, counting on from where the session is', () => {
+    const js = outlineScript(40)
+    expect(js).toContain('data-step-ref')
+    expect(js).toContain('window.__stepRefN = 40')
+    expect(clickScript('e12', who)).toContain('[data-step-ref=')
+  })
+
+  it('says so when a ref is from a page that has changed, instead of clicking something else', () => {
+    expect(clickScript('e12', who)).toContain('is not on the page any more')
+  })
+
+  it('waits for the page to settle before an outline taken after an action', () => {
+    expect(outlineScript(1, undefined, 9000, true)).toContain('await quiet(')
+    expect(outlineScript(1)).not.toContain('await quiet(')
   })
 })

@@ -392,6 +392,8 @@ export interface BrowserResult {
   text?: string
   /** A PNG of the pane, base64. */
   png?: string
+  /** After a click or typing: the page's outline as it is once the action has had its effect. */
+  after?: string
 }
 
 export interface MenuItemSpec {

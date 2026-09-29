@@ -445,6 +445,10 @@ export const es: Record<string, string> = {
     'La vista previa (y el panel de cambios) se puede ensanchar o estrechar: arrastra el borde entre ella y los terminales. El ancho se guarda.',
   '"Claude Code is using this page" goes away once the agent stops using the browser, a few seconds after its last move on the page or as soon as its turn ends, instead of staying for the whole turn.':
     '"Claude Code está usando esta página" desaparece cuando el agente deja de usar el navegador, unos segundos después de su último movimiento en la página o en cuanto termina su turno, en vez de quedarse todo el turno.',
+  'Agents work the preview faster and understand it in fewer steps: the page comes back as an outline in reading order, with its text and a short ref (e12) for every link, button and field, and a click or typing returns the page as it is afterwards, so the agent sees what happened without looking again.':
+    'Los agentes usan la vista previa más rápido y la entienden en menos pasos: la página llega como un esquema en orden de lectura, con su texto y una referencia corta (e12) para cada enlace, botón y campo, y un clic o lo que escriben devuelve la página tal como queda, así el agente ve lo que pasó sin volver a mirar.',
+  'The agent\'s cursor in the preview moves quicker and still smoothly: clicks take about half the time, scrolling waits only as long as the page moves, and typing is faster.':
+    'El cursor del agente en la vista previa se mueve más rápido y sigue siendo fluido: los clics tardan la mitad, el scroll espera solo lo que tarda la página en moverse y escribe más deprisa.',
   'stepbro terminal is still running': 'stepbro terminal sigue abierto',
   'Your sessions go on, and you will hear when one needs you. Open it from the tray icon; quit it from there too.': 'Tus sesiones siguen y te avisará cuando una te necesite. Ábrelo desde el icono de la bandeja; ciérralo del todo desde ahí también.',
   'Closing the window': 'Al cerrar la ventana',
