@@ -345,3 +345,50 @@ describe('the folder a shell is in', () => {
     expect(ptys.at(-1).cwd).toBe(dir)
   })
 })
+
+describe('picks a Codex conversation back up', () => {
+  const codex = async (home: string): Promise<Session> =>
+    sm.create({ projectPath: dir, presetId: 'codex', cols: 80, rows: 24,
+      launch: { command: process.execPath, args: [], resumeArgs: ['resume', '{sessionId}'], env: { CODEX_HOME: home }, hooks: false } })
+  const write = async (home: string, id: string, cwd: string): Promise<void> => {
+    const d = new Date()
+    const folder = path.join(home, 'sessions', String(d.getFullYear()), String(d.getMonth() + 1).padStart(2, '0'), String(d.getDate()).padStart(2, '0'))
+    await fs.mkdir(folder, { recursive: true })
+    await fs.writeFile(path.join(folder, `rollout-x-${id}.jsonl`), JSON.stringify({ type: 'session_meta', payload: { id, timestamp: d.toISOString(), cwd } }) + '\n')
+  }
+  const lastArgs = (): string => JSON.stringify(ptys.at(-1).args)
+
+  it('notes the conversation as a turn ends, and resumes it on restart', async () => {
+    const home = path.join(dir, 'codex-home')
+    const s = await codex(home)
+    await write(home, 'thread-1', dir)
+    const l = (sm as any).live.get(s.id)
+    ;(sm as any).apply(l, { kind: 'busy', busy: true })
+    ;(sm as any).apply(l, { kind: 'busy', busy: false })
+    expect(sm.list().find((x) => x.id === s.id)!.agent.sessionId).toBe('thread-1')
+    sm.restart(s.id)
+    expect(lastArgs()).toContain('resume')
+    expect(lastArgs()).toContain('thread-1')
+  })
+
+  it('finds it at restart when no turn was caught, and starts fresh when there is none', async () => {
+    const home = path.join(dir, 'codex-home')
+    const s = await codex(home)
+    sm.restart(s.id)
+    expect(lastArgs()).not.toContain('resume')
+    await write(home, 'thread-2', dir)
+    sm.restart(s.id)
+    expect(lastArgs()).toContain('thread-2')
+  })
+
+  it('never puts two panes on one conversation', async () => {
+    const home = path.join(dir, 'codex-home')
+    const a = await codex(home)
+    await write(home, 'thread-a', dir)
+    sm.restart(a.id)
+    const b = await codex(home)
+    sm.restart(b.id)
+    expect(sm.list().find((x) => x.id === b.id)!.agent.sessionId).toBeUndefined()
+    expect(lastArgs()).not.toContain('thread-a')
+  })
+})
