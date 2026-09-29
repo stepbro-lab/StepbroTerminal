@@ -5,8 +5,12 @@ import { useUi } from '@/stores/ui'
 import { AgentLogo } from '../sidebar/AgentLogo'
 import { t } from '@/lib/i18n'
 
-/** How long the pane keeps saying an agent is at work after its last move. */
-const USING_MS = 4000
+/**
+ * How long the pane keeps saying an agent is using the page after its last move on it. Long enough
+ * to cover the thinking between one click and the next; past it, the agent has moved on to other
+ * work, and the page is no longer in use even though its turn goes on.
+ */
+const USING_MS = 8000
 
 interface WebviewEl extends HTMLElement {
   src: string
@@ -29,13 +33,18 @@ export function PreviewPane({ url, sessionId }: { url: string; sessionId: string
   const [current, setCurrent] = useState(url)
   const [loading, setLoading] = useState(true)
   const [failed, setFailed] = useState<string | null>(null)
-  // The agent at work on the page: the pane says so, in its color, for as long as its turn lasts
-  // (it thinks between one move and the next) and a moment past its last move.
+  // The agent at work on the page: the pane says so, in its color, while it moves on the page and
+  // a moment past its last move, and no longer: once it goes on to other work, or its turn ends.
   const [usedBy, setUsedBy] = useState<string | null>(null)
   const [recent, setRecent] = useState(false)
   const status = useData((s) => s.sessions[sessionId]?.status)
   const working = status === 'working' || status === 'starting'
-  const using = usedBy && (working || recent) ? usedBy : null
+  const wasWorking = useRef(working)
+  useEffect(() => {
+    if (wasWorking.current && !working) setRecent(false)
+    wasWorking.current = working
+  }, [working])
+  const using = usedBy && recent ? usedBy : null
   const presets = useData((s) => s.presets)
   const agent = using ? presets.find((p) => p.id === using) : undefined
   const agentName = agent?.name ?? using ?? ''
