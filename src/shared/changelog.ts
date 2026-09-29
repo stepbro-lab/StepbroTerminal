@@ -24,6 +24,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     headline: 'On Windows, closing the window keeps the app in the tray.',
     changes: [
       { kind: 'fixed', text: 'Restarting a Codex session picks its conversation back up, the way Claude Code does, instead of starting a new one: stepbro notes which conversation Codex wrote as each turn ends. A session that was never sent a prompt starts fresh, and two sessions never share one conversation.' },
+      { kind: 'fixed', text: 'stepbro opened from one of its own terminals no longer greets you with "recursion limit exceeded" from zsh, and your own .zshrc loads in it again.' },
       { kind: 'improved', text: 'A new folder icon in the sidebar: soft back, solid front, and a front that leans forward when the project is open. No more dark line across it.' },
       { kind: 'improved', text: 'The dot at the top right is a bell now: a spinner while agents work, a blue dot on it when something finished that you have not seen, amber when a session needs you. Clicking it lists what needs you, what is working and what finished.' },
       { kind: 'improved', text: 'The Notes button only shows once there is a note. The shortcut still opens them, and the first note brings the button out.' },
