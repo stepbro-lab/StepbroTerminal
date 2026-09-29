@@ -285,12 +285,25 @@ const FISH_CWD =
   "    printf '\\e]7;file://%s%s\\a' $hostname (string replace -a '%' '%25' -- $PWD)\n" +
   'end\n'
 
+/** The first line of each of our zsh files, by which a folder of them is known for ours. */
+const ZSH_MARK = '# stepbro terminal:'
+
+/** Whether a ZDOTDIR is one of stepbro's own folders of startup files, not the user's. */
+export function isStepZdotdir(dir: string): boolean {
+  try {
+    return fs.readFileSync(path.join(dir, '.zshenv'), 'utf8').startsWith(ZSH_MARK)
+  } catch {
+    return false
+  }
+}
+
 /** zsh reads its files from ZDOTDIR; each of ours runs the user's own file of the same name first. */
 function zshFile(name: string, tail = ''): string {
-  return `# stepbro terminal: your own ${name} runs first; this only adds the agent commands.
+  return `${ZSH_MARK} your own ${name} runs first; this only adds the agent commands.
 _step_zdotdir="$ZDOTDIR"
 ZDOTDIR="\${STEP_USER_ZDOTDIR:-$HOME}"
-if [ -f "$ZDOTDIR/${name}" ]; then . "$ZDOTDIR/${name}"; fi
+# Never this very file again: that would load itself until zsh gave up.
+if [ "$ZDOTDIR" != "$_step_zdotdir" ] && [ -f "$ZDOTDIR/${name}" ]; then . "$ZDOTDIR/${name}"; fi
 ZDOTDIR="$_step_zdotdir"
 unset _step_zdotdir
 ${tail}`
@@ -355,7 +368,13 @@ export function posixShellWithAgents(file: string, args: string[], _w: AgentWrap
   const base = (file.split(/[\\/]/).pop() ?? '').replace(/\.exe$/i, '')
   if (args.some((a) => a === '-c' || a === '--command' || a === '-C')) return args
   if (base === 'zsh') {
-    if (env['ZDOTDIR']) env['STEP_USER_ZDOTDIR'] = env['ZDOTDIR']
+    // stepbro opened from a shell of another stepbro (or of itself) inherits that one's ZDOTDIR,
+    // which is our own startup files rather than the user's. Taken for the user's, each of our
+    // files would load itself until zsh gave up, and the user's own files would never load. The
+    // user's real one is what that stepbro kept aside, or their home.
+    const inherited = env['ZDOTDIR']
+    if (inherited && !isStepZdotdir(inherited)) env['STEP_USER_ZDOTDIR'] = inherited
+    else if (env['STEP_USER_ZDOTDIR'] && isStepZdotdir(env['STEP_USER_ZDOTDIR'])) delete env['STEP_USER_ZDOTDIR']
     env['ZDOTDIR'] = path.join(binDir, 'zsh')
     return args
   }

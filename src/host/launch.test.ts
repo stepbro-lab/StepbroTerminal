@@ -3,7 +3,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { spawnSync } from 'node:child_process'
-import { applyAgentWrap, findOnPath, posixShellWithAgents, ptyEnv, resolveCommand, shellArgsWithAgents, substituteArgs, writeHooksSettings, writeMcpConfig, writeShims } from './launch'
+import { applyAgentWrap, findOnPath, isStepZdotdir, posixShellWithAgents, ptyEnv, resolveCommand, shellArgsWithAgents, substituteArgs, writeHooksSettings, writeMcpConfig, writeShims } from './launch'
 
 let tmp: string
 beforeEach(() => {
@@ -257,5 +257,40 @@ describe('ptyEnv', () => {
     expect(env['CLAUDE_CODE_CHILD_SESSION']).toBeUndefined()
     expect(env).toMatchObject({ PATH: '/x', TERM: 'xterm-256color', COLORTERM: 'truecolor', TERM_PROGRAM: 'Step', STEP_SESSION: 'a' })
     expect('UNDEF' in env).toBe(false)
+  })
+})
+
+describe('stepbro opened from a shell of another stepbro', () => {
+  const w = { hooksSettings: '', mcpConfig: '', mcpUrl: '' }
+
+  it('does not take the other one\'s startup files for the user\'s', () => {
+    const outer = path.join(tmp, 'outer')
+    writeShims(outer)
+    expect(isStepZdotdir(path.join(outer, 'zsh'))).toBe(true)
+    expect(isStepZdotdir(tmp)).toBe(false)
+    const env: Record<string, string> = { ZDOTDIR: path.join(outer, 'zsh') }
+    posixShellWithAgents('/bin/zsh', [], w, env, path.join(tmp, 'inner'))
+    expect(env['STEP_USER_ZDOTDIR']).toBeUndefined()
+    // The user's own, which the outer one kept aside, is kept.
+    const mine: Record<string, string> = { ZDOTDIR: path.join(outer, 'zsh'), STEP_USER_ZDOTDIR: '/Users/me/.config/zsh' }
+    posixShellWithAgents('/bin/zsh', [], w, mine, path.join(tmp, 'inner'))
+    expect(mine['STEP_USER_ZDOTDIR']).toBe('/Users/me/.config/zsh')
+  })
+
+  it('starts a real zsh with the user\'s files and no endless loop', () => {
+    const zsh = process.platform === 'win32' ? null : findOnPath('zsh', process.env)
+    if (!zsh) return
+    const outer = path.join(tmp, 'outer')
+    const inner = path.join(tmp, 'inner')
+    writeShims(outer)
+    writeShims(inner)
+    fs.writeFileSync(path.join(tmp, '.zshrc'), 'echo USER_ZSHRC_RAN\n')
+    const env = { ...process.env, HOME: tmp, ZDOTDIR: path.join(outer, 'zsh') } as Record<string, string>
+    delete env['STEP_USER_ZDOTDIR']
+    const args = posixShellWithAgents(zsh, ['-i'], w, env, inner)
+    const r = spawnSync(zsh, args, { env, input: 'echo ALIVE\nexit\n', encoding: 'utf8', timeout: 20_000 })
+    expect(r.stderr).not.toMatch(/recursion limit/)
+    expect(r.stdout).toContain('USER_ZSHRC_RAN')
+    expect(r.stdout).toContain('ALIVE')
   })
 })
