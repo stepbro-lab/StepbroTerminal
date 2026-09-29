@@ -443,6 +443,8 @@ export const es: Record<string, string> = {
   'A preview you can resize, and a notice that says only what is true.': 'Una vista previa que puedes redimensionar y un aviso que solo dice lo que es cierto.',
   'The preview (and the changes panel) can be made wider or narrower: drag the edge between it and the terminals. The width is kept.':
     'La vista previa (y el panel de cambios) se puede ensanchar o estrechar: arrastra el borde entre ella y los terminales. El ancho se guarda.',
+  '"Claude Code is using this page" goes away once the agent stops using the browser, a few seconds after its last move on the page or as soon as its turn ends, instead of staying for the whole turn.':
+    '"Claude Code está usando esta página" desaparece cuando el agente deja de usar el navegador, unos segundos después de su último movimiento en la página o en cuanto termina su turno, en vez de quedarse todo el turno.',
   'stepbro terminal is still running': 'stepbro terminal sigue abierto',
   'Your sessions go on, and you will hear when one needs you. Open it from the tray icon; quit it from there too.': 'Tus sesiones siguen y te avisará cuando una te necesite. Ábrelo desde el icono de la bandeja; ciérralo del todo desde ahí también.',
   'Closing the window': 'Al cerrar la ventana',
