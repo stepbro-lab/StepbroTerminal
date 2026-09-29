@@ -2,6 +2,8 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { AlertTriangle } from 'lucide-react'
 import type { Session } from '@shared/types'
 import { useData } from '@/stores/data'
+import { usePrefs } from '@/stores/prefs'
+import { DEFAULT_SIDE_SHARE, sideShareAt } from '@/lib/sidePanel'
 import { activeLayout, useUi, type DropZone, type LayoutNode } from '@/stores/ui'
 import { useTerminalMount } from '@/terminal/useTerminalMount'
 import { registry } from '@/terminal/TerminalRegistry'
@@ -44,9 +46,27 @@ export function TerminalPane() {
   // A preview stays loaded while its session is out of view, parked out of sight, so an agent there
   // can keep working the page (and the page keeps its place) while you look at another session.
   const previews = Object.values(sides).filter((p) => p.kind === 'preview' && sessions[p.sessionId])
+  // How wide a side panel is: a share of the area, dragged from its edge and kept.
+  const savedShare = usePrefs((s) => s.prefs?.sidePanelShare) ?? DEFAULT_SIDE_SHARE
+  const setPrefs = usePrefs((s) => s.set)
+  const [dragShare, setDragShare] = useState<number | null>(null)
+  const share = dragShare ?? savedShare
+  const frame = useRef<HTMLDivElement>(null)
+  const sideStyle = { flex: `0 0 ${(share * 100).toFixed(2)}%` }
+  const edge = (
+    <SideGutter
+      frame={frame}
+      onMove={setDragShare}
+      onEnd={(v) => {
+        void setPrefs({ sidePanelShare: v })
+        setDragShare(null)
+      }}
+    />
+  )
   const previewPanels = previews.map((p) =>
     p.kind === 'preview' ? (
-      <div key={p.sessionId} className={p.sessionId === shownId ? 'side-panel flex min-w-0 flex-[0_0_44%]' : 'side-panel-parked'} inert={p.sessionId !== shownId}>
+      <div key={p.sessionId} className={p.sessionId === shownId ? 'side-panel relative flex min-w-0' : 'side-panel-parked'} style={p.sessionId === shownId ? sideStyle : undefined} inert={p.sessionId !== shownId}>
+        {p.sessionId === shownId && edge}
         <PreviewPane key={p.url} url={p.url} sessionId={p.sessionId} />
       </div>
     ) : null
@@ -68,7 +88,7 @@ export function TerminalPane() {
   if (!layout || live.length === 0) {
     return (
       <main className="pane-area relative flex min-w-0 flex-1 flex-col">
-        <div className="pane-frame relative flex min-h-0 flex-1">
+        <div ref={frame} className="pane-frame relative flex min-h-0 flex-1">
           {SESSION_RAIL && <SessionRail />}
           <DropTarget className="card relative flex h-full w-full flex-col">
             {connected ? <EmptyState /> : <HostBanner />}
@@ -82,14 +102,15 @@ export function TerminalPane() {
 
   return (
     <main className="pane-area relative flex min-w-0 flex-1 flex-col">
-      <div className="pane-frame flex min-h-0 flex-1 gap-2">
+      <div ref={frame} className="pane-frame flex min-h-0 flex-1 gap-2">
         {/* The rail hangs over the terminals' own corner, left of any side panel. */}
         <div className="relative flex min-w-0 flex-1">
           {SESSION_RAIL && <SessionRail />}
           <LayoutView node={layout} path={[]} connected={connected} multi={live.length > 1} bare={bare} underRail={SESSION_RAIL && !bare ? topRightLeaf(layout) : null} />
         </div>
         {shown?.kind === 'changes' && sessions[shown.sessionId] && (
-          <div className="side-panel flex min-w-0 flex-[0_0_44%]">
+          <div className="side-panel relative flex min-w-0" style={sideStyle}>
+            {edge}
             <ChangesPane sessionId={shown.sessionId} />
           </div>
         )}
@@ -112,6 +133,44 @@ function LayoutView({ node, path, connected, multi, bare, underRail }: { node: L
       <div className="flex min-h-0 min-w-0" style={{ flex: `${1 - node.ratio} 1 0px` }}>
         <LayoutView node={node.b} path={[...path, 'b']} connected={connected} multi={multi} bare={bare} underRail={underRail} />
       </div>
+    </div>
+  )
+}
+
+/**
+ * The edge between the terminals and a side panel: drag it to give the panel more or less room.
+ * A preview is a page of its own that swallows the pointer as it passes over it, so while the edge
+ * is dragged a sheet over the whole window keeps the pointer; and the terminals keep their columns
+ * until it is let go, rather than reflowing at every pixel.
+ */
+function SideGutter({ frame, onMove, onEnd }: { frame: React.RefObject<HTMLDivElement | null>; onMove: (share: number) => void; onEnd: (share: number) => void }) {
+  const onDown = (e: React.MouseEvent): void => {
+    e.preventDefault()
+    const el = frame.current
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    let last: number | null = null
+    const sheet = document.createElement('div')
+    sheet.style.cssText = 'position:fixed;inset:0;z-index:100;cursor:col-resize'
+    document.body.appendChild(sheet)
+    registry.holdFits()
+    const onMoveEv = (ev: MouseEvent): void => {
+      last = sideShareAt(ev.clientX, rect.left, rect.width)
+      onMove(last)
+    }
+    const onUp = (): void => {
+      window.removeEventListener('mousemove', onMoveEv)
+      window.removeEventListener('mouseup', onUp)
+      sheet.remove()
+      registry.releaseFits()
+      if (last !== null) onEnd(last)
+    }
+    window.addEventListener('mousemove', onMoveEv)
+    window.addEventListener('mouseup', onUp)
+  }
+  return (
+    <div className="gutter group absolute inset-y-0 z-10" style={{ left: -8, width: 8, cursor: 'col-resize' }} onMouseDown={onDown}>
+      <div className="gutter-line absolute rounded-full opacity-0 transition-opacity group-hover:opacity-100" style={{ background: 'var(--border-strong)', left: 3, right: 3, top: 24, bottom: 24 }} />
     </div>
   )
 }
