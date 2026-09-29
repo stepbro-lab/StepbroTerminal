@@ -420,7 +420,8 @@ export const es: Record<string, string> = {
   'Topito is on': 'Topito está activado',
   'Turn on Topito': 'Activar a Topito',
   'Hi! I’m Topito, the new mascot of stepbro terminal. I’ll be your trusty sidekick!': '¡Hola! Soy Topito, la nueva mascota de stepbro terminal. ¡Seré tu mascota de confianza!',
-  'On Windows, closing the window keeps the app in the tray.': 'En Windows, cerrar la ventana deja la app en la bandeja.',
+  'A calmer window with a bell for your agents, Codex that resumes its conversation, and on Windows the app stays in the tray.':
+    'Una ventana más tranquila con una campana para tus agentes, Codex que retoma su conversación y, en Windows, la app que se queda en la bandeja.',
   'On Windows, closing the window no longer quits the app: it stays in the tray and keeps telling you when a session finishes or needs you. Open it again from the tray icon, and quit it from there; in Settings, under Advanced, closing can quit it as before.':
     'En Windows, cerrar la ventana ya no cierra la app: se queda en la bandeja y te sigue avisando cuando una sesión termina o te necesita. Se vuelve a abrir desde el icono de la bandeja y se cierra del todo desde ahí; en Ajustes, en Avanzado, puedes hacer que cerrar la cierre como antes.',
   'A pane split from a shell opens in the folder that shell is in now, not the project\'s: after a cd into a subfolder, the new pane starts there too, and stays under the same project. Every shell says where it is at each prompt, PowerShell with oh-my-posh included.':

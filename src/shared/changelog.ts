@@ -20,8 +20,8 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     version: '0.1.0-beta.24',
-    date: '2026-09-26',
-    headline: 'On Windows, closing the window keeps the app in the tray.',
+    date: '2026-09-28',
+    headline: 'A calmer window with a bell for your agents, Codex that resumes its conversation, and on Windows the app stays in the tray.',
     changes: [
       { kind: 'fixed', text: 'Restarting a Codex session picks its conversation back up, the way Claude Code does, instead of starting a new one: stepbro notes which conversation Codex wrote as each turn ends. A session that was never sent a prompt starts fresh, and two sessions never share one conversation.' },
       { kind: 'fixed', text: 'stepbro opened from one of its own terminals no longer greets you with "recursion limit exceeded" from zsh, and your own .zshrc loads in it again.' },
