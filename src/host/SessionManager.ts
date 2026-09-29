@@ -35,6 +35,7 @@ import { pacePieces } from './pace'
 import { isOwnEndpoint, previewUrlIn } from './previewUrl'
 import { SessionLog, altScreenBefore, readLogTail } from './SessionLog'
 import { claudeConversationExists, startsResumed } from './resumeChoice'
+import { codexHome, codexThreadsSince, justWritten, latestSince } from './codexThreads'
 import { OutputPressure } from './OutputPressure'
 
 export interface SessionManagerOpts {
@@ -377,6 +378,13 @@ export class SessionManager extends EventEmitter {
     this.openLog(l)
     l.log!.clear()
     this.emit('clear', id)
+    // Codex tells nobody which conversation it is in. Caught as it finished a turn when it could
+    // be; otherwise the last one it wrote in this folder, if it ever wrote one.
+    if (isCodex(l.s) && !l.s.agent.sessionId) {
+      const s = l.s
+      const found = latestSince(codexThreadsSince(this.codexHome(s), s.createdAt), startDirOf(s), s.createdAt, this.codexTaken(s))
+      if (found) s.agent.sessionId = found
+    }
     const canResume = !!l.s.launch.resumeArgs && !!l.s.agent.sessionId
     this.spawn(l, canResume)
     this.emitSession(l)
@@ -1176,10 +1184,13 @@ export class SessionManager extends EventEmitter {
     if (!patch) return
     const s = l.s
     let changed = false
+    const was = s.status
     if (patch.status && patch.status !== s.status) {
       s.status = patch.status
       s.statusAt = Date.now()
       changed = true
+      // Codex just finished a turn, or ended: its conversation was written a moment ago.
+      if (isCodex(s) && was === 'working') this.catchCodexThread(l)
     }
     if (patch.agent) {
       for (const [k, v] of Object.entries(patch.agent)) {
@@ -1194,6 +1205,35 @@ export class SessionManager extends EventEmitter {
       changed = true
     }
     if (changed) this.emitSession(l)
+  }
+
+  private codexHome(s: Session): string {
+    return codexHome({ ...this.opts.baseEnv, ...(s.launch.env ?? {}) })
+  }
+
+  /** The conversations other Codex sessions already have: never two panes on one conversation. */
+  private codexTaken(s: Session): Set<string> {
+    const taken = new Set<string>()
+    for (const o of this.live.values()) if (o.s.id !== s.id && isCodex(o.s) && o.s.agent.sessionId) taken.add(o.s.agent.sessionId)
+    return taken
+  }
+
+  /**
+   * Notes which conversation a Codex session is in, from the file Codex has just written. The
+   * latest one wins, so a /new inside Codex moves the session on to the new conversation.
+   */
+  private catchCodexThread(l: Live): void {
+    const s = l.s
+    try {
+      const now = Date.now()
+      const found = justWritten(codexThreadsSince(this.codexHome(s), now - 60_000, now), startDirOf(s), this.codexTaken(s), now)
+      if (found && found !== s.agent.sessionId) {
+        s.agent.sessionId = found
+        this.persist()
+      }
+    } catch (e) {
+      log('codex conversation not found', s.id, e)
+    }
   }
 
   private emitSession(l: Live): void {
@@ -1322,4 +1362,9 @@ function startDirOf(s: Session): string {
     }
   }
   return s.projectPath
+}
+
+/** A session running Codex from its preset: the one kind that resumes with `codex resume <id>`. */
+function isCodex(s: Session): boolean {
+  return s.presetId === 'codex' && !!s.launch.resumeArgs?.includes('{sessionId}')
 }
