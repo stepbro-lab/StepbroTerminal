@@ -213,6 +213,8 @@ export interface Prefs {
    * session needs you, until it is quit from there. On unless turned off.
    */
   closeToTray?: boolean
+  /** The share of the pane area a side panel (a preview, the changes) takes; dragged from its edge. */
+  sidePanelShare?: number
   /** Whether the app has said once that it went on running in the tray when its window closed. */
   trayHintShown?: boolean
   /** Topito, the mole between the buttons at the foot of the sidebar. Off until turned on. */

@@ -19,6 +19,14 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.1.0-beta.25',
+    date: '2026-09-29',
+    headline: 'A preview you can resize, and a notice that says only what is true.',
+    changes: [
+      { kind: 'new', text: 'The preview (and the changes panel) can be made wider or narrower: drag the edge between it and the terminals. The width is kept.' }
+    ]
+  },
+  {
     version: '0.1.0-beta.24',
     date: '2026-09-28',
     headline: 'A calmer window with a bell for your agents, Codex that resumes its conversation, and on Windows the app stays in the tray.',

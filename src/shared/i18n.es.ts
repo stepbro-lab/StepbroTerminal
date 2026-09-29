@@ -440,6 +440,9 @@ export const es: Record<string, string> = {
     'Reiniciar una sesión de Codex retoma su conversación, como ya pasaba con Claude Code, en vez de empezar una nueva: stepbro anota qué conversación escribió Codex al terminar cada turno. Una sesión a la que nunca se le mandó un prompt empieza de cero, y dos sesiones nunca comparten la misma conversación.',
   'stepbro opened from one of its own terminals no longer greets you with "recursion limit exceeded" from zsh, and your own .zshrc loads in it again.':
     'stepbro abierto desde una de sus propias terminales ya no te recibe con el error "recursion limit exceeded" de zsh, y tu .zshrc vuelve a cargarse en él.',
+  'A preview you can resize, and a notice that says only what is true.': 'Una vista previa que puedes redimensionar y un aviso que solo dice lo que es cierto.',
+  'The preview (and the changes panel) can be made wider or narrower: drag the edge between it and the terminals. The width is kept.':
+    'La vista previa (y el panel de cambios) se puede ensanchar o estrechar: arrastra el borde entre ella y los terminales. El ancho se guarda.',
   'stepbro terminal is still running': 'stepbro terminal sigue abierto',
   'Your sessions go on, and you will hear when one needs you. Open it from the tray icon; quit it from there too.': 'Tus sesiones siguen y te avisará cuando una te necesite. Ábrelo desde el icono de la bandeja; ciérralo del todo desde ahí también.',
   'Closing the window': 'Al cerrar la ventana',
