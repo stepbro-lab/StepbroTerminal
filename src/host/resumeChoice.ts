@@ -32,3 +32,45 @@ export function startsResumed(launch: LaunchSpec, sessionId: string | undefined,
   if (launch.args.includes('--session-id')) return exists(sessionId)
   return wanted
 }
+
+/**
+ * The conversation a Claude Code hook speaks for, out of the transcript it names. Every hook carries
+ * `transcript_path`, the file Claude is writing; after a /resume inside Claude that is the resumed
+ * conversation's file, whatever id the process was started with. Null when it names none.
+ */
+export function conversationFromTranscript(transcriptPath: unknown): string | null {
+  if (typeof transcriptPath !== 'string') return null
+  const m = /([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.jsonl$/i.exec(transcriptPath)
+  return m ? m[1] : null
+}
+
+/**
+ * The Claude Code conversation last written in a folder since `since`, not one of `taken`: what a
+ * session was in when the id it kept has no conversation behind it. Claude keeps a folder's
+ * conversations under projects/<the folder, every other character a dash>. Null when there is none.
+ */
+export function latestClaudeConversation(cwd: string, since: number, taken: Set<string>, configDir?: string): string | null {
+  const projects = path.join(configDir || path.join(os.homedir(), '.claude'), 'projects')
+  const dirs = new Set([cwd.replace(/[^a-zA-Z0-9]/g, '-'), cwd.replace(/[:\\/]/g, '-')])
+  let best: { id: string; at: number } | null = null
+  for (const d of dirs) {
+    let names: string[]
+    try {
+      names = fs.readdirSync(path.join(projects, d))
+    } catch {
+      continue
+    }
+    for (const name of names) {
+      const id = conversationFromTranscript(name)
+      if (!id || taken.has(id)) continue
+      let at: number
+      try {
+        at = fs.statSync(path.join(projects, d, name)).mtimeMs
+      } catch {
+        continue
+      }
+      if (at >= since && (!best || at > best.at)) best = { id, at }
+    }
+  }
+  return best?.id ?? null
+}
