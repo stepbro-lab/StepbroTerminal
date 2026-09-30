@@ -418,3 +418,16 @@ describe('keeps up with the Claude Code conversation a session is in', () => {
     expect(lastArgs()).toContain(A)
   })
 })
+
+describe('archiving', () => {
+  it('notes when a session was put away, and forgets it when it comes back', () => {
+    const s = create()
+    const before = Date.now()
+    sm.archive(s.id, true)
+    const put = sm.list().find((x) => x.id === s.id)!
+    expect(put.archived).toBe(true)
+    expect(put.archivedAt).toBeGreaterThanOrEqual(before)
+    sm.archive(s.id, false)
+    expect(sm.list().find((x) => x.id === s.id)!.archivedAt).toBeUndefined()
+  })
+})

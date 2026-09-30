@@ -409,6 +409,7 @@ export class SessionManager extends EventEmitter {
     const l = this.live.get(id)
     if (!l || !!l.s.archived === archived) return
     l.s.archived = archived
+    l.s.archivedAt = archived ? Date.now() : undefined
     if (archived && l.pty) {
       // The exit that follows carries the flag along, so the row lands in the right place at once.
       this.kill(id)
