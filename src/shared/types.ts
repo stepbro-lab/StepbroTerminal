@@ -399,6 +399,8 @@ export interface BrowserResult {
 export interface MenuItemSpec {
   id?: string
   label?: string
+  /** The item's shortcut as people read it ("Ctrl ⇧ D"), shown beside it so it can be learnt. */
+  shortcut?: string
   enabled?: boolean
   checked?: boolean
   separator?: boolean

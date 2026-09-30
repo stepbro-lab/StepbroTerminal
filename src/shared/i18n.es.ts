@@ -449,6 +449,8 @@ export const es: Record<string, string> = {
     'Los agentes usan la vista previa más rápido y la entienden en menos pasos: la página llega como un esquema en orden de lectura, con su texto y una referencia corta (e12) para cada enlace, botón y campo, y un clic o lo que escriben devuelve la página tal como queda, así el agente ve lo que pasó sin volver a mirar.',
   'The agent\'s cursor in the preview moves quicker and still smoothly: clicks take about half the time, scrolling waits only as long as the page moves, and typing is faster.':
     'El cursor del agente en la vista previa se mueve más rápido y sigue siendo fluido: los clics tardan la mitad, el scroll espera solo lo que tarda la página en moverse y escribe más deprisa.',
+  'Split right and Split down are in the right-click menu of every terminal, a lone one included, with their shortcuts beside them; so are the shortcuts for Find and Redraw.':
+    'Dividir a la derecha y Dividir abajo están en el menú del clic derecho de cualquier terminal, también cuando hay una sola, con su atajo al lado; Buscar y Redibujar también muestran el suyo.',
   'stepbro terminal is still running': 'stepbro terminal sigue abierto',
   'Your sessions go on, and you will hear when one needs you. Open it from the tray icon; quit it from there too.': 'Tus sesiones siguen y te avisará cuando una te necesite. Ábrelo desde el icono de la bandeja; ciérralo del todo desde ahí también.',
   'Closing the window': 'Al cerrar la ventana',

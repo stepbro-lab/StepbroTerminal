@@ -5,7 +5,8 @@ import { useHandoff } from '@/stores/handoff'
 import { registry } from '@/terminal/TerminalRegistry'
 import { popup, sep } from './menus'
 import { defaultTitle, rowPresetId } from './sidebarModel'
-import { redrawSession } from './actions'
+import { redrawSession, splitWithNewShell } from './actions'
+import { shortcutLabel } from './shortcuts'
 import { t } from '@/lib/i18n'
 
 const encoder = new TextEncoder()
@@ -28,7 +29,11 @@ export function sendToSession(from: string, targetId: string, text: string): voi
   useHandoff.getState().arrive({ from, to: targetId, text })
 }
 
-/** Right-click menu inside a terminal: copy, paste, hand the selection to another session, find. */
+/**
+ * Right-click menu inside a terminal: copy, paste, hand the selection to another session, split,
+ * find. Splitting is here for every pane: a lone one has no header, and so no other menu to find
+ * it in.
+ */
 export async function terminalContextMenu(id: string, x: number, y: number): Promise<void> {
   const e = registry.get(id)
   if (!e) return
@@ -47,8 +52,11 @@ export async function terminalContextMenu(id: string, x: number, y: number): Pro
       sep,
       { label: t('Send selection to'), submenu: targets, enabled: !!selection && targets.length > 0 },
       sep,
-      { id: 'find', label: t('Find…') },
-      { id: 'redraw', label: t('Redraw screen') },
+      { id: 'split-right', label: t('Split right'), shortcut: shortcutLabel('split-right') },
+      { id: 'split-down', label: t('Split down'), shortcut: shortcutLabel('split-down') },
+      sep,
+      { id: 'find', label: t('Find…'), shortcut: shortcutLabel('find') },
+      { id: 'redraw', label: t('Redraw screen'), shortcut: shortcutLabel('redraw') },
       { id: 'selectAll', label: t('Select all') },
       { id: 'clearSel', label: t('Clear selection'), enabled: !!selection }
     ],
@@ -60,6 +68,10 @@ export async function terminalContextMenu(id: string, x: number, y: number): Pro
     return
   }
   switch (pick) {
+    case 'split-right':
+    case 'split-down':
+      void splitWithNewShell(pick === 'split-right' ? 'row' : 'column', id)
+      break
     case 'copy':
       window.step.send('clipboard:write', selection)
       break
