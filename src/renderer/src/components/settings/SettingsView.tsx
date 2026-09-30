@@ -1,7 +1,8 @@
-import { Bell, ChevronLeft, Cpu, Keyboard, LayoutGrid, Palette, Terminal, Wrench } from 'lucide-react'
+import { Archive, Bell, ChevronLeft, Cpu, Keyboard, LayoutGrid, Palette, Terminal, Wrench } from 'lucide-react'
 import { useUi, type SettingsPage } from '@/stores/ui'
 import { AppearancePage, TerminalPage, AgentsPage, WorkspacesPage, NotificationsPage, AdvancedPage } from './pages'
 import { ShortcutsPage } from './ShortcutsPage'
+import { ArchivedPage } from './ArchivedPage'
 import { t } from '@/lib/i18n'
 
 const pages = (): Array<{ id: SettingsPage; label: string; icon: React.ReactNode; title: string; blurb: string }> => [
@@ -11,6 +12,7 @@ const pages = (): Array<{ id: SettingsPage; label: string; icon: React.ReactNode
   { id: 'workspaces', label: t('Workspaces'), icon: <LayoutGrid size={14} />, title: t('Workspaces'), blurb: t('Arrangements of panes that open in one go, each in its own folder, running what you tell it.') },
   { id: 'notifications', label: t('Notifications'), icon: <Bell size={14} />, title: t('Notifications'), blurb: t('When stepbro terminal should get your attention.') },
   { id: 'shortcuts', label: t('Shortcuts'), icon: <Keyboard size={14} />, title: t('Shortcuts'), blurb: t('Everything you can do without leaving the keyboard, and the keys you prefer for it.') },
+  { id: 'archived', label: t('Archived sessions'), icon: <Archive size={14} />, title: t('Archived sessions'), blurb: t('Sessions you put away, from every folder: bring one back where it left off, or delete it for good.') },
   { id: 'advanced', label: t('Advanced'), icon: <Wrench size={14} />, title: t('Advanced'), blurb: t('The session host, data on disk and paths.') }
 ]
 
@@ -51,6 +53,7 @@ export function SettingsView() {
             {page === 'workspaces' && <WorkspacesPage />}
             {page === 'notifications' && <NotificationsPage />}
             {page === 'shortcuts' && <ShortcutsPage />}
+            {page === 'archived' && <ArchivedPage />}
             {page === 'advanced' && <AdvancedPage />}
           </div>
         </div>

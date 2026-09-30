@@ -90,6 +90,8 @@ export interface Session {
   leftRunning?: boolean
   /** Put away: its process is gone and its row sits dimmed under the folder, ready to be restored or deleted. */
   archived?: boolean
+  /** When it was put away; sessions archived before this was kept go by their last change. */
+  archivedAt?: number
   cols: number
   rows: number
   pid?: number
