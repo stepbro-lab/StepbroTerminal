@@ -168,6 +168,7 @@ function MenuPanel({
               }}
             >
               <span className="flex-1 truncate">{it.label}</span>
+              {it.shortcut && <span className="ml-4 shrink-0 text-[11.5px] tabular-nums text-muted">{it.shortcut}</span>}
               {it.checked && <span className="text-[11.5px] text-muted">✓</span>}
               {hasSub && <ChevronRight size={13} className="text-muted" />}
             </button>
