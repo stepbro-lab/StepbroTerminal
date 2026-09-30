@@ -451,6 +451,8 @@ export const es: Record<string, string> = {
     'El cursor del agente en la vista previa se mueve más rápido y sigue siendo fluido: los clics tardan la mitad, el scroll espera solo lo que tarda la página en moverse y escribe más deprisa.',
   'Split right and Split down are in the right-click menu of every terminal, a lone one included, with their shortcuts beside them; so are the shortcuts for Find and Redraw.':
     'Dividir a la derecha y Dividir abajo están en el menú del clic derecho de cualquier terminal, también cuando hay una sola, con su atajo al lado; Buscar y Redibujar también muestran el suyo.',
+  'Resuming a Claude Code session after closing and opening the app picks up the conversation it was in, instead of opening an empty Claude that needed a /resume: stepbro follows the conversation Claude is writing, a /resume inside Claude included, and one that had lost track resumes the conversation last written in its folder.':
+    'Retomar una sesión de Claude Code después de cerrar y abrir la app recupera la conversación en la que estaba, en vez de abrir un Claude vacío que pedía un /resume: stepbro sigue la conversación que Claude está escribiendo, también tras un /resume dentro de Claude, y una sesión que la había perdido retoma la última conversación escrita en su carpeta.',
   'stepbro terminal is still running': 'stepbro terminal sigue abierto',
   'Your sessions go on, and you will hear when one needs you. Open it from the tray icon; quit it from there too.': 'Tus sesiones siguen y te avisará cuando una te necesite. Ábrelo desde el icono de la bandeja; ciérralo del todo desde ahí también.',
   'Closing the window': 'Al cerrar la ventana',

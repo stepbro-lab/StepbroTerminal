@@ -392,3 +392,29 @@ describe('picks a Codex conversation back up', () => {
     expect(lastArgs()).not.toContain('thread-a')
   })
 })
+
+describe('keeps up with the Claude Code conversation a session is in', () => {
+  const A = '33333333-3333-4333-8333-333333333333'
+  const claudeSession = (config: string): Session =>
+    sm.create({ projectPath: dir, presetId: 'claude', cols: 80, rows: 24,
+      launch: { command: process.execPath, args: ['--session-id', '{sessionId}'], resumeArgs: ['--resume', '{sessionId}'], env: { CLAUDE_CONFIG_DIR: config }, hooks: true } })
+  const lastArgs = (): string => JSON.stringify(ptys.at(-1).args)
+
+  it('follows a /resume inside Claude through the transcript its hooks name', () => {
+    const s = claudeSession(path.join(dir, 'claude'))
+    sm.applyHook(s.agent.sessionId!, 'UserPromptSubmit', { session_id: s.agent.sessionId, transcript_path: `/x/.claude/projects/p/${A}.jsonl` }, s.id)
+    expect(sm.list().find((x) => x.id === s.id)!.agent.sessionId).toBe(A)
+  })
+
+  it('resumes the conversation last written in its folder when the id it kept has nothing saved', async () => {
+    const config = path.join(dir, 'claude')
+    const s = claudeSession(config)
+    // Claude was sent back to an older conversation with /resume, and wrote there; the session kept its own id.
+    const folder = path.join(config, 'projects', dir.replace(/[^a-zA-Z0-9]/g, '-'))
+    await fs.mkdir(folder, { recursive: true })
+    await fs.writeFile(path.join(folder, `${A}.jsonl`), '{}\n')
+    sm.restart(s.id)
+    expect(lastArgs()).toContain('--resume')
+    expect(lastArgs()).toContain(A)
+  })
+})

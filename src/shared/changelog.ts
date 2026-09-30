@@ -23,6 +23,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-09-29',
     headline: 'A preview you can resize, and a notice that says only what is true.',
     changes: [
+      { kind: 'fixed', text: 'Resuming a Claude Code session after closing and opening the app picks up the conversation it was in, instead of opening an empty Claude that needed a /resume: stepbro follows the conversation Claude is writing, a /resume inside Claude included, and one that had lost track resumes the conversation last written in its folder.' },
       { kind: 'improved', text: 'Split right and Split down are in the right-click menu of every terminal, a lone one included, with their shortcuts beside them; so are the shortcuts for Find and Redraw.' },
       { kind: 'improved', text: 'Agents work the preview faster and understand it in fewer steps: the page comes back as an outline in reading order, with its text and a short ref (e12) for every link, button and field, and a click or typing returns the page as it is afterwards, so the agent sees what happened without looking again.' },
       { kind: 'improved', text: 'The agent\'s cursor in the preview moves quicker and still smoothly: clicks take about half the time, scrolling waits only as long as the page moves, and typing is faster.' },

@@ -34,7 +34,7 @@ import { agentOf } from './handoff'
 import { pacePieces } from './pace'
 import { isOwnEndpoint, previewUrlIn } from './previewUrl'
 import { SessionLog, altScreenBefore, readLogTail } from './SessionLog'
-import { claudeConversationExists, startsResumed } from './resumeChoice'
+import { claudeConversationExists, conversationFromTranscript, latestClaudeConversation, startsResumed } from './resumeChoice'
 import { codexHome, codexThreadsSince, justWritten, latestSince } from './codexThreads'
 import { OutputPressure } from './OutputPressure'
 
@@ -723,6 +723,13 @@ export class SessionManager extends EventEmitter {
     }
     if (name === 'PostToolUse') this.noteEditedFile(l, payload)
     this.apply(l, { kind: 'hook', name, payload })
+    // The conversation is the file Claude writes, which a /resume inside Claude changes without the
+    // process's own id changing with it: taken from every hook, the latest wins.
+    const conversation = conversationFromTranscript(payload['transcript_path'])
+    if (conversation && conversation !== l.s.agent.sessionId) {
+      l.s.agent.sessionId = conversation
+      this.emitSession(l)
+    }
   }
 
   private noteEditedFile(l: Live, payload: Record<string, unknown>): void {
@@ -878,7 +885,6 @@ export class SessionManager extends EventEmitter {
     // A new process starts where it is told to; the last one's directory went with it.
     s.cwd = undefined
     const env = ptyEnv(this.opts.baseEnv, { ...(s.launch.env ?? {}), STEP_SESSION_ID: s.id })
-    const sessionId = s.agent.sessionId ?? s.id
     // Every session gets its hook and notes files. Agents started from the menu take them as
     // arguments; agents the user types inside a shell pick them up through the shell itself.
     const tryWrite = (what: string, fn: () => string): string => {
@@ -895,9 +901,22 @@ export class SessionManager extends EventEmitter {
     const mcpConfig = tryWrite('mcp config', () => writeMcpConfig(this.opts.hooksDir, s.id, mcpUrl))
     const plugin = this.opts.opencodePlugin
     const opencodeConfig = plugin ? tryWrite('opencode config', () => writeOpencodeConfig(this.opts.hooksDir, s.id, mcpUrl, plugin, env['OPENCODE_CONFIG'])) : ''
-    const resumed = startsResumed(s.launch, s.agent.sessionId, resume, (id) => claudeConversationExists(id, env['CLAUDE_CONFIG_DIR']))
+    const saved = (id: string): boolean => claudeConversationExists(id, env['CLAUDE_CONFIG_DIR'])
+    // A kept id with nothing saved behind it (from before its conversation was followed through a
+    // /resume): the conversation last written in this folder since the session began is the one.
+    if (resume && s.launch.args.includes('--session-id') && s.agent.sessionId && !saved(s.agent.sessionId)) {
+      const taken = new Set([...this.live.values()].filter((o) => o.s.id !== s.id && o.s.agent.sessionId).map((o) => o.s.agent.sessionId!))
+      const found = latestClaudeConversation(startDirOf(s), s.createdAt, taken, env['CLAUDE_CONFIG_DIR'])
+      if (found) {
+        log('resuming the conversation last written in its folder', s.id, found)
+        s.agent.sessionId = found
+      }
+    }
+    const resumed = startsResumed(s.launch, s.agent.sessionId, resume, saved)
     if (resume && !resumed) log('starting over: no saved conversation to resume', s.id, s.agent.sessionId)
     const template = resumed ? s.launch.resumeArgs! : s.launch.args
+    // Worked out only now: finding the conversation to resume may have just changed the id.
+    const sessionId = s.agent.sessionId ?? s.id
     const args = substituteArgs(template, { sessionId, hooksSettings, mcpConfig, mcpUrl })
     // Resolve against the plain PATH, before the shims go in front of it.
     const resolved = resolveCommand(s.launch.command, env)
