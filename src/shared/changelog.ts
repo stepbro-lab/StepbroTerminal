@@ -21,8 +21,9 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     version: '0.1.0-beta.28',
     date: '2026-10-01',
-    headline: 'Agents look like what they are doing: waiting, working, or really needing you.',
+    headline: 'Agents keep their screen whole while you resize, and look like what they are doing.',
     changes: [
+      { kind: 'fixed', text: 'Dragging the edge of the preview, of a split or of the sidebar, or resizing the window, no longer leaves an agent\'s screen in pieces: the terminals keep their columns while the edge moves, however long you drag, and the agent redraws once, when you let go.' },
       { kind: 'fixed', text: 'An agent that has just opened, or come back after an update, no longer shows as working until you write to it: once it is on screen and waiting, its row stops spinning.' },
       { kind: 'fixed', text: 'Opening a menu in Claude Code yourself, such as /model or /config, no longer has stepbro and Topito say it needs you. A permission it asks for, or a question, still does.' }
     ]

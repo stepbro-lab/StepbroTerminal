@@ -153,7 +153,8 @@ function SideGutter({ frame, onMove, onEnd }: { frame: React.RefObject<HTMLDivEl
     const sheet = document.createElement('div')
     sheet.style.cssText = 'position:fixed;inset:0;z-index:100;cursor:col-resize'
     document.body.appendChild(sheet)
-    registry.holdFits()
+    // For the whole drag, however long: the agents behind the terminals redraw once, at the end.
+    registry.beginResizeDrag()
     const onMoveEv = (ev: MouseEvent): void => {
       last = sideShareAt(ev.clientX, rect.left, rect.width)
       onMove(last)
@@ -161,12 +162,15 @@ function SideGutter({ frame, onMove, onEnd }: { frame: React.RefObject<HTMLDivEl
     const onUp = (): void => {
       window.removeEventListener('mousemove', onMoveEv)
       window.removeEventListener('mouseup', onUp)
+      window.removeEventListener('blur', onUp)
       sheet.remove()
-      registry.releaseFits()
+      registry.endResizeDrag()
       if (last !== null) onEnd(last)
     }
     window.addEventListener('mousemove', onMoveEv)
     window.addEventListener('mouseup', onUp)
+    // A button let go outside the window never comes back as a mouseup.
+    window.addEventListener('blur', onUp)
   }
   return (
     <div className="gutter group absolute inset-y-0 z-10" style={{ left: -8, width: 8, cursor: 'col-resize' }} onMouseDown={onDown}>
@@ -189,11 +193,16 @@ function Gutter({ row, path }: { row: boolean; path: Array<'a' | 'b'> }) {
     const onUp = (): void => {
       window.removeEventListener('mousemove', onMove)
       window.removeEventListener('mouseup', onUp)
+      window.removeEventListener('blur', onUp)
       document.body.style.cursor = ''
+      registry.endResizeDrag()
     }
     document.body.style.cursor = row ? 'col-resize' : 'row-resize'
+    // Both sides keep their size until the edge is let go, and their agents redraw once.
+    registry.beginResizeDrag()
     window.addEventListener('mousemove', onMove)
     window.addEventListener('mouseup', onUp)
+    window.addEventListener('blur', onUp)
   }
   return (
     <div

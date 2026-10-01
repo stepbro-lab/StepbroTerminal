@@ -122,6 +122,8 @@ export function Sidebar() {
         registry.holdFits()
       }, DRAG_FIT_MS)
       registry.holdFits()
+      // The terminals follow along as above; the agents behind them redraw once, when it is let go.
+      registry.beginResizeDrag(false)
       const onMove = (ev: MouseEvent): void => {
         latest = Math.min(MAX_W, Math.max(MIN_W, startW + ev.clientX - startX))
         if (!frame) {
@@ -135,15 +137,19 @@ export function Sidebar() {
         dragging.current = false
         window.removeEventListener('mousemove', onMove)
         window.removeEventListener('mouseup', onUp)
+        window.removeEventListener('blur', onUp)
         if (frame) cancelAnimationFrame(frame)
         window.clearInterval(fitTimer)
         fitTimer = 0
         root.setProperty('--sidebar-w', `${latest}px`)
         registry.releaseFits()
+        registry.endResizeDrag(false)
         void setPrefs({ sidebarWidth: latest })
       }
       window.addEventListener('mousemove', onMove)
       window.addEventListener('mouseup', onUp)
+      // A button let go outside the window never comes back as a mouseup.
+      window.addEventListener('blur', onUp)
     },
     [width, setPrefs]
   )
