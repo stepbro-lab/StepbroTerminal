@@ -471,6 +471,9 @@ export const es: Record<string, string> = {
   'A page for archived sessions in Settings: every session you put away, from every folder, newest first, with a search, a Restore button that brings it back where it left off, and a way to delete one or all of them.':
     'Una página de sesiones archivadas en Ajustes: todas las sesiones que guardaste, de todas las carpetas, las más recientes primero, con un buscador, un botón Restaurar que la recupera donde se quedó y la opción de borrar una o todas.',
   'Show it from the left edge': 'Mostrarla desde el borde izquierdo',
+  'Agents that are waiting look like it.': 'Los agentes que esperan se ven en espera.',
+  'An agent that has just opened, or come back after an update, no longer shows as working until you write to it: once it is on screen and waiting, its row stops spinning.':
+    'Un agente recién abierto, o que vuelve tras una actualización, ya no sale como trabajando hasta que le escribes: en cuanto está en pantalla y esperando, su fila deja de girar.',
   'Settings that read at a glance, with Topito up front.': 'Ajustes que se entienden de un vistazo, con Topito al frente.',
   'Settings put the options of each section together on one surface, the way System Settings does, with shorter explanations. Appearance opens with Topito, easy to find and to wake up, and gathers mode, app color and language under Theme.':
     'Ajustes reúne las opciones de cada sección en una sola superficie, como hace Ajustes del Sistema, con explicaciones más cortas. Apariencia empieza por Topito, fácil de encontrar y de despertar, y junta el modo, el color y el idioma bajo Tema.',

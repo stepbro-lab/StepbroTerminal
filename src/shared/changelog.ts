@@ -19,6 +19,14 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.1.0-beta.28',
+    date: '2026-10-01',
+    headline: 'Agents that are waiting look like it.',
+    changes: [
+      { kind: 'fixed', text: 'An agent that has just opened, or come back after an update, no longer shows as working until you write to it: once it is on screen and waiting, its row stops spinning.' }
+    ]
+  },
+  {
     version: '0.1.0-beta.27',
     date: '2026-10-01',
     headline: 'Settings that read at a glance, with Topito up front.',
