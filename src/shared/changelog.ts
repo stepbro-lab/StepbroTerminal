@@ -19,6 +19,14 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.1.0-beta.27',
+    date: '2026-10-01',
+    headline: 'Settings that read at a glance, with Topito up front.',
+    changes: [
+      { kind: 'improved', text: 'Settings put the options of each section together on one surface, the way System Settings does, with shorter explanations. Appearance opens with Topito, easy to find and to wake up, and gathers mode, app color and language under Theme.' }
+    ]
+  },
+  {
     version: '0.1.0-beta.26',
     date: '2026-10-01',
     headline: 'Your agents a click away in every folder, text copied as you select it, and agents that set up your workspaces.',

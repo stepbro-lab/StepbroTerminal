@@ -14,6 +14,7 @@ import { canBlurBehind } from '@shared/frame'
 import { AgentLogo } from '../sidebar/AgentLogo'
 import { Footer, Row, Section, Segmented, Slider, SmallButton, TextArea, TextField, Toggle } from './controls'
 import { ResourceSections } from './Resources'
+import { TopitoCard } from './TopitoCard'
 import { playNotificationSound } from '@/lib/sound'
 import { useUpdates } from '@/stores/updates'
 import { showAllChanges } from '../WhatsNew'
@@ -32,13 +33,9 @@ export function AppearancePage() {
   const dark = usePrefs((s) => s.dark)
   return (
     <>
-      <Section title={t('Language')} description={t('The language of the app itself. Shells and agents keep their own.')}>
-        <Row label={t('Language')}>
-          <Segmented value={p.language} options={LANGUAGES.map((l) => ({ value: l.id, label: l.label }))} onChange={(language) => upd({ language })} />
-        </Row>
-      </Section>
-      <Section title={t('Mode')} description={t('Applies to the window, sidebar and terminal colors. Agents draw their own interface with their own theme setting.')}>
-        <Row label={t('Mode')}>
+      <TopitoCard />
+      <Section title={t('Theme')}>
+        <Row label={t('Mode')} hint={t('Window, sidebar and terminal. Agents draw their own interface with their own theme.')} wrapHint>
           <Segmented
             value={p.theme}
             options={[
@@ -48,6 +45,24 @@ export function AppearancePage() {
             ]}
             onChange={(theme) => upd({ theme })}
           />
+        </Row>
+        <Row label={t('App color')} hint={t('Selections, buttons and activity marks.')} wrapHint>
+          <div className="flex items-center gap-2.5">
+            {ACCENTS.map((a) => (
+              <button
+                key={a.id}
+                className="swatch"
+                data-on={p.accent === a.id}
+                title={t(a.name)}
+                aria-label={t(a.name)}
+                style={{ background: dark ? a.dark : a.light }}
+                onClick={() => upd({ accent: a.id })}
+              />
+            ))}
+          </div>
+        </Row>
+        <Row label={t('Language')} hint={t('Shells and agents keep their own.')} wrapHint>
+          <Segmented value={p.language} options={LANGUAGES.map((l) => ({ value: l.id, label: l.label }))} onChange={(language) => upd({ language })} />
         </Row>
       </Section>
 
@@ -83,27 +98,6 @@ export function AppearancePage() {
         <Row label={t('Tuck it away')} hint={t('Off, the bar stays open and the terminal sits below it.')}>
           <Toggle value={p.barHides !== false} onChange={(barHides) => upd({ barHides })} />
         </Row>
-      </Section>
-
-      <Section title="Topito" description={t('The little mole between the buttons at the foot of the sidebar. He does whatever your agents are doing, comes out at the corner of the terminal when one needs you, answers when you click him, and agents can tell you something through him.')}>
-        <Row label={t('Show Topito')}>
-          <Toggle value={p.topito === true} onChange={(topito) => upd({ topito })} />
-        </Row>
-      </Section>
-
-      <Section title={t('App color')} description={t('Tints selections, buttons and the activity marks, and washes the window chrome very slightly.')}>
-        <div className="flex items-center gap-3 py-1">
-          {ACCENTS.map((a) => (
-            <button
-              key={a.id}
-              className="swatch"
-              data-on={p.accent === a.id}
-              title={t(a.name)}
-              style={{ background: dark ? a.dark : a.light }}
-              onClick={() => upd({ accent: a.id })}
-            />
-          ))}
-        </div>
       </Section>
 
       <Section title={t('Terminal text')} description={t('The bundled JetBrains Mono and Geist Mono render crisply everywhere. Any font installed on this machine works too.')}>
@@ -249,11 +243,11 @@ export function AgentsPage() {
         title="DeepSeek"
         description={t('Claude Code on DeepSeek models, through the Anthropic-shaped API DeepSeek serves: same hooks, notes and status. With a key, DeepSeek shows up next to the other agents.')}
       >
-        <Row label={t('API key')} hint={t('Kept on this machine, in the app preferences.')}>
+        <Row label={t('API key')} hint={t('Kept on this machine, in the app preferences.')} wrapHint>
           <TextField value={p.deepseekApiKey ?? ''} placeholder="sk-…" mono secret width={300} onChange={(v) => upd({ deepseekApiKey: v.trim() || undefined })} />
           <SmallButton onClick={() => void window.step.invoke('app:openExternal', 'https://platform.deepseek.com/api_keys')}>{t('Get a key')}</SmallButton>
         </Row>
-        <Row label={t('Model')} hint={t('Pro thinks harder; Flash is faster and cheaper. Sub-agents always use Flash.')}>
+        <Row label={t('Model')} hint={t('Pro thinks harder; Flash is faster and cheaper. Sub-agents always use Flash.')} wrapHint>
           <Segmented
             value={p.deepseekModel ?? 'pro'}
             options={[
@@ -265,7 +259,7 @@ export function AgentsPage() {
           />
         </Row>
         {p.deepseekModel === 'custom' && (
-          <Row label={t('Model id')} hint={t('The id as DeepSeek lists it. Empty, sessions use V4 Pro. New sessions and restarts pick it up.')}>
+          <Row label={t('Model id')} hint={t('The id as DeepSeek lists it. Empty, sessions use V4 Pro. New sessions and restarts pick it up.')} wrapHint>
             <TextField
               value={p.deepseekModelId ?? ''}
               placeholder="deepseek-…"
@@ -460,6 +454,13 @@ export function WorkspacesPage() {
       <Section
         title={t('Your workspaces')}
         description={t('Each one opens its panes at once, every pane in its own folder, and types a start command as soon as the prompt is ready. Open them from here or from the palette.')}
+        footnote={
+          <>
+            {t('Every workspace has a link that opens it from a shortcut or a script, starting the app if it is closed.')} Windows:{' '}
+            <code className="whitespace-nowrap font-mono text-[11.5px] text-secondary">start "" "{example}"</code> · macOS: <code className="whitespace-nowrap font-mono text-[11.5px] text-secondary">open "{example}"</code> · Linux:{' '}
+            <code className="whitespace-nowrap font-mono text-[11.5px] text-secondary">xdg-open "{example}"</code>
+          </>
+        }
       >
         {configs.length === 0 && <div className="py-2 text-[12.5px] text-muted">{t('No workspaces yet.')}</div>}
         {configs.map((c) => (
@@ -472,18 +473,13 @@ export function WorkspacesPage() {
             </div>
           </Row>
         ))}
-        <div className="mt-3 text-[11.5px] leading-relaxed text-muted">
-          {t('Every workspace has a link that opens it from a shortcut or a script, starting the app if it is closed.')} Windows:{' '}
-          <code className="font-mono text-[11.5px] text-secondary">start "" "{example}"</code> · macOS: <code className="font-mono text-[11.5px] text-secondary">open "{example}"</code> · Linux:{' '}
-          <code className="font-mono text-[11.5px] text-secondary">xdg-open "{example}"</code>
-        </div>
       </Section>
       <Footer>
         <SmallButton onClick={add}>{t('New workspace')}</SmallButton>
       </Footer>
 
       {current && (
-        <Section title={`Editing ${current.name.trim() || 'Untitled'}`} description={t('Changes save as you type.')}>
+        <Section plain title={`Editing ${current.name.trim() || 'Untitled'}`} description={t('Changes save as you type.')}>
           <Row label={t('Name')}>
             <TextField value={current.name} placeholder="Frontend + backend" onChange={(name) => update(current.id, { name })} />
           </Row>

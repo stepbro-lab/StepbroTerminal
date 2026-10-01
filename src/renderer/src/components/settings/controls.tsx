@@ -1,27 +1,50 @@
-import { useId } from 'react'
+import { Children, useId } from 'react'
 
-/** A titled block: bold 13 px title, muted description, then rows. `action` sits at the title's right. */
-export function Section({ title, description, action, children }: { title: string; description?: React.ReactNode; action?: React.ReactNode; children: React.ReactNode }) {
+/**
+ * A titled block: bold 13 px title, muted description, then its rows grouped on one rounded
+ * surface, the way System Settings and Codex lay them out. `action` sits at the title's right,
+ * `footnote` under the group. `plain` leaves the rows loose, for content that brings its own cards.
+ */
+export function Section({
+  title,
+  description,
+  action,
+  footnote,
+  plain,
+  children
+}: {
+  title: string
+  description?: React.ReactNode
+  action?: React.ReactNode
+  footnote?: React.ReactNode
+  plain?: boolean
+  children: React.ReactNode
+}) {
   return (
-    <section className="mb-9">
+    <section className="mb-8">
       <div className="flex items-center justify-between gap-3">
         <h3 className="text-[13px] font-semibold text-fg">{title}</h3>
         {action}
       </div>
       {description && <p className="mt-1 max-w-[560px] text-[12.5px] leading-[1.5] text-muted">{description}</p>}
-      <div className="mt-3">{children}</div>
+      {/* Nothing to list (no terminals running, say): no empty card, the description says so. */}
+      {Children.toArray(children).length > 0 && <div className={plain ? 'mt-3' : 'settings-group mt-3'}>{children}</div>}
+      {footnote && <div className="mt-2 px-1 text-[11.5px] leading-relaxed text-muted">{footnote}</div>}
     </section>
   )
 }
 
-/** Label on the left, control on the right. Rows separate themselves with hairlines. */
-export function Row({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+/**
+ * Label on the left, control on the right. Rows separate themselves with hairlines. A hint stays on
+ * one line (paths, versions) unless `wrapHint`, for a sentence that explains the row.
+ */
+export function Row({ label, hint, wrapHint, children }: { label: string; hint?: string; wrapHint?: boolean; children: React.ReactNode }) {
   return (
     <div className="setting-row">
       <div className="min-w-0 flex-1">
         <div className="text-[13px] text-fg">{label}</div>
         {hint && (
-          <div className="max-w-[360px] truncate text-[11.5px] text-muted" title={hint}>
+          <div className={wrapHint ? 'max-w-[380px] text-[11.5px] leading-[1.45] text-muted' : 'max-w-[360px] truncate text-[11.5px] text-muted'} title={wrapHint ? undefined : hint}>
             {hint}
           </div>
         )}
@@ -76,11 +99,12 @@ export function Slider({
   )
 }
 
-export function Toggle({ value, onChange, disabled }: { value: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
+export function Toggle({ value, onChange, disabled, label }: { value: boolean; onChange: (v: boolean) => void; disabled?: boolean; label?: string }) {
   return (
     <button
       role="switch"
       aria-checked={value}
+      aria-label={label}
       disabled={disabled}
       onClick={() => onChange(!value)}
       className="relative h-[20px] w-[34px] shrink-0 rounded-full transition-colors disabled:opacity-40"
