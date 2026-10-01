@@ -21,12 +21,12 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     version: '0.1.0-beta.26',
     date: '2026-10-01',
-    headline: 'Selecting text copies it, agents set up your workspaces, and the folded sidebar comes out from the left edge.',
+    headline: 'Your agents a click away in every folder, text copied as you select it, and agents that set up your workspaces.',
     changes: [
-      { kind: 'new', text: 'Agents can look after your workspaces: ask any agent in stepbro to list, create, change, delete or open one, and Settings shows the change at once. Folders and programs are checked first, so a workspace never points at a folder that is not there or an agent that is not installed.' },
-      { kind: 'new', text: 'Text you select in a terminal goes straight to the clipboard, ready to paste: drag over it, double-click a word or triple-click a line. A plain click and the right button leave the clipboard as it was. Settings, under Terminal, can turn it off.' },
-      { kind: 'new', text: 'With the sidebar folded away, bring the pointer to the left edge of the window and it opens in its place for a look, making room for itself instead of covering the terminal; it folds away again once the pointer leaves it, on a click elsewhere or on Escape. The sidebar shortcut keeps it open, and Settings, under Appearance, can turn it off.' },
       { kind: 'new', text: 'Point at the "+" of a folder and it opens out into a button for each agent you have installed and one for a shell, each starting in that folder with one click. The "+" itself opens the full menu: a shell, every agent, resuming a Claude Code conversation, splitting.' },
+      { kind: 'new', text: 'Text you select in a terminal goes straight to the clipboard, ready to paste: drag over it, double-click a word or triple-click a line. A plain click and the right button leave the clipboard as it was. Settings, under Terminal, can turn it off.' },
+      { kind: 'new', text: 'Agents can look after your workspaces: ask any agent in stepbro to list, create, change, delete or open one, and Settings shows the change at once. Folders and programs are checked first, so a workspace never points at a folder that is not there or an agent that is not installed.' },
+      { kind: 'new', text: 'With the sidebar folded away, bring the pointer to the left edge of the window and it opens in its place for a look, making room for itself instead of covering the terminal; it folds away again once the pointer leaves it, on a click elsewhere or on Escape. The sidebar shortcut keeps it open, and Settings, under Appearance, can turn it off.' },
       { kind: 'improved', text: 'The buttons at the foot of the sidebar are drawn with more care: one weight for both icons, a fine rim on the translucent window, their shortcut in the tooltip and a ring when the keyboard reaches them.' }
     ]
   },

@@ -468,8 +468,8 @@ export const es: Record<string, string> = {
   'A page for archived sessions in Settings: every session you put away, from every folder, newest first, with a search, a Restore button that brings it back where it left off, and a way to delete one or all of them.':
     'Una página de sesiones archivadas en Ajustes: todas las sesiones que guardaste, de todas las carpetas, las más recientes primero, con un buscador, un botón Restaurar que la recupera donde se quedó y la opción de borrar una o todas.',
   'Show it from the left edge': 'Mostrarla desde el borde izquierdo',
-  'Selecting text copies it, agents set up your workspaces, and the folded sidebar comes out from the left edge.':
-    'Seleccionar texto lo copia, los agentes te preparan los espacios de trabajo y la barra lateral plegada sale desde el borde izquierdo.',
+  'Your agents a click away in every folder, text copied as you select it, and agents that set up your workspaces.':
+    'Tus agentes a un clic en cada carpeta, el texto se copia al seleccionarlo y agentes que te preparan los espacios de trabajo.',
   'Agents can look after your workspaces: ask any agent in stepbro to list, create, change, delete or open one, and Settings shows the change at once. Folders and programs are checked first, so a workspace never points at a folder that is not there or an agent that is not installed.':
     'Los agentes pueden encargarse de tus espacios de trabajo: pide a cualquier agente en stepbro que los liste, cree, cambie, borre o abra, y Ajustes muestra el cambio al momento. Antes se comprueban las carpetas y los programas, así que un espacio nunca apunta a una carpeta que no existe ni a un agente que no está instalado.',
   'Point at the "+" of a folder and it opens out into a button for each agent you have installed and one for a shell, each starting in that folder with one click. The "+" itself opens the full menu: a shell, every agent, resuming a Claude Code conversation, splitting.':
