@@ -63,8 +63,8 @@ describe('folders and programs an agent names', () => {
     expect(resolveFolder('../api', app, home)).toBe(api)
     expect(resolveFolder('.', app, home)).toBe(app)
     expect(resolveFolder(`${app}/`, '/', home)).toBe(app)
-    // The root as the platform spells it: / here, the drive's C:\ on Windows.
-    expect(resolveFolder('/', app, home)).toBe(path.parse(path.resolve('/')).root)
+    // The root of the drive the agent is on: / here, C:\ on Windows (workspaceTools.win32.test.ts).
+    expect(resolveFolder('/', app, home)).toBe(path.parse(app).root)
     expect(error(() => resolveFolder('  ', app, home))).toMatch(/needs a folder/)
   })
 
