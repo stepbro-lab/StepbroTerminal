@@ -16,6 +16,7 @@ import { SessionRow } from './SessionRow'
 import { useReorder } from './useReorder'
 import { TopitoDock } from '../topito/Topito'
 import { t } from '@/lib/i18n'
+import { titled } from '@/lib/shortcuts'
 
 gsap.registerPlugin(Flip)
 
@@ -282,13 +283,13 @@ export function Sidebar() {
         ))}
       </div>
       {/* Two round raised buttons of the same size and weight, lifted a little off the window's bottom edge, with Topito between them when he is on. */}
-      <div className="relative mb-1 flex h-10 shrink-0 items-center justify-between pl-1 pr-2" style={{ width: 'var(--sidebar-w)' }}>
-        <button className="fab" title={t('Add folder')} onClick={() => void addProject()}>
-          <Plus size={20} strokeWidth={2.2} />
+      <div className="relative mb-1 flex h-10 shrink-0 items-center justify-between pl-[4.25px] pr-2" style={{ width: 'var(--sidebar-w)' }}>
+        <button className="fab" title={titled(t('Add folder'), 'add-project')} aria-label={t('Add folder')} onClick={() => void addProject()}>
+          <Plus size={17} strokeWidth={2} />
         </button>
         <TopitoDock />
-        <button className="fab" title={t('Settings')} onClick={() => setSettingsOpen(true)}>
-          <Settings size={18} strokeWidth={2} />
+        <button className="fab fab-turn" title={titled(t('Settings'), 'settings')} aria-label={t('Settings')} onClick={() => setSettingsOpen(true)}>
+          <Settings size={17} strokeWidth={1.8} />
         </button>
       </div>
       {drop.over && (
