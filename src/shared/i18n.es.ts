@@ -267,15 +267,16 @@ export const es: Record<string, string> = {
   'The session host, data on disk and paths.': 'El host de sesiones, los datos en disco y las rutas.',
 
   // ---- settings: appearance ----
+  Theme: 'Tema',
   Language: 'Idioma',
-  'The language of the app itself. Shells and agents keep their own.': 'El idioma de la propia aplicación. Las shells y los agentes conservan el suyo.',
+  'Shells and agents keep their own.': 'Las shells y los agentes conservan el suyo.',
   Mode: 'Modo',
-  'Applies to the window, sidebar and terminal colors. Agents draw their own interface with their own theme setting.': 'Se aplica a los colores de la ventana, la barra lateral y el terminal. Los agentes dibujan su propia interfaz con su propio ajuste de tema.',
+  'Window, sidebar and terminal. Agents draw their own interface with their own theme.': 'Ventana, barra lateral y terminal. Los agentes dibujan su interfaz con su propio tema.',
   Auto: 'Automático',
   Light: 'Claro',
   Dark: 'Oscuro',
   'App color': 'Color de la aplicación',
-  'Tints selections, buttons and the activity marks, and washes the window chrome very slightly.': 'Tiñe selecciones, botones y las marcas de actividad, y matiza muy ligeramente el marco de la ventana.',
+  'Selections, buttons and activity marks.': 'Selecciones, botones y marcas de actividad.',
   Graphite: 'Grafito',
   Orange: 'Naranja',
   Yellow: 'Amarillo',
@@ -404,8 +405,10 @@ export const es: Record<string, string> = {
   'The bar the top edge grows into, with the window buttons in it.': 'La barra en la que crece el borde de arriba, con los botones de la ventana.',
   'Tuck it away': 'Esconderla',
   'Off, the bar stays open and the terminal sits below it.': 'Desactivado, la barra se queda abierta y el terminal va debajo.',
-  'The little mole between the buttons at the foot of the sidebar. He does whatever your agents are doing, comes out at the corner of the terminal when one needs you, answers when you click him, and agents can tell you something through him.':
-    'El topito entre los botones del pie de la barra lateral. Hace lo mismo que están haciendo tus agentes, sale por la esquina del terminal cuando alguno te necesita, te responde si le haces clic y los agentes pueden decirte algo a través de él.',
+  'Your sidekick at the foot of the sidebar: he does whatever your agents are doing, pops out at the corner of the terminal when one needs you, and answers when you click him.':
+    'Tu compañero al pie de la barra lateral: hace lo mismo que tus agentes, asoma por la esquina del terminal cuando alguno te necesita y te responde si le haces clic.',
+  'Out at the foot of the sidebar. Click him there to ask what is going on.': 'Está al pie de la barra lateral. Haz clic en él para preguntarle qué pasa.',
+  'Asleep. Turn him on and he moves in at the foot of the sidebar.': 'Dormido. Actívalo y se instala al pie de la barra lateral.',
   'Talk from any app': 'Hablar desde cualquier app',
   Listening: 'Te escucho',
   // ---- what's new ----
@@ -468,6 +471,9 @@ export const es: Record<string, string> = {
   'A page for archived sessions in Settings: every session you put away, from every folder, newest first, with a search, a Restore button that brings it back where it left off, and a way to delete one or all of them.':
     'Una página de sesiones archivadas en Ajustes: todas las sesiones que guardaste, de todas las carpetas, las más recientes primero, con un buscador, un botón Restaurar que la recupera donde se quedó y la opción de borrar una o todas.',
   'Show it from the left edge': 'Mostrarla desde el borde izquierdo',
+  'Settings that read at a glance, with Topito up front.': 'Ajustes que se entienden de un vistazo, con Topito al frente.',
+  'Settings put the options of each section together on one surface, the way System Settings does, with shorter explanations. Appearance opens with Topito, easy to find and to wake up, and gathers mode, app color and language under Theme.':
+    'Ajustes reúne las opciones de cada sección en una sola superficie, como hace Ajustes del Sistema, con explicaciones más cortas. Apariencia empieza por Topito, fácil de encontrar y de despertar, y junta el modo, el color y el idioma bajo Tema.',
   'Your agents a click away in every folder, text copied as you select it, and agents that set up your workspaces.':
     'Tus agentes a un clic en cada carpeta, el texto se copia al seleccionarlo y agentes que te preparan los espacios de trabajo.',
   'Agents can look after your workspaces: ask any agent in stepbro to list, create, change, delete or open one, and Settings shows the change at once. Folders and programs are checked first, so a workspace never points at a folder that is not there or an agent that is not installed.':

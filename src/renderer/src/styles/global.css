@@ -510,6 +510,41 @@ kbd {
   border-top: 1px solid var(--border);
 }
 
+/* A section's rows on one rounded surface, inset from its edge (System Settings, Codex). */
+.settings-group {
+  padding: 2px 14px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--text) 2.5%, transparent);
+  box-shadow: 0 0 0 1px var(--border) inset;
+}
+/* What is not a row (the colour swatches, the logos, a note) gets room of its own. */
+.settings-group > :not(.setting-row):not(:has(> .setting-row)) {
+  padding-block: 10px;
+}
+
+/* Topito at the top of Appearance: him, what he does, and the switch that lets him out. */
+.topito-card {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 14px 20px 14px 14px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 20%, var(--border)) inset;
+}
+.topito-card-art {
+  display: flex;
+  flex-shrink: 0;
+  align-items: flex-end;
+  justify-content: center;
+  width: 112px;
+  height: 76px;
+  overflow: hidden;
+  border-radius: 11px;
+  background: var(--bg-input);
+  box-shadow: 0 0 0 1px var(--border) inset;
+}
+
 .seg-mac {
   display: inline-flex;
   padding: 2px;
