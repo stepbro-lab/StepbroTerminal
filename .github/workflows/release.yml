@@ -9,7 +9,39 @@ on:
   workflow_dispatch:
 
 jobs:
+  # The release is made once, before anything is built: named the way the app names its versions,
+  # with what changed from the app's changelog, on a commit of its own in the releases repository.
+  # GitHub dates a release by the commit its tag points at; when every tag pointed at the same one,
+  # all releases shared a date and listed by tag as text, beta.9 above beta.24. And made here, the
+  # three builds only add their files to it, rather than racing to create it.
+  prepare:
+    name: release page
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Write the README and create the release
+        env:
+          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+          REPO: kevin9038440334/StepbroTerminal-releases
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          node --experimental-strip-types scripts/release-notes.mjs "$VERSION" > notes.md
+          node --experimental-strip-types scripts/release-notes.mjs "$VERSION" --readme > README.md
+          SHA=$(gh api "repos/$REPO/contents/README.md" --jq .sha)
+          gh api -X PUT "repos/$REPO/contents/README.md" -f message="$VERSION" -f content="$(base64 -w0 README.md)" -f sha="$SHA" > /dev/null
+          if gh release view "v$VERSION" --repo "$REPO" > /dev/null 2>&1; then
+            gh release edit "v$VERSION" --repo "$REPO" --title "$VERSION" --notes-file notes.md
+          else
+            gh release create "v$VERSION" --repo "$REPO" --title "$VERSION" --notes-file notes.md --prerelease --target main
+          fi
+
   build:
+    needs: prepare
     name: ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
