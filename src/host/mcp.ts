@@ -2,7 +2,22 @@ import type http from 'node:http'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js'
 import { z } from 'zod'
-import { TOPITO_MOODS, type BrowserOp, type BrowserResult, type Note, type NoteSource, type Session, type TopitoMood, type TopitoSay } from '@shared/types'
+import { normalizeProjectPath } from '@shared/paths'
+import {
+  TOPITO_MOODS,
+  type BrowserOp,
+  type BrowserResult,
+  type Note,
+  type NoteSource,
+  type Session,
+  type SplitDir,
+  type TopitoMood,
+  type TopitoSay,
+  type WorkspaceInfo,
+  type WorkspaceOp,
+  type WorkspacePaneInput,
+  type WorkspaceResult
+} from '@shared/types'
 import type { NoteStore } from './NoteStore'
 import type { AgentBus } from './AgentBus'
 import { agentOf, pickSession } from './handoff'
@@ -20,6 +35,8 @@ export interface McpDeps {
   screen: (id: string, lines: number) => Promise<string[]>
   /** Something for the preview pane beside a session: the app does it and reports back. */
   browser: (sessionId: string, op: BrowserOp, timeoutMs?: number) => Promise<BrowserResult>
+  /** Reads or changes the saved workspaces, or opens one: the app keeps them and answers. */
+  workspaces: (op: WorkspaceOp) => Promise<WorkspaceResult>
   /** Has Topito, the mole in the person's window, come out with a few words from an agent. */
   topito: (say: TopitoSay) => void
   /** Whether Topito is turned on in the app. He is off until the person turns him on, and agents are only offered him while he is on. */
@@ -39,10 +56,11 @@ const INSTRUCTIONS = `You are running inside stepbro terminal, next to other ses
 - Agents talk to each other with report. A message you send with report shows up in the other agent's conversation as soon as it is free, the same way a message from another agent arrives in yours as a new turn.
 To delegate: send_to_session the task, then end your turn. Do not sit waiting: the answer arrives in your conversation as a message, and you continue from there. Keep the conversation going: answer questions, ask for what you need, and say when you are done. When someone hands you work, report back to them when you finish. wait exists for the rare case where you must block, for example to watch a session finish; it is not needed to receive messages.`
 const TOPITO_INSTRUCTIONS = `- Topito is the little mole in the person's window. The topito tool has him come out at the corner of their terminal with a short message from you, which they notice even while looking at another session. Keep it for what needs their eyes now.`
+const WORKSPACE_INSTRUCTIONS = `- Workspaces are saved sets of panes the user opens in one go, each pane in its own folder running the shell or an agent. When the user asks to see, create, change, delete or open one, list_workspaces, create_workspace, update_workspace, delete_workspace and open_workspace do it; Settings shows the change at once, so they do not have to go there.`
 const PREVIEW_INSTRUCTIONS = `- The preview pane is a browser beside your session. open_preview shows a page there (the dev server you started, a site the user names); then preview_screenshot shows you what it looks like, preview_read gives its text or an outline of its headings, links, buttons and fields, and preview_scroll, preview_click, preview_type, preview_eval and preview_console let you work the page and watch its console. Open it when the user asks to see something, and when you need to check what a page shows.`
 
 /** What agents are told about the server; Topito only comes into it while he is turned on. */
-const instructions = (topito: boolean): string => [INSTRUCTIONS, ...(topito ? [TOPITO_INSTRUCTIONS] : []), PREVIEW_INSTRUCTIONS].join('\n')
+const instructions = (topito: boolean): string => [INSTRUCTIONS, ...(topito ? [TOPITO_INSTRUCTIONS] : []), WORKSPACE_INSTRUCTIONS, PREVIEW_INSTRUCTIONS].join('\n')
 
 /**
  * The MCP endpoint agents get per session (`claude --mcp-config`, `codex -c mcp_servers…`).
@@ -338,6 +356,159 @@ function buildServer(deps: McpDeps, sessionId: string): McpServer {
     }
   )
 
+  // ---- workspaces: saved sets of panes that open together ----
+
+  const failure = (e: unknown) => ({ content: [{ type: 'text' as const, text: String((e as Error)?.message ?? e) }], isError: true })
+  /** Where a relative folder starts: the folder the caller's terminal is in now. */
+  const here = (): string => {
+    const s = deps.session(sessionId)
+    return s?.cwd || s?.projectPath || ''
+  }
+  const paneIn = (p: { folder: string; run?: string; start_command?: string }): WorkspacePaneInput => ({ folder: p.folder, run: p.run, startCommand: p.start_command })
+  const PANE = z.object({
+    folder: z.string().min(1).describe('The folder the pane opens in: absolute, ~/…, or relative to the folder you are in. It has to exist.'),
+    run: z.string().optional().describe("What runs in it: 'shell' (the default), or an installed agent or launcher by id or name, such as claude, codex, gemini or opencode."),
+    start_command: z
+      .string()
+      .max(4000)
+      .optional()
+      .describe('Typed once the pane is ready, line by line, each line followed by Enter: commands for a shell (npm run dev), or the first message for an agent.')
+  })
+  const WHICH = z.string().min(1).describe('The workspace: its name, its link (step://workspace/…) or its id, as list_workspaces shows them.')
+  const LAYOUT = z.enum(['side_by_side', 'stacked'])
+
+  server.registerTool(
+    'list_workspaces',
+    {
+      title: 'List workspaces',
+      description:
+        "The user's saved workspaces in stepbro terminal. A workspace opens a set of panes in one go, side by side or stacked, each in its own folder running the shell or an agent, and types a start command in each once it is ready. Shows each one's name, layout, panes (folder, what runs, start command, and anything that would keep a pane from opening) and its step://workspace/… link, which opens it from a shortcut or a script. Use it when the user asks about their workspaces, and before changing one.",
+      inputSchema: {}
+    },
+    async () => {
+      try {
+        const r = await deps.workspaces({ kind: 'list' })
+        const all = r.workspaces ?? []
+        if (!all.length) return text('There are no workspaces yet. create_workspace makes one.')
+        return text(all.map(describeWorkspace).join('\n\n'))
+      } catch (e) {
+        return failure(e)
+      }
+    }
+  )
+
+  server.registerTool(
+    'create_workspace',
+    {
+      title: 'Create a workspace',
+      description:
+        'Saves a new workspace in stepbro terminal. Use it when the user asks to create, set up or save a workspace, a project layout, or a set of terminals or agents to open together. Every pane needs a folder that exists, and runs the shell unless you name an agent or launcher that is installed; if one is not, the error lists those that are. Nothing is saved unless every pane checks out. It shows in Settings → Workspaces at once; open_workspace opens it.',
+      inputSchema: {
+        name: z.string().min(1).max(80).describe('What to call it. It also makes its link: "Demo stack" opens with step://workspace/demo-stack.'),
+        layout: LAYOUT.optional().describe('side_by_side (the default) or stacked.'),
+        panes: z.array(PANE).min(1).max(12).describe('The panes, in order: left to right, or top to bottom.')
+      }
+    },
+    async ({ name, layout, panes }) => {
+      try {
+        const r = await deps.workspaces({ kind: 'create', base: here(), name, split: splitOf(layout), panes: panes.map(paneIn) })
+        return text(`Created. It is in Settings → Workspaces now.\n${describeWorkspace(r.workspace!)}`)
+      } catch (e) {
+        return failure(e)
+      }
+    }
+  )
+
+  server.registerTool(
+    'update_workspace',
+    {
+      title: 'Change a workspace',
+      description:
+        'Changes a saved workspace: its name, its layout, and its panes. Use it when the user asks to rename, rearrange or change a workspace, or to add, remove or change a pane in it. Panes are numbered from 1, as list_workspaces shows them; change, remove and add all go by that numbering and happen together, and if any part is wrong nothing changes. To rebuild or reorder all the panes, give panes instead. Settings shows the change at once.',
+      inputSchema: {
+        workspace: WHICH,
+        name: z.string().min(1).max(80).optional().describe('A new name. Its link changes with it.'),
+        layout: LAYOUT.optional().describe('side_by_side or stacked.'),
+        change: z
+          .array(PANE.partial().extend({ pane: z.number().int().min(1).describe('Which pane, numbered from 1.') }))
+          .optional()
+          .describe('Panes to change: only what you give changes. An empty start_command clears it.'),
+        remove: z.array(z.number().int().min(1)).optional().describe('Numbers of the panes to take out.'),
+        add: z.array(PANE).optional().describe('Panes to add at the end.'),
+        panes: z.array(PANE).min(1).max(12).optional().describe('Every pane anew, replacing the ones there are. Not together with change, remove or add.')
+      }
+    },
+    async ({ workspace, name, layout, change, remove, add, panes }) => {
+      try {
+        const r = await deps.workspaces({
+          kind: 'update',
+          base: here(),
+          key: workspace,
+          name,
+          split: splitOf(layout),
+          panes: panes?.map(paneIn),
+          change: change?.map((c) => ({ pane: c.pane, folder: c.folder, run: c.run, startCommand: c.start_command })),
+          remove,
+          add: add?.map(paneIn)
+        })
+        return text(`Changed. Settings shows it already.\n${describeWorkspace(r.workspace!)}`)
+      } catch (e) {
+        return failure(e)
+      }
+    }
+  )
+
+  server.registerTool(
+    'delete_workspace',
+    {
+      title: 'Delete a workspace',
+      description:
+        'Deletes a saved workspace for good, link and all. Only when the user asks to delete or remove that workspace. Terminals it opened earlier stay open. The answer has everything it held, so it can be made again.',
+      inputSchema: { workspace: WHICH }
+    },
+    async ({ workspace }) => {
+      try {
+        const r = await deps.workspaces({ kind: 'delete', key: workspace })
+        return text(`Deleted. It held:\n${describeWorkspace(r.workspace!)}`)
+      } catch (e) {
+        return failure(e)
+      }
+    }
+  )
+
+  server.registerTool(
+    'open_workspace',
+    {
+      title: 'Open a workspace',
+      description:
+        "Opens a saved workspace, as its Open button in Settings does: a new session for each pane, arranged in a view of its own, each typing its start command once it is ready. The user's window switches to it. Use it when the user asks to open, start or launch a workspace. Answers with the new sessions once they are up, so you can send_to_session to them.",
+      inputSchema: { workspace: WHICH }
+    },
+    async ({ workspace }) => {
+      const before = new Set(deps.sessions().map((s) => s.id))
+      let r: WorkspaceResult
+      try {
+        r = await deps.workspaces({ kind: 'open', key: workspace })
+      } catch (e) {
+        return failure(e)
+      }
+      const w = r.workspace!
+      if (r.queued) return text(`"${w.name}" opens as soon as the stepbro terminal window does; it is not up right now.`)
+      const dirs = new Set(w.panes.filter((p) => p.cwd.trim()).map((p) => sameDir(p.cwd)))
+      const expected = w.panes.filter((p) => p.cwd.trim() && !p.problem).length
+      const fresh = (): Session[] => deps.sessions().filter((s) => !before.has(s.id) && dirs.has(sameDir(s.projectPath)))
+      const deadline = Date.now() + OPEN_WAIT_MS
+      while (fresh().length < expected && Date.now() < deadline) await new Promise((res) => setTimeout(res, 250))
+      const up = fresh()
+      const troubles = w.panes.flatMap((p, i) => (p.problem ? [`Pane ${i + 1} (${p.cwd || 'no folder'}): ${p.problem}.`] : []))
+      const head =
+        up.length >= expected
+          ? `Opened "${w.name}": ${up.length} ${up.length === 1 ? 'pane' : 'panes'} ${layoutName(w.split)}, in a view of its own.`
+          : `Opening "${w.name}": ${up.length} of ${expected} panes are up so far; list_sessions shows the rest as they start.`
+      return text([head, ...up.map(line), ...troubles].join('\n'))
+    }
+  )
+
   // ---- the preview pane: a browser beside the session ----
 
   const preview = (op: BrowserOp, timeoutMs?: number): Promise<BrowserResult> => deps.browser(sessionId, op, timeoutMs)
@@ -515,6 +686,31 @@ function buildServer(deps: McpDeps, sessionId: string): McpServer {
   )
 
   return server
+}
+
+/** How long open_workspace waits for the new sessions to show up before answering with what it has. */
+const OPEN_WAIT_MS = 15_000
+
+const splitOf = (layout: 'side_by_side' | 'stacked' | undefined): SplitDir | undefined => (layout ? (layout === 'stacked' ? 'column' : 'row') : undefined)
+const layoutName = (split: SplitDir): string => (split === 'column' ? 'stacked' : 'side by side')
+/** A folder as the app stores a session's: normalized, and any case on Windows. */
+const sameDir = (p: string): string => {
+  const d = normalizeProjectPath(p)
+  return process.platform === 'win32' ? d.toLowerCase() : d
+}
+
+/** A workspace for an agent to read: one line for it, one per pane. */
+function describeWorkspace(w: WorkspaceInfo): string {
+  const n = w.panes.length
+  const head = `"${w.name || '(untitled)'}" — ${n} ${n === 1 ? 'pane' : 'panes'}, ${layoutName(w.split)} — ${w.url} (id ${w.id})`
+  const panes = w.panes.map((p, i) => {
+    const runs = p.presetId === 'shell' ? 'shell' : `${p.presetName} (${p.presetId})`
+    const parts = [`  ${i + 1}. ${p.cwd || '(no folder)'} — ${runs}`]
+    if (p.runOnStart) parts.push(`types: ${p.runOnStart.split('\n').map((l) => JSON.stringify(l)).join(', then ')}`)
+    if (p.problem) parts.push(`(${p.problem})`)
+    return parts.join(' — ')
+  })
+  return [head, ...panes].join('\n')
 }
 
 function describe(n: Note): string {

@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto'
 import { encodeFrame, FrameParser, type ClientMsg, type HostMsg } from '@shared/protocol'
 import type { SessionManager } from './SessionManager'
 import type { NoteStore } from './NoteStore'
-import type { BrowserOp, BrowserResult, Handoff, Note, TopitoSay } from '@shared/types'
+import type { BrowserOp, BrowserResult, Handoff, Note, TopitoSay, WorkspaceOp, WorkspaceResult } from '@shared/types'
 import { SizeOwners } from './sizeOwners'
 import { log } from './log'
 
@@ -30,6 +30,8 @@ export class HostServer {
   private owners = new SizeOwners<Client>()
   /** Preview requests out to the app, waiting for its answer. */
   private browserPending = new Map<string, { resolve: (r: BrowserResult) => void; reject: (e: Error) => void; timer: NodeJS.Timeout }>()
+  /** Workspace requests out to the app, which keeps the preferences they live in. */
+  private workspacePending = new Map<string, { resolve: (r: WorkspaceResult) => void; reject: (e: Error) => void; timer: NodeJS.Timeout }>()
   /** Whether the app has Topito turned on. He starts off, and agents are only offered him while he is on. */
   topitoOn = false
   onClientsChange: () => void = () => {}
@@ -234,6 +236,15 @@ export class HostServer {
         else p.reject(new Error(msg.error ?? 'The preview pane could not do that.'))
         break
       }
+      case 'workspaces:result': {
+        const p = this.workspacePending.get(msg.reqId)
+        if (!p) break
+        this.workspacePending.delete(msg.reqId)
+        clearTimeout(p.timer)
+        if (msg.ok && msg.result) p.resolve(msg.result)
+        else p.reject(new Error(msg.error ?? 'stepbro terminal could not do that.'))
+        break
+      }
       case 'topito':
         this.topitoOn = msg.on
         break
@@ -263,6 +274,24 @@ export class HostServer {
       }, timeoutMs)
       this.browserPending.set(reqId, { resolve, reject, timer })
       this.send(c, { t: 'browser', reqId, sessionId, op })
+    })
+  }
+
+  /**
+   * Asks the app to read or change the saved workspaces, or to open one, and waits for what came of
+   * it. They live in the app's preferences, so with the app closed there is nothing to reach.
+   */
+  workspaces(op: WorkspaceOp, timeoutMs = 15_000): Promise<WorkspaceResult> {
+    const c = [...this.clients][0]
+    if (!c) return Promise.reject(new Error('The stepbro terminal window is closed, and workspaces live in the app. Open it and try again.'))
+    const reqId = randomUUID()
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        this.workspacePending.delete(reqId)
+        reject(new Error('stepbro terminal did not answer in time.'))
+      }, timeoutMs)
+      this.workspacePending.set(reqId, { resolve, reject, timer })
+      this.send(c, { t: 'workspaces', reqId, op })
     })
   }
 

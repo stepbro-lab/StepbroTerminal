@@ -468,7 +468,10 @@ export const es: Record<string, string> = {
   'A page for archived sessions in Settings: every session you put away, from every folder, newest first, with a search, a Restore button that brings it back where it left off, and a way to delete one or all of them.':
     'Una página de sesiones archivadas en Ajustes: todas las sesiones que guardaste, de todas las carpetas, las más recientes primero, con un buscador, un botón Restaurar que la recupera donde se quedó y la opción de borrar una o todas.',
   'Show it from the left edge': 'Mostrarla desde el borde izquierdo',
-  'Selecting text copies it, and the folded sidebar comes out from the left edge.': 'Seleccionar texto lo copia, y la barra lateral plegada sale desde el borde izquierdo.',
+  'Selecting text copies it, agents set up your workspaces, and the folded sidebar comes out from the left edge.':
+    'Seleccionar texto lo copia, los agentes te preparan los espacios de trabajo y la barra lateral plegada sale desde el borde izquierdo.',
+  'Agents can look after your workspaces: ask any agent in stepbro to list, create, change, delete or open one, and Settings shows the change at once. Folders and programs are checked first, so a workspace never points at a folder that is not there or an agent that is not installed.':
+    'Los agentes pueden encargarse de tus espacios de trabajo: pide a cualquier agente en stepbro que los liste, cree, cambie, borre o abra, y Ajustes muestra el cambio al momento. Antes se comprueban las carpetas y los programas, así que un espacio nunca apunta a una carpeta que no existe ni a un agente que no está instalado.',
   'Text you select in a terminal goes straight to the clipboard, ready to paste: drag over it, double-click a word or triple-click a line. A plain click and the right button leave the clipboard as it was. Settings, under Terminal, can turn it off.':
     'El texto que seleccionas en una terminal se copia directamente al portapapeles, listo para pegar: arrastra sobre él, haz doble clic en una palabra o triple clic en una línea. Un clic normal y el botón derecho no tocan el portapapeles. Se puede desactivar en Ajustes, en Terminal.',
   'Selection': 'Selección',
