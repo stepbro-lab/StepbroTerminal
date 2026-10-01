@@ -1,9 +1,10 @@
 import { app, BrowserWindow, nativeTheme, Notification } from 'electron'
 import { join, resolve } from 'node:path'
 import fs from 'node:fs'
+import os from 'node:os'
 import { claudeDir, hostLogPath } from '@shared/paths'
 import type { EventMap, EventName } from '@shared/ipc'
-import type { BrowserOp, HostState, Prefs, Session, Note, Handoff, TopitoSay } from '@shared/types'
+import type { BrowserOp, HostState, Prefs, Session, Note, Handoff, TopitoSay, WorkspaceOp, WorkspaceResult } from '@shared/types'
 import { HostClient } from './host/HostClient'
 import { ensureHost, requestHostShutdown } from './host/launcher'
 import { loadPrefs, savePrefs } from './prefs'
@@ -26,6 +27,7 @@ import { closesToTray } from './closeToTray'
 import { t } from './i18n'
 import { folderArgs, onlyFolders } from './openFolders'
 import { workspaceKeyFromUrl } from './stepUrl'
+import { WorkspaceError, applyWorkspaceOp, describeWorkspace, workspaceToOpen, type WorkspaceEnv } from './workspaceTools'
 import type { Ctx } from './context'
 
 const VERSION = app.getVersion()
@@ -85,6 +87,41 @@ function openFolders(ctx: Ctx, paths: string[]): void {
 function openWorkspace(ctx: Ctx, key: string): void {
   if (ctx.rendererReady && ctx.win && !ctx.win.isDestroyed()) ctx.emit('ui:openWorkspace', key)
   else ctx.pendingWorkspaces.push(key)
+}
+
+/**
+ * What an agent asked of the saved workspaces through the stepbro MCP server. Changes go into the
+ * preferences like any made in Settings, which shows them at once; opening one is the Open button.
+ */
+function runWorkspaceOp(ctx: Ctx, op: WorkspaceOp): WorkspaceResult {
+  const env: WorkspaceEnv = {
+    presets: ctx.presets,
+    home: os.homedir(),
+    isDir: (p) => {
+      try {
+        return fs.statSync(p).isDirectory()
+      } catch {
+        return false
+      }
+    }
+  }
+  const configs = ctx.prefs.launchConfigs ?? []
+  switch (op.kind) {
+    case 'list':
+      return { workspaces: configs.map((c) => describeWorkspace(c, env)) }
+    case 'open': {
+      const c = workspaceToOpen(configs, op.key, env)
+      const queued = !(ctx.rendererReady && ctx.win && !ctx.win.isDestroyed())
+      openWorkspace(ctx, c.id)
+      return { workspace: describeWorkspace(c, env), queued }
+    }
+    default: {
+      const done = applyWorkspaceOp(configs, op, env)
+      ctx.setPrefs({ launchConfigs: done.configs })
+      ctx.log(`workspace ${op.kind} by an agent:`, done.workspace.name)
+      return { workspace: done.workspace }
+    }
+  }
 }
 
 /** A step:// link from a script, a shortcut or a notification button. Workspace links come first. */
@@ -372,6 +409,14 @@ ${s.errorDetail}`)
       (result) => client.send({ t: 'browser:result', reqId, ok: true, result }),
       (e: unknown) => client.send({ t: 'browser:result', reqId, ok: false, error: String((e as Error)?.message ?? e) })
     )
+  })
+  client.on('workspaces', (reqId: string, op: WorkspaceOp) => {
+    try {
+      client.send({ t: 'workspaces:result', reqId, ok: true, result: runWorkspaceOp(ctx, op) })
+    } catch (e: unknown) {
+      if (!(e instanceof WorkspaceError)) ctx.log('workspace request failed:', String((e as Error)?.stack ?? e))
+      client.send({ t: 'workspaces:result', reqId, ok: false, error: e instanceof WorkspaceError ? e.message : `stepbro terminal could not do that: ${String((e as Error)?.message ?? e)}` })
+    }
   })
   client.on('error', (m: string) => ctx.log('host error:', m))
   client.on('disconnected', () => {

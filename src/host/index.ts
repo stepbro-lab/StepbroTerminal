@@ -96,6 +96,8 @@ async function main(): Promise<void> {
         screen: (id, lines) => sm.screenLines(id, lines),
         // The preview pane lives in the app; the request travels over the socket and back.
         browser: (id, op, timeoutMs) => server.browser(id, op, timeoutMs),
+        // So do the saved workspaces, kept in the app's preferences.
+        workspaces: (op) => server.workspaces(op),
         topito: (say) => server.topito(say),
         topitoOn: () => server.topitoOn,
         version

@@ -276,6 +276,56 @@ export interface LaunchConfig {
   panes: LaunchPane[]
 }
 
+/** A pane as an agent describes it through the stepbro MCP server; checked and turned into a LaunchPane by the app. */
+export interface WorkspacePaneInput {
+  /** Absolute, ~/…, or relative to the folder of the agent asking. */
+  folder: string
+  /** 'shell', or an installed agent or launcher, by id or name. The shell when left out. */
+  run?: string
+  /** Typed line by line once the pane is ready; for an agent, its first message. Empty clears it. */
+  startCommand?: string
+}
+
+/**
+ * What an agent asks of the saved workspaces (Prefs.launchConfigs). The host passes it to the app,
+ * which keeps the preferences, checks folders and programs, and answers with a WorkspaceResult.
+ * `key` is a workspace's name, link name, step:// link or id; pane numbers count from 1, as listed.
+ */
+export type WorkspaceOp =
+  | { kind: 'list' }
+  | { kind: 'create'; base: string; name: string; split?: SplitDir; panes: WorkspacePaneInput[] }
+  | {
+      kind: 'update'
+      base: string
+      key: string
+      name?: string
+      split?: SplitDir
+      /** Every pane, replacing the ones there were. Not together with add, remove or change. */
+      panes?: WorkspacePaneInput[]
+      change?: Array<{ pane: number } & Partial<WorkspacePaneInput>>
+      remove?: number[]
+      add?: WorkspacePaneInput[]
+    }
+  | { kind: 'delete'; key: string }
+  | { kind: 'open'; key: string }
+
+/** A saved workspace as agents are shown it. */
+export interface WorkspaceInfo {
+  id: string
+  name: string
+  split: SplitDir
+  url: string
+  panes: Array<{ cwd: string; presetId: string; presetName: string; runOnStart?: string; problem?: string }>
+}
+
+export interface WorkspaceResult {
+  workspaces?: WorkspaceInfo[]
+  /** The one created, changed, deleted or opened. */
+  workspace?: WorkspaceInfo
+  /** open: the window is not up, so it opens when the window next does. */
+  queued?: boolean
+}
+
 /** Pane arrangements the user built, saved between launches. */
 export interface WorkspaceState {
   views: LayoutNode[]

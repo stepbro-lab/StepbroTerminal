@@ -1,4 +1,4 @@
-import type { BrowserOp, BrowserResult, CreateSessionOpts, PromptRecord, Session, Note, Handoff, HostStats, TopitoSay } from './types'
+import type { BrowserOp, BrowserResult, CreateSessionOpts, PromptRecord, Session, Note, Handoff, HostStats, TopitoSay, WorkspaceOp, WorkspaceResult } from './types'
 
 export type ClientMsg =
   | { t: 'hello'; version: string }
@@ -29,6 +29,8 @@ export type ClientMsg =
   | { t: 'browser:result'; reqId: string; ok: boolean; result?: BrowserResult; error?: string }
   /** Whether Topito is turned on in the app; the MCP server only offers agents his tool while he is. */
   | { t: 'topito'; on: boolean }
+  /** The app's answer to a `workspaces` request: what came of it, or why it could not be done. */
+  | { t: 'workspaces:result'; reqId: string; ok: boolean; result?: WorkspaceResult; error?: string }
   | { t: 'shutdown' }
 
 export type HostMsg =
@@ -51,6 +53,8 @@ export type HostMsg =
   | { t: 'stats'; reqId: string; stats: HostStats }
   /** An agent asks, through the MCP server, for something to happen in the preview pane beside its session. */
   | { t: 'browser'; reqId: string; sessionId: string; op: BrowserOp }
+  /** An agent asks, through the MCP server, to read or change the saved workspaces, or to open one. */
+  | { t: 'workspaces'; reqId: string; op: WorkspaceOp }
   | { t: 'error'; message: string; id?: string; reqId?: string }
 
 const HEADER = 8
