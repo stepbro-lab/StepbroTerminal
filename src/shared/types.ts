@@ -162,6 +162,13 @@ export interface LiveClaude {
   cwd: string
   name?: string
   status?: string
+  /**
+   * With status "waiting", what for: "permission prompt", "input needed" and the like ask the
+   * person something; "dialog open" is a menu they opened themselves, such as /model or /config.
+   */
+  waitingFor?: string
+  /** What a waiting dialog needs from the person, when it says. */
+  needs?: string
   updatedAt?: number
 }
 

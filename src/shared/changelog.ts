@@ -21,9 +21,10 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     version: '0.1.0-beta.28',
     date: '2026-10-01',
-    headline: 'Agents that are waiting look like it.',
+    headline: 'Agents look like what they are doing: waiting, working, or really needing you.',
     changes: [
-      { kind: 'fixed', text: 'An agent that has just opened, or come back after an update, no longer shows as working until you write to it: once it is on screen and waiting, its row stops spinning.' }
+      { kind: 'fixed', text: 'An agent that has just opened, or come back after an update, no longer shows as working until you write to it: once it is on screen and waiting, its row stops spinning.' },
+      { kind: 'fixed', text: 'Opening a menu in Claude Code yourself, such as /model or /config, no longer has stepbro and Topito say it needs you. A permission it asks for, or a question, still does.' }
     ]
   },
   {

@@ -471,9 +471,12 @@ export const es: Record<string, string> = {
   'A page for archived sessions in Settings: every session you put away, from every folder, newest first, with a search, a Restore button that brings it back where it left off, and a way to delete one or all of them.':
     'Una página de sesiones archivadas en Ajustes: todas las sesiones que guardaste, de todas las carpetas, las más recientes primero, con un buscador, un botón Restaurar que la recupera donde se quedó y la opción de borrar una o todas.',
   'Show it from the left edge': 'Mostrarla desde el borde izquierdo',
-  'Agents that are waiting look like it.': 'Los agentes que esperan se ven en espera.',
+  'Agents look like what they are doing: waiting, working, or really needing you.':
+    'Los agentes se ven como lo que están haciendo: esperando, trabajando o necesitándote de verdad.',
   'An agent that has just opened, or come back after an update, no longer shows as working until you write to it: once it is on screen and waiting, its row stops spinning.':
     'Un agente recién abierto, o que vuelve tras una actualización, ya no sale como trabajando hasta que le escribes: en cuanto está en pantalla y esperando, su fila deja de girar.',
+  'Opening a menu in Claude Code yourself, such as /model or /config, no longer has stepbro and Topito say it needs you. A permission it asks for, or a question, still does.':
+    'Abrir tú un menú en Claude Code, como /model o /config, ya no hace que stepbro y Topito digan que te necesita. Un permiso que pida, o una pregunta, sí lo siguen diciendo.',
   'Settings that read at a glance, with Topito up front.': 'Ajustes que se entienden de un vistazo, con Topito al frente.',
   'Settings put the options of each section together on one surface, the way System Settings does, with shorter explanations. Appearance opens with Topito, easy to find and to wake up, and gathers mode, app color and language under Theme.':
     'Ajustes reúne las opciones de cada sección en una sola superficie, como hace Ajustes del Sistema, con explicaciones más cortas. Apariencia empieza por Topito, fácil de encontrar y de despertar, y junta el modo, el color y el idioma bajo Tema.',
