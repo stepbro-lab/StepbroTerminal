@@ -29,6 +29,9 @@ const MARKS: Record<string, { label: string; color: string; d: string }> = {
 /** Clyra writes its name in pixels and publishes no icon file; this is the C of that wordmark. */
 const CLYRA = ['.#####.', '.#####.', '##.....', '##.....', '##.....', '.#####.', '.#####.']
 
+/** Whether an agent has a mark of its own here; anything else is drawn as the shell's prompt. */
+export const hasAgentMark = (presetId: string): boolean => presetId === 'clyra' || presetId in MARKS
+
 export function AgentLogo({ presetId, size = 14, className, style, brand = false }: Props) {
   const box = { width: size, height: size, className, style } as const
   if (presetId === 'clyra') {

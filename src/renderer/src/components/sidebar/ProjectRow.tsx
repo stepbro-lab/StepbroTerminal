@@ -1,9 +1,9 @@
-import { ChevronRight, Plus } from 'lucide-react'
+import { ChevronRight } from 'lucide-react'
 import type { SidebarProject } from '@/lib/sidebarModel'
 import { useUi } from '@/stores/ui'
-import { newShell, projectMenu, toggleProjectCollapsed } from '@/lib/actions'
+import { projectMenu, toggleProjectCollapsed } from '@/lib/actions'
 import { FolderIcon } from './DotSpinner'
-import { t } from '@/lib/i18n'
+import { QuickStrip } from './QuickStrip'
 
 /** The drag type of a folder row on its way to a new place in the sidebar. */
 export const PROJECT_DRAG_TYPE = 'application/x-step-project'
@@ -62,17 +62,10 @@ export function ProjectRow({ project, isActiveProject, insert, onDragStart, onDr
         <span className="row-title font-semibold tracking-[-0.005em]" style={{ color: isActiveProject ? 'var(--text)' : 'var(--text-secondary)' }}>
           {project.name}
         </span>
-        <button
-          className="icon-btn h-5 w-5 opacity-0 group-hover:opacity-100"
-          title={t('New shell')}
-          onClick={(e) => {
-            e.stopPropagation()
-            setActiveProject(project.path)
-            void newShell(project.path)
-          }}
-        >
-          <Plus size={13} />
-        </button>
+        {/* Holds the resting "+"'s place; the open strip lies over the name, which steps aside. */}
+        <span className="relative block h-6 w-7 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
+          <QuickStrip projectPath={project.path} />
+        </span>
       </div>
     </div>
   )
