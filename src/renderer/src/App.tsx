@@ -11,6 +11,7 @@ import { pruneLayout, type LayoutNode } from '@/lib/layout'
 import { addDroppedFolders, openWorkspaceByKey } from '@/lib/actions'
 import { useSidebarModel } from '@/lib/useSidebarModel'
 import { Sidebar } from '@/components/sidebar/Sidebar'
+import { SidebarPeek } from '@/components/sidebar/SidebarPeek'
 import { TopBar, useWindowCorners } from '@/components/Chrome'
 import { startTopito, topitoSay } from '@/lib/topito/director'
 import { TerminalPane } from '@/components/pane/TerminalPane'
@@ -204,8 +205,9 @@ export default function App() {
     // The window is a thin, even frame with the terminal inside it; the top edge grows into the bar.
     <div className="app-frame relative flex h-full w-full flex-col overflow-hidden" data-frame>
       {/* The workspace stays mounted behind Settings so terminals keep their state and size. */}
-      <div className="flex min-h-0 flex-1" style={{ display: settingsOpen ? 'none' : undefined }}>
+      <div className="relative flex min-h-0 flex-1" style={{ display: settingsOpen ? 'none' : undefined }}>
         <Sidebar />
+        <SidebarPeek />
         <TerminalPane />
       </div>
       {settingsOpen && <SettingsView />}

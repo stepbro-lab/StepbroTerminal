@@ -19,6 +19,14 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.1.0-beta.26',
+    date: '2026-10-01',
+    headline: 'The folded sidebar comes out from the left edge, the way Arc does it.',
+    changes: [
+      { kind: 'new', text: 'With the sidebar folded away, bring the pointer to the left edge of the window and it opens in its place for a look, making room for itself instead of covering the terminal; it folds away again once the pointer leaves it, on a click elsewhere or on Escape. The sidebar shortcut keeps it open, and Settings, under Appearance, can turn it off.' }
+    ]
+  },
+  {
     version: '0.1.0-beta.25',
     date: '2026-10-01',
     headline: 'Claude picks up where it was, splitting from any terminal, every archived session in one place, and a preview agents work faster.',

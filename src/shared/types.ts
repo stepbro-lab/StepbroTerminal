@@ -210,6 +210,8 @@ export interface Prefs {
    * edge. Off, it stays open and the terminal sits below it. On unless turned off.
    */
   barHides?: boolean
+  /** With the sidebar folded away, the window's left edge brings it out for a look. On unless turned off. */
+  edgePeek?: boolean
   /**
    * Windows: closing the window leaves the app running in the tray, still telling you when a
    * session needs you, until it is quit from there. On unless turned off.

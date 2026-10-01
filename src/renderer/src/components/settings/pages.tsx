@@ -122,10 +122,13 @@ export function AppearancePage() {
         <Row label={t('Width')}>
           <Slider value={p.sidebarWidth} min={200} max={360} step={10} onChange={(sidebarWidth) => upd({ sidebarWidth })} format={(v) => `${v} px`} />
         </Row>
+        <Row label={t('Show it from the left edge')} hint={t('Folded away, it opens when the pointer reaches the edge.')}>
+          <Toggle value={p.edgePeek !== false} onChange={(edgePeek) => upd({ edgePeek })} />
+        </Row>
       </Section>
 
       <Footer>
-        <SmallButton onClick={() => upd({ theme: 'system', accent: 'graphite', logo: DEFAULT_LOGO, fontFamily: 'JetBrains Mono', fontSize: 13, lineHeight: 1, sidebarWidth: 240, frameOpacity: 0, contentOpacity: 0.9, barHides: true })}>{t('Revert to default')}</SmallButton>
+        <SmallButton onClick={() => upd({ theme: 'system', accent: 'graphite', logo: DEFAULT_LOGO, fontFamily: 'JetBrains Mono', fontSize: 13, lineHeight: 1, sidebarWidth: 240, frameOpacity: 0, contentOpacity: 0.9, barHides: true, edgePeek: true })}>{t('Revert to default')}</SmallButton>
       </Footer>
     </>
   )

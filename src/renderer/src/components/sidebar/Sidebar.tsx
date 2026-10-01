@@ -49,6 +49,10 @@ export function Sidebar() {
   const closeView = useUi((s) => s.closeView)
   const width = prefs?.sidebarWidth ?? 240
   const collapsed = prefs?.sidebarCollapsed ?? false
+  // Out for a look from the left edge (SidebarPeek): it opens in its place, the way it does when it
+  // is unfolded, pushing the terminals over rather than lying on top of them, and folds back after.
+  const peek = useUi((s) => s.sidebarPeek)
+  const shown = !collapsed || peek
   const dragging = useRef(false)
   const list = useRef<HTMLDivElement>(null)
   // Folders dragged in from the desktop land in the sidebar the same way "Add folder" would.
@@ -155,7 +159,7 @@ export function Sidebar() {
     const el = aside.current
     if (!el) return
     const settle = (): void => {
-      el.style.width = collapsed ? '0px' : 'var(--sidebar-w)'
+      el.style.width = shown ? 'var(--sidebar-w)' : '0px'
     }
     if (firstLayout.current || reducedMotion()) {
       firstLayout.current = false
@@ -164,7 +168,7 @@ export function Sidebar() {
     }
     gsap.killTweensOf(el)
     const from = el.getBoundingClientRect().width
-    const to = collapsed ? 0 : width
+    const to = shown ? width : 0
     const state = { w: from }
     registry.holdFits()
     gsap.to(state, {
@@ -183,7 +187,7 @@ export function Sidebar() {
       gsap.killTweensOf(state)
       registry.releaseFits()
     }
-  }, [collapsed])
+  }, [shown])
 
   const ins = reorder.insert
   const mark = (row: SidebarSession): 'before' | 'after' | undefined => (ins?.id === row.id ? (ins.after ? 'after' : 'before') : undefined)
@@ -239,7 +243,7 @@ export function Sidebar() {
   }
 
   return (
-    <aside {...drop.props} ref={aside} className="sidebar relative flex h-full shrink-0 flex-col overflow-hidden">
+    <aside {...drop.props} ref={aside} className="sidebar relative flex h-full shrink-0 flex-col overflow-hidden" data-peek={peek && collapsed ? '' : undefined}>
       <div
         ref={list}
         className="scroll-thin flex-1 pl-1 pr-2 pt-1"
