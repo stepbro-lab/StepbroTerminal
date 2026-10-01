@@ -13,6 +13,8 @@ export function parseRegistryEntry(text: string): LiveClaude | null {
       cwd: j.cwd,
       name: typeof j.name === 'string' ? j.name : undefined,
       status: typeof j.status === 'string' ? j.status : undefined,
+      waitingFor: typeof j.waitingFor === 'string' ? j.waitingFor : undefined,
+      needs: typeof j.needs === 'string' && j.needs ? j.needs : undefined,
       updatedAt: typeof j.updatedAt === 'number' ? j.updatedAt : undefined
     }
   } catch {

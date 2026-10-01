@@ -159,3 +159,25 @@ describe('an agent that has just started or come back', () => {
     expect(reduceStatus(base('done', true), { kind: 'quiet' })).toBeNull()
   })
 })
+
+describe('Claude waiting in its registry', () => {
+  // What Claude Code 2.1 writes to ~/.claude/sessions/<pid>.json while it waits.
+  const waiting = (waitingFor?: string, needs?: string) => ({ kind: 'registry' as const, status: 'waiting', waitingFor, needs })
+
+  it('calls the person over for a question: a permission, input, a sandbox request', () => {
+    for (const w of ['permission prompt', 'input needed', 'sandbox request', 'goal proposal', undefined]) {
+      expect(reduceStatus(base('working', false, { registryPid: 7 }), waiting(w))).toEqual({ status: 'attention' })
+    }
+  })
+
+  it('does not for a menu they opened themselves, like /model or /config', () => {
+    expect(reduceStatus(base('idle', false, { registryPid: 7 }), waiting('dialog open'))).toBeNull()
+    expect(reduceStatus(base('done', false, { registryPid: 7 }), waiting('dialog open'))).toBeNull()
+    // Closing a real question into a menu of their own clears the call.
+    expect(reduceStatus(base('attention', false, { registryPid: 7 }), waiting('dialog open'))).toEqual({ status: 'idle' })
+  })
+
+  it('still does for a dialog that says what it needs', () => {
+    expect(reduceStatus(base('idle', false, { registryPid: 7 }), waiting('dialog open', 'acknowledge the billing notice'))).toEqual({ status: 'attention' })
+  })
+})

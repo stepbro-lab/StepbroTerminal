@@ -9,8 +9,8 @@ export type ReducerEvent =
   | { kind: 'exit'; code: number }
   | { kind: 'viewed' }
   | { kind: 'spawned' }
-  /** Status reported by Claude Code's live session registry for a claude typed inside a shell. */
-  | { kind: 'registry'; status: string }
+  /** Status reported by Claude Code's live session registry for a claude typed inside a shell, and while waiting, what for. */
+  | { kind: 'registry'; status: string; waitingFor?: string; needs?: string }
   /** What the screen of an agent without hooks shows once output settles: a permission question or not. */
   | { kind: 'screen'; waiting: boolean }
   /** For an agent that keeps drawing while it waits, whether its screen shows a turn running. */
@@ -77,7 +77,11 @@ export function reduceStatus(s: Input, e: ReducerEvent): StatusPatch | null {
     case 'registry': {
       const v = e.status.toLowerCase()
       if (v === 'busy' || v === 'working' || v === 'running') return s.status === 'working' ? null : { status: 'working' }
-      if (/wait|input|permission|attention|blocked/.test(v)) return s.status === 'attention' ? null : { status: 'attention' }
+      // A menu the person opened themselves (/model, /config…) is Claude waiting on someone who is
+      // already there, not asking for them; only one that says what it needs calls them over.
+      const ownMenu = e.waitingFor === 'dialog open' && !e.needs
+      if (/wait|input|permission|attention|blocked/.test(v) && !ownMenu) return s.status === 'attention' ? null : { status: 'attention' }
+      if (ownMenu && s.status === 'attention') return { status: 'idle' }
       if (s.status === 'working') return { status: 'done' }
       return null
     }

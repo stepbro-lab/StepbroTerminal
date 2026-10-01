@@ -760,7 +760,7 @@ export class SessionManager extends EventEmitter {
         if (!pid) continue
         const e = byPid.get(pid)
         if (e) {
-          if (e.status && !l.s.agent.hooked) this.apply(l, { kind: 'registry', status: e.status })
+          if (e.status && !l.s.agent.hooked) this.apply(l, { kind: 'registry', status: e.status, waitingFor: e.waitingFor, needs: e.needs })
           byPid.delete(pid)
         } else {
           l.s.agent.registryPid = undefined
