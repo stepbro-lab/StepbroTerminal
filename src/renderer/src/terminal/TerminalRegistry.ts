@@ -10,6 +10,7 @@ import { altArrowSequence, imagePaste, imagePathText, newlineSequence } from '@/
 import { FitHold } from './fitHold'
 import { keepSelectionWhileTheMouseMoves } from './mouseReports'
 import { pressGoesToTheProgram } from './mousePress'
+import { choseText, pressOf, textToCopy, type Press } from './copyOnSelect'
 import { paceDrawing } from './paintPace'
 
 interface Entry {
@@ -37,7 +38,7 @@ interface Entry {
   /** The selection on screen, kept so it can go back when a program's mouse mode wipes it. */
   kept: { x: number; y: number; length: number } | null
   /** When a key or mouse button was last pressed here, and whether a button is still down: a selection that goes right after a press is the person's own doing. */
-  gesture: { at: number; down: boolean }
+  gesture: { at: number; down: boolean; press: Press | null }
 }
 
 const ACK_EVERY = 64 * 1024
@@ -197,14 +198,17 @@ class TerminalRegistry {
     const container = document.createElement('div')
     container.className = 'absolute inset-0'
     container.dataset['sessionId'] = id
+    const gesture: Entry['gesture'] = { at: 0, down: false, press: null }
     container.addEventListener('contextmenu', (ev) => {
       ev.preventDefault()
+      // The menu opened partway through the press: whatever it selected is not being chosen.
+      gesture.press = null
       this.contextMenuHandler(id, ev.clientX, ev.clientY)
     })
-    const gesture = { at: 0, down: false }
-    pressGoesToTheProgram(container, term, window.step.platform, () => {
+    pressGoesToTheProgram(container, term, window.step.platform, (ev) => {
       gesture.at = performance.now()
       gesture.down = true
+      gesture.press = pressOf(ev)
     })
 
     // Dropping files pastes their paths, quoted when needed.
@@ -264,9 +268,15 @@ class TerminalRegistry {
       term.buffer.onBufferChange(() => {
         entry.kept = null
       }),
-      onWindow('mouseup', () => {
+      onWindow('mouseup', (ev) => {
+        const press = gesture.down ? gesture.press : null
         gesture.down = false
+        gesture.press = null
         if (!term.hasSelection() && term.modes.mouseTrackingMode !== 'none') this.restoreSelection(entry)
+        // xterm settles the selection on this same mouseup, after this listener: copy once it has.
+        if (press && this.prefs?.copyOnSelect !== false && choseText(press, ev, window.step.platform)) {
+          window.setTimeout(() => this.copyChosen(entry), 0)
+        }
       }),
       term.onData((data) => {
         if (entry.replaying) return
@@ -689,6 +699,13 @@ class TerminalRegistry {
 
   private copySelection(e: Entry): void {
     const text = e.term.getSelection()
+    if (text) window.step.send('clipboard:write', text)
+  }
+
+  /** Text just chosen with the mouse goes on the clipboard, the way Ghostty and iTerm can do it. */
+  private copyChosen(e: Entry): void {
+    if (!e.term.hasSelection()) return
+    const text = textToCopy(e.term.getSelection())
     if (text) window.step.send('clipboard:write', text)
   }
 

@@ -163,6 +163,12 @@ export function TerminalPage() {
         </Row>
       </Section>
 
+      <Section title={t('Selection')}>
+        <Row label={t('Copy on select')} hint={t('Text you select goes straight to the clipboard.')}>
+          <Toggle value={p.copyOnSelect !== false} onChange={(copyOnSelect) => upd({ copyOnSelect })} />
+        </Row>
+      </Section>
+
       <Section
         title={t('Rendering')}
         description={t('Terminals draw with the GPU. Turn it off if your display shifts colour, brightness or HDR while the app is open; the software renderer looks the same and only costs a little speed.')}
@@ -188,7 +194,7 @@ export function TerminalPage() {
       </Section>
 
       <Footer>
-        <SmallButton onClick={() => upd({ shell: undefined, cursorStyle: 'bar', cursorBlink: true, scrollback: 5000, resumeOnLaunch: true })}>{t('Revert to default')}</SmallButton>
+        <SmallButton onClick={() => upd({ shell: undefined, cursorStyle: 'bar', cursorBlink: true, copyOnSelect: true, scrollback: 5000, resumeOnLaunch: true })}>{t('Revert to default')}</SmallButton>
       </Footer>
     </>
   )
