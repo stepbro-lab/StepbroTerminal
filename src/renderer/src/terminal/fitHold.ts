@@ -9,6 +9,8 @@
 export class FitHold {
   private held = 0
   private timer: ReturnType<typeof setTimeout> | null = null
+  /** When the outstanding holds let go by themselves at the latest. */
+  private until = 0
   private onRelease: () => void
   private maxMs: number
 
@@ -21,11 +23,18 @@ export class FitHold {
     return this.held > 0
   }
 
-  hold(): void {
+  /**
+   * `maxMs` is how long this hold may last at most: a short while for an animation, which ends
+   * by itself, much longer for a drag, which lasts as long as the person keeps the button down.
+   * However many holds are outstanding, none outlasts the latest of their limits.
+   */
+  hold(maxMs = this.maxMs): void {
     this.held++
+    const until = Date.now() + maxMs
+    if (this.timer && until <= this.until) return
     if (this.timer) clearTimeout(this.timer)
-    // However many holds are outstanding, none of them may outlast this.
-    this.timer = setTimeout(() => this.releaseAll(), this.maxMs)
+    this.until = until
+    this.timer = setTimeout(() => this.releaseAll(), maxMs)
   }
 
   /** One hold let go; fitting resumes when the last one has. */
@@ -37,6 +46,7 @@ export class FitHold {
 
   private releaseAll(): void {
     this.held = 0
+    this.until = 0
     if (this.timer) {
       clearTimeout(this.timer)
       this.timer = null

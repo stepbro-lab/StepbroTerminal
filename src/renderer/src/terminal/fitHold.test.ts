@@ -75,4 +75,29 @@ describe('FitHold', () => {
     vi.advanceTimersByTime(1000)
     expect(released).toHaveBeenCalledTimes(1)
   })
+
+  it('keeps the longer hold of a drag even when a short one comes and goes during it', () => {
+    const released = vi.fn()
+    const hold = new FitHold(released, 1000)
+    hold.hold(60_000)
+    vi.advanceTimersByTime(5000)
+    hold.hold()
+    hold.release()
+    // The drag still holds: only its own release, or its own limit, lets the terminals fit.
+    vi.advanceTimersByTime(10_000)
+    expect(hold.isHeld).toBe(true)
+    expect(released).not.toHaveBeenCalled()
+    hold.release()
+    expect(released).toHaveBeenCalledTimes(1)
+  })
+
+  it('lets go of a drag that never ends, at its own limit', () => {
+    const released = vi.fn()
+    const hold = new FitHold(released, 1000)
+    hold.hold(60_000)
+    vi.advanceTimersByTime(59_999)
+    expect(released).not.toHaveBeenCalled()
+    vi.advanceTimersByTime(1)
+    expect(released).toHaveBeenCalledTimes(1)
+  })
 })

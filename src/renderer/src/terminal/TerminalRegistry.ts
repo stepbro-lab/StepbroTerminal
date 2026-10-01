@@ -8,6 +8,7 @@ import { darkTerminal, lightTerminal } from '@/theme/terminalThemes'
 import { InputLine, hintFor } from '@/lib/flagHints'
 import { altArrowSequence, imagePaste, imagePathText, newlineSequence } from '@/lib/agentKeys'
 import { FitHold } from './fitHold'
+import { SizeTeller } from './sizeTeller'
 import { keepSelectionWhileTheMouseMoves } from './mouseReports'
 import { pressGoesToTheProgram } from './mousePress'
 import { choseText, pressOf, textToCopy, type Press } from './copyOnSelect'
@@ -42,6 +43,8 @@ interface Entry {
 }
 
 const ACK_EVERY = 64 * 1024
+/** A drag keeps the terminals' columns for as long as the button is down, up to this. */
+const DRAG_HOLD_MS = 60_000
 const encoder = new TextEncoder()
 /** Pressed on their own these change nothing on screen, so they are not the gesture that clears a selection. */
 const MODIFIER_KEYS = new Set(['Control', 'Shift', 'Alt', 'Meta', 'AltGraph', 'CapsLock', 'NumLock'])
@@ -293,9 +296,9 @@ class TerminalRegistry {
         for (let i = 0; i < data.length; i++) bytes[i] = data.charCodeAt(i) & 0xff
         window.step.send('host:input', id, bytes)
       }),
-      term.onResize(({ cols, rows }) => {
+      term.onResize(() => {
         entry.kept = null
-        window.step.send('host:resize', id, cols, rows)
+        this.sizes.changed(id)
       })
     )
     term.attachCustomKeyEventHandler((ev) => this.handleKey(entry, ev))
@@ -374,6 +377,32 @@ class TerminalRegistry {
     this.holds.release()
   }
 
+  /**
+   * The programs behind the terminals hear of a new size once it has settled, and not at all
+   * while someone is dragging something that changes it (see SizeTeller). The terminal itself
+   * takes every size the moment it has it.
+   */
+  private sizes = new SizeTeller((id) => {
+    const e = this.entries.get(id)
+    if (e) window.step.send('host:resize', id, e.term.cols, e.term.rows)
+  })
+
+  /**
+   * A person is dragging an edge that resizes terminals: a side panel's, a split's, the sidebar's.
+   * The programs behind them are told the new size once, when it is let go. With `keepColumns` the
+   * terminals keep their columns for the whole drag too, however long, and fit once at the end;
+   * without it they follow the drag and only the programs wait.
+   */
+  beginResizeDrag(keepColumns = true): void {
+    this.sizes.beginGesture()
+    if (keepColumns) this.holds.hold(DRAG_HOLD_MS)
+  }
+
+  endResizeDrag(keepColumns = true): void {
+    if (keepColumns) this.holds.release()
+    this.sizes.endGesture()
+  }
+
   focus(id: string): void {
     this.entries.get(id)?.term.focus()
   }
@@ -427,6 +456,7 @@ class TerminalRegistry {
     for (const d of e.disposables) d.dispose()
     e.term.dispose()
     this.entries.delete(id)
+    this.sizes.forget(id)
   }
 
   applyPrefs(prefs: Prefs, dark: boolean): void {
@@ -519,7 +549,7 @@ class TerminalRegistry {
     }
     // xterm only announces a size that changed, so a size the host missed would stay missed.
     // Saying it again here costs a message and is what makes a wrong width heal by itself.
-    window.step.send('host:resize', e.id, e.term.cols, e.term.rows)
+    this.sizes.changed(e.id)
   }
 
   private ack(e: Entry, n: number): void {
