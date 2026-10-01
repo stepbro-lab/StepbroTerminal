@@ -57,13 +57,18 @@ export function reduceStatus(s: Input, e: ReducerEvent): StatusPatch | null {
       if (s.status === 'attention') return null
       return s.status === 'working' ? null : { status: 'working' }
     case 'quiet':
+      // Claude Code sends SessionStart to command hooks only, never to HTTP ones like these, so an
+      // agent that has just started, or come back after an update, says nothing until its first
+      // prompt. Once its screen settles it is waiting for that prompt, hooks or not.
+      if (s.status === 'starting') return { status: 'idle' }
       if (managed(s)) return null
-      return s.status === 'working' || s.status === 'starting' ? { status: 'idle' } : null
+      return s.status === 'working' ? { status: 'idle' } : null
     case 'screen':
       if (managed(s) || s.status === 'exited') return null
       if (e.waiting) return s.status === 'attention' ? null : { status: 'attention', agent: { lastMessage: 'Waiting for your approval' } }
       return s.status === 'attention' ? { status: 'idle' } : null
     case 'busy':
+      if (s.status === 'starting' && !e.busy) return { status: 'idle' }
       if (managed(s) || s.status === 'exited') return null
       // A question on screen is still one; the look for questions decides when it has gone.
       if (s.status === 'attention') return null

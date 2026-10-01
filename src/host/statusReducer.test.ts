@@ -76,6 +76,7 @@ describe('reduceStatus', () => {
     expect(reduceStatus(base('starting', false), { kind: 'quiet' })).toEqual({ status: 'idle' })
     expect(reduceStatus(base('idle', true), { kind: 'output' })).toBeNull()
     expect(reduceStatus(base('working', true), { kind: 'quiet' })).toBeNull()
+    expect(reduceStatus(base('idle', true), { kind: 'quiet' })).toBeNull()
     expect(reduceStatus(base('idle', false, { registryPid: 42 }), { kind: 'output' })).toBeNull()
     expect(reduceStatus(base('exited', false), { kind: 'output' })).toBeNull()
   })
@@ -140,5 +141,21 @@ describe('agents started by hand inside a shell', () => {
       status: 'done',
       agent: { tool: undefined, lastMessage: 'done' }
     })
+  })
+})
+
+describe('an agent that has just started or come back', () => {
+  // Claude Code never sends SessionStart to HTTP hooks, so nothing says it is ready but its screen.
+  it('stops showing as starting once its screen settles, hooks or not', () => {
+    expect(reduceStatus(base('starting', true), { kind: 'quiet' })).toEqual({ status: 'idle' })
+    expect(reduceStatus(base('starting', false, { hooked: true, detectedPreset: 'claude' }), { kind: 'quiet' })).toEqual({ status: 'idle' })
+    expect(reduceStatus(base('starting', true), { kind: 'busy', busy: false })).toEqual({ status: 'idle' })
+  })
+
+  it('still lets its hooks decide once it is past starting', () => {
+    expect(reduceStatus(base('starting', true), { kind: 'busy', busy: true })).toBeNull()
+    expect(reduceStatus(base('starting', true), hook('UserPromptSubmit'))).toEqual({ status: 'working', agent: { tool: undefined } })
+    expect(reduceStatus(base('working', true), { kind: 'quiet' })).toBeNull()
+    expect(reduceStatus(base('done', true), { kind: 'quiet' })).toBeNull()
   })
 })
