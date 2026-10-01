@@ -56,6 +56,9 @@ function readme() {
     '',
     'A terminal built for running coding agents like Claude Code, Codex and OpenCode, with sessions that keep running when you close the window.',
     '',
+    // The picture lives in the releases repository itself, next to this README.
+    '![stepbro terminal on macOS, a folder open and Topito waiting for a new session](assets/stepbro-terminal.png)',
+    '',
     `## Latest: ${version}`,
     '',
     entry ? `${entry.headline}` : '',
