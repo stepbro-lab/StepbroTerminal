@@ -35,7 +35,8 @@ export function resolveFolder(input: string, base: string, home: string): string
   let p = input.trim()
   if (!p) throw new WorkspaceError('Every pane needs a folder.')
   if (p === '~' || p.startsWith('~/') || p.startsWith('~\\')) p = path.join(home, p.slice(1))
-  else if (!path.isAbsolute(p)) p = path.resolve(base || home, p)
+  // Resolving an absolute path too spells it out in full: on Windows "/" becomes the drive's root, C:\.
+  else p = path.resolve(base || home, p)
   p = path.normalize(p)
   const root = path.parse(p).root
   return p.length > root.length ? p.replace(/[\\/]+$/, '') : p
