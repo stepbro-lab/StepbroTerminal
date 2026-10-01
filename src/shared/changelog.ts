@@ -20,8 +20,8 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     version: '0.1.0-beta.25',
-    date: '2026-09-29',
-    headline: 'A preview you can resize, and a notice that says only what is true.',
+    date: '2026-10-01',
+    headline: 'Claude picks up where it was, splitting from any terminal, every archived session in one place, and a preview agents work faster.',
     changes: [
       { kind: 'new', text: 'A page for archived sessions in Settings: every session you put away, from every folder, newest first, with a search, a Restore button that brings it back where it left off, and a way to delete one or all of them.' },
       { kind: 'fixed', text: 'Resuming a Claude Code session after closing and opening the app picks up the conversation it was in, instead of opening an empty Claude that needed a /resume: stepbro follows the conversation Claude is writing, a /resume inside Claude included, and one that had lost track resumes the conversation last written in its folder.' },
