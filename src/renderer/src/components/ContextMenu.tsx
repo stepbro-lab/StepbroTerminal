@@ -45,6 +45,7 @@ export function ContextMenu() {
   return (
     <div
       className="absolute inset-0 z-50"
+      data-menu-layer
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) close(null)
       }}

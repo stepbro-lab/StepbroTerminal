@@ -28,6 +28,8 @@ interface UiState {
   booted: boolean
   /** Session being dragged from the sidebar or a card header, for drop zones. */
   dragging: string | null
+  /** The folded sidebar out over the terminal for a look (SidebarPeek). */
+  sidebarPeek: boolean
   /**
    * Side panels next to the terminals, at most one per session: a dev-server preview or the
    * session's changes. Each belongs to its session and only shows while that session is on screen.
@@ -60,6 +62,7 @@ interface UiState {
   dropPane: (id: string) => void
   dropSession: (id: string, target: string, zone: DropZone) => void
   setDragging: (id: string | null) => void
+  setSidebarPeek: (peek: boolean) => void
   setRatio: (path: Array<'a' | 'b'>, ratio: number) => void
   /** Opens a panel beside its session, in place of whatever panel that session had. */
   openSide: (side: SidePanel) => void
@@ -97,6 +100,7 @@ export const useUi = create<UiState>((set, get) => ({
   activeView: 0,
   booted: false,
   dragging: null,
+  sidebarPeek: false,
   sides: {},
   activeProject: null,
   paletteOpen: false,
@@ -215,6 +219,7 @@ export const useUi = create<UiState>((set, get) => ({
     announce(id)
   },
   setDragging: (dragging) => set({ dragging }),
+  setSidebarPeek: (sidebarPeek) => set((s) => (s.sidebarPeek === sidebarPeek ? s : { sidebarPeek })),
   setRatio: (path, ratio) => {
     const { views, activeView } = get()
     if (!views[activeView]) return
