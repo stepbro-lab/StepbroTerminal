@@ -54,11 +54,11 @@ function again(from: MouseEvent, type: 'mousedown' | 'mouseup', forcing: 'altKey
  * Only presses from a hand are held back; the ones made here go straight through, or they would
  * come back around for ever.
  */
-export function pressGoesToTheProgram(container: HTMLElement, term: Terminal, platform: string, onPress?: () => void): void {
+export function pressGoesToTheProgram(container: HTMLElement, term: Terminal, platform: string, onPress?: (ev: MouseEvent) => void): void {
   container.addEventListener(
     'mousedown',
     (ev) => {
-      if (ev.isTrusted) onPress?.()
+      if (ev.isTrusted) onPress?.(ev)
       if (!ev.isTrusted || ev.button !== 0 || ev.shiftKey || term.modes.mouseTrackingMode === 'none') return
       if (platform === 'darwin' && ev.altKey) return
       ev.stopPropagation()

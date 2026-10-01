@@ -21,8 +21,9 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     version: '0.1.0-beta.26',
     date: '2026-10-01',
-    headline: 'The folded sidebar comes out from the left edge, the way Arc does it.',
+    headline: 'Selecting text copies it, and the folded sidebar comes out from the left edge.',
     changes: [
+      { kind: 'new', text: 'Text you select in a terminal goes straight to the clipboard, ready to paste: drag over it, double-click a word or triple-click a line. A plain click and the right button leave the clipboard as it was. Settings, under Terminal, can turn it off.' },
       { kind: 'new', text: 'With the sidebar folded away, bring the pointer to the left edge of the window and it opens in its place for a look, making room for itself instead of covering the terminal; it folds away again once the pointer leaves it, on a click elsewhere or on Escape. The sidebar shortcut keeps it open, and Settings, under Appearance, can turn it off.' }
     ]
   },

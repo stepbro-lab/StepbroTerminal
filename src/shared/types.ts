@@ -212,6 +212,8 @@ export interface Prefs {
   barHides?: boolean
   /** With the sidebar folded away, the window's left edge brings it out for a look. On unless turned off. */
   edgePeek?: boolean
+  /** Text chosen with the mouse in a terminal goes straight on the clipboard. On unless turned off. */
+  copyOnSelect?: boolean
   /**
    * Windows: closing the window leaves the app running in the tray, still telling you when a
    * session needs you, until it is quit from there. On unless turned off.

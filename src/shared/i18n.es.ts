@@ -468,7 +468,12 @@ export const es: Record<string, string> = {
   'A page for archived sessions in Settings: every session you put away, from every folder, newest first, with a search, a Restore button that brings it back where it left off, and a way to delete one or all of them.':
     'Una página de sesiones archivadas en Ajustes: todas las sesiones que guardaste, de todas las carpetas, las más recientes primero, con un buscador, un botón Restaurar que la recupera donde se quedó y la opción de borrar una o todas.',
   'Show it from the left edge': 'Mostrarla desde el borde izquierdo',
-  'The folded sidebar comes out from the left edge, the way Arc does it.': 'La barra lateral plegada sale desde el borde izquierdo, como en Arc.',
+  'Selecting text copies it, and the folded sidebar comes out from the left edge.': 'Seleccionar texto lo copia, y la barra lateral plegada sale desde el borde izquierdo.',
+  'Text you select in a terminal goes straight to the clipboard, ready to paste: drag over it, double-click a word or triple-click a line. A plain click and the right button leave the clipboard as it was. Settings, under Terminal, can turn it off.':
+    'El texto que seleccionas en una terminal se copia directamente al portapapeles, listo para pegar: arrastra sobre él, haz doble clic en una palabra o triple clic en una línea. Un clic normal y el botón derecho no tocan el portapapeles. Se puede desactivar en Ajustes, en Terminal.',
+  'Selection': 'Selección',
+  'Copy on select': 'Copiar al seleccionar',
+  'Text you select goes straight to the clipboard.': 'El texto que seleccionas se copia al portapapeles.',
   'With the sidebar folded away, bring the pointer to the left edge of the window and it opens in its place for a look, making room for itself instead of covering the terminal; it folds away again once the pointer leaves it, on a click elsewhere or on Escape. The sidebar shortcut keeps it open, and Settings, under Appearance, can turn it off.':
     'Con la barra lateral plegada, lleva el puntero al borde izquierdo de la ventana y se abre en su sitio para echar un vistazo, haciéndose espacio en vez de tapar el terminal; se vuelve a plegar cuando el puntero sale de ella, con un clic en otro lado o con Escape. El atajo de la barra lateral la deja abierta, y en Ajustes, en Apariencia, se puede desactivar.',
   'Folded away, it opens when the pointer reaches the edge.': 'Plegada, se abre al llevar el puntero al borde.',
