@@ -35,6 +35,7 @@ import { pacePieces } from './pace'
 import { isOwnEndpoint, previewUrlIn } from './previewUrl'
 import { SessionLog, altScreenBefore, readLogTail } from './SessionLog'
 import { claudeConversationExists, conversationFromTranscript, latestClaudeConversation, startsResumed } from './resumeChoice'
+import { TranscriptTitles } from './claudeTitle'
 import { codexHome, codexThreadsSince, justWritten, latestSince } from './codexThreads'
 import { OutputPressure } from './OutputPressure'
 
@@ -104,7 +105,15 @@ interface Live {
   probeParsing: number
   /** When the program last asked the terminal about itself; an answer after that is worth passing on. */
   askedAt?: number
+  /** The transcript Claude Code is writing for the conversation in front, as its hooks name it. */
+  transcript?: string
 }
+
+/**
+ * After a prompt, how long until Claude Code has usually written its title for the conversation:
+ * it asks a small model for one in the background, a few seconds in.
+ */
+const TITLE_LOOKS_MS = [3000, 10_000, 30_000]
 
 /**
  * A held hand-off goes in once the agent is free and its screen has been still for this long: after
@@ -150,6 +159,7 @@ const ALT_SCREEN = '\x1b[?1049h'
  */
 export class SessionManager extends EventEmitter {
   private live = new Map<string, Live>()
+  private titles = new TranscriptTitles()
   /** Hand-offs for agents that were busy when they arrived, typed once the agent is free. */
   private heldHandoffs = new Map<string, HeldHandoff[]>()
   private heldTimers = new Map<string, NodeJS.Timeout>()
@@ -495,7 +505,7 @@ export class SessionManager extends EventEmitter {
       const agent = detectAgentFromCommand(line)
       const inAgent = l.s.launch.hooks || !!l.s.agent.detectedPreset || l.s.presetId !== 'shell'
       // A fresh conversation in the same agent: the title it had came from the old one.
-      if (inAgent && startsOver(line) && (l.s.titleSource === 'input' || l.s.titleSource === 'osc')) {
+      if (inAgent && startsOver(line) && (l.s.titleSource === 'input' || l.s.titleSource === 'osc' || l.s.titleSource === 'agent')) {
         l.s.title = ''
         l.s.titleSource = 'none'
         this.emitSession(l)
@@ -731,6 +741,33 @@ export class SessionManager extends EventEmitter {
       l.s.agent.sessionId = conversation
       this.emitSession(l)
     }
+    const transcript = payload['transcript_path']
+    if (typeof transcript === 'string' && transcript) {
+      if (l.transcript && l.transcript !== transcript) this.titles.forget(l.transcript)
+      l.transcript = transcript
+      void this.nameFromConversation(l)
+      // Claude writes the conversation's title a few seconds after the prompt, not with it.
+      if (name === 'UserPromptSubmit') {
+        for (const ms of TITLE_LOOKS_MS) setTimeout(() => void this.nameFromConversation(l), ms)
+      }
+    }
+  }
+
+  /**
+   * The session takes the name Claude Code gave the conversation: a few words that sum it up, or
+   * what the person called it with /rename inside Claude. A name given here is never replaced.
+   */
+  private async nameFromConversation(l: Live): Promise<void> {
+    const file = l.transcript
+    if (!file) return
+    const t = await this.titles.read(file)
+    if (l.transcript !== file || this.live.get(l.s.id) !== l) return
+    const name = t.custom ?? t.ai
+    if (!name || l.s.titleSource === 'user') return
+    if (l.s.title === name && l.s.titleSource === 'agent') return
+    l.s.title = name
+    l.s.titleSource = 'agent'
+    this.emitSession(l)
   }
 
   private noteEditedFile(l: Live, payload: Record<string, unknown>): void {
@@ -1190,7 +1227,8 @@ export class SessionManager extends EventEmitter {
 
   private onOscTitle(l: Live, title: string): void {
     const s = l.s
-    if (s.titleSource === 'user') return
+    // The name Claude gave the conversation sums it up better than any window title.
+    if (s.titleSource === 'user' || s.titleSource === 'agent') return
     const t = this.nameFromOsc(s, title)
     if (!t) return
     if (s.title === t && s.titleSource === 'osc') return

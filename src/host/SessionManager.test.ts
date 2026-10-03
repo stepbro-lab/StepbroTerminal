@@ -431,3 +431,43 @@ describe('archiving', () => {
     expect(sm.list().find((x) => x.id === s.id)!.archivedAt).toBeUndefined()
   })
 })
+
+describe('names a Claude session after its conversation', () => {
+  const A = '44444444-4444-4444-8444-444444444444'
+  const claudeSession = (): Session =>
+    sm.create({ projectPath: dir, presetId: 'claude', cols: 80, rows: 24,
+      launch: { command: process.execPath, args: ['--session-id', '{sessionId}'], hooks: true } })
+  const now = (id: string): Session => sm.list().find((x) => x.id === id)!
+  const until = async (ok: () => boolean): Promise<void> => {
+    for (let i = 0; i < 100 && !ok(); i++) await new Promise((r) => setTimeout(r, 10))
+  }
+  const record = (o: object): string => JSON.stringify(o) + '\n'
+
+  it('takes the few words Claude sums it up in, over the first prompt, and keeps a name given here', async () => {
+    const s = claudeSession()
+    const transcript = path.join(dir, `${A}.jsonl`)
+    await fs.writeFile(transcript, record({ type: 'user', message: { role: 'user', content: 'necesito que mejores mi status line mas bonita' } }))
+    sm.input(s.id, Buffer.from('necesito que mejores mi status line mas bonita\r'))
+    expect(now(s.id).titleSource).toBe('input')
+    await fs.appendFile(transcript, record({ type: 'ai-title', aiTitle: 'Status line mejora' }))
+    sm.applyHook(A, 'Stop', { session_id: A, transcript_path: transcript }, s.id)
+    await until(() => now(s.id).title === 'Status line mejora')
+    expect(now(s.id)).toMatchObject({ title: 'Status line mejora', titleSource: 'agent' })
+
+    // A window title does not replace it.
+    sm.rename(s.id, 'Mi status')
+    await fs.appendFile(transcript, record({ type: 'ai-title', aiTitle: 'Otra cosa' }))
+    sm.applyHook(A, 'Stop', { session_id: A, transcript_path: transcript }, s.id)
+    await new Promise((r) => setTimeout(r, 100))
+    expect(now(s.id)).toMatchObject({ title: 'Mi status', titleSource: 'user' })
+  })
+
+  it('prefers what the person called it inside Claude', async () => {
+    const s = claudeSession()
+    const transcript = path.join(dir, `${A}.jsonl`)
+    await fs.writeFile(transcript, record({ type: 'ai-title', aiTitle: 'Factura electrónica' }) + record({ type: 'custom-title', customTitle: 'Facturas' }))
+    sm.applyHook(A, 'UserPromptSubmit', { session_id: A, transcript_path: transcript }, s.id)
+    await until(() => now(s.id).title === 'Facturas')
+    expect(now(s.id)).toMatchObject({ title: 'Facturas', titleSource: 'agent' })
+  })
+})
