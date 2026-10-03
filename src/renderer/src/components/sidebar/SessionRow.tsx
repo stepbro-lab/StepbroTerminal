@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Archive, Pin, RotateCcw, X } from 'lucide-react'
 import type { SidebarSession } from '@/lib/sidebarModel'
 import { useUi } from '@/stores/ui'
@@ -8,6 +8,7 @@ import { archiveSession, closeSession, renameSession, restoreSession, sessionMen
 import { StatusGlyph } from './StatusGlyph'
 import { AgentLogo } from './AgentLogo'
 import { canResume as sessionCanResume } from '@/lib/sidebarModel'
+import { fitTitle, titleCandidates } from '@/lib/shortTitle'
 import { t } from '@/lib/i18n'
 
 interface Props {
@@ -74,7 +75,12 @@ export function SessionRow({ row, insert, onDragOver, onDrop }: Props) {
       {renaming ? (
         <RenameInput id={row.id} initial={row.session.titleSource === 'user' ? row.title : ''} placeholder={row.title} />
       ) : (
-        <span className="row-title">{row.title}</span>
+        <RowTitle
+          text={row.title}
+          auto={row.session.titleSource !== 'user'}
+          fromPrompt={row.session.titleSource === 'input' || row.session.titleSource === 'history'}
+          weight={active || row.status === 'attention'}
+        />
       )}
       {row.pinned && <Pin size={11} strokeWidth={1.8} style={{ color: 'var(--text-muted)' }} />}
       {/* The agent's mark keeps the edge; under the pointer the row's actions slide in beside it, fading over the end of a long title. */}
@@ -100,6 +106,42 @@ export function SessionRow({ row, insert, onDragOver, onDrop }: Props) {
         </span>
       </span>
     </div>
+  )
+}
+
+const measure = document.createElement('canvas').getContext('2d')
+
+/**
+ * A session's name in its row. One the session took by itself (from Claude, the agent's window
+ * title or the first prompt) is told in the words that fit the row (see shortTitle), whole, and
+ * in full under the pointer; one the person gave is shown as they wrote it.
+ */
+function RowTitle({ text, auto, fromPrompt, weight }: { text: string; auto: boolean; fromPrompt: boolean; weight: boolean }) {
+  const ref = useRef<HTMLSpanElement>(null)
+  const [width, setWidth] = useState(0)
+  const [fonts, setFonts] = useState(0)
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const ro = new ResizeObserver(() => setWidth(el.clientWidth))
+    ro.observe(el)
+    setWidth(el.clientWidth)
+    return () => ro.disconnect()
+  }, [])
+  // Measured before the row's font has loaded, the fallback's widths would decide.
+  useEffect(() => {
+    void document.fonts.ready.then(() => setFonts((n) => n + 1))
+  }, [])
+  const shown = useMemo(() => {
+    const el = ref.current
+    if (!auto || !el || width <= 0 || !measure) return text
+    measure.font = getComputedStyle(el).font
+    return fitTitle(titleCandidates(text, fromPrompt), width, (s) => measure.measureText(s).width)
+  }, [text, auto, fromPrompt, width, weight, fonts])
+  return (
+    <span ref={ref} className="row-title" title={shown !== text ? text : undefined}>
+      {shown}
+    </span>
   )
 }
 
