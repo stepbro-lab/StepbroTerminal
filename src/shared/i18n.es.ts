@@ -473,6 +473,8 @@ export const es: Record<string, string> = {
   'Show it from the left edge': 'Mostrarla desde el borde izquierdo',
   'Agents keep their screen whole while you resize, and look like what they are doing.':
     'Los agentes mantienen su pantalla entera mientras cambias tamaños, y se ven como lo que están haciendo.',
+  "On Ubuntu 23.10 and later, 24.04 included, the .deb starts again with Chromium's sandbox on: it installs into /opt/stepbro-terminal, without the space that kept the sandbox from starting the app, brings the AppArmor profile those releases ask for, and its icon shows in the launcher.":
+    'En Ubuntu 23.10 y posteriores, 24.04 incluido, el .deb vuelve a arrancar con el sandbox de Chromium activado: se instala en /opt/stepbro-terminal, sin el espacio que impedía al sandbox arrancar la app, trae el perfil de AppArmor que esas versiones piden y su icono se ve en el lanzador.',
   "Dragging the edge of the preview, of a split or of the sidebar, or resizing the window, no longer leaves an agent's screen in pieces: the terminals keep their columns while the edge moves, however long you drag, and the agent redraws once, when you let go.":
     'Arrastrar el borde de la vista previa, de una división o de la barra lateral, o cambiar el tamaño de la ventana, ya no deja la pantalla de un agente hecha pedazos: las terminales mantienen sus columnas mientras se mueve el borde, por mucho que arrastres, y el agente se redibuja una sola vez, al soltar.',
   'An agent that has just opened, or come back after an update, no longer shows as working until you write to it: once it is on screen and waiting, its row stops spinning.':
