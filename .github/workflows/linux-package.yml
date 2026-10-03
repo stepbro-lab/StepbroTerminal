@@ -1,0 +1,96 @@
+# The .deb on a stock Ubuntu 24.04: installed over the last release, the way people upgrade, then
+# looked at and started with Chromium's sandbox on. Up to 0.1.0-beta.27 the app would not start
+# there at all: AppArmor refused its sandbox, and the space in /opt/stepbro terminal broke the
+# fallback. Runs when the packaging changes, and by hand.
+name: linux package
+
+on:
+  push:
+    paths:
+      - build/linux/**
+      - electron-builder.yml
+      - scripts/gen-icons.mjs
+      - .github/workflows/linux-package.yml
+  pull_request:
+    paths:
+      - build/linux/**
+      - electron-builder.yml
+      - scripts/gen-icons.mjs
+      - .github/workflows/linux-package.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deb:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm icons
+      - run: pnpm build
+
+      - name: Build the .deb as a release does
+        run: pnpm exec electron-builder --linux deb --publish never -c.productName=stepbro-terminal
+
+      # A desktop install restricts unprivileged user namespaces; a CI machine may not.
+      - name: Restrict user namespaces as Ubuntu does
+        run: |
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=1
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb apparmor-utils > /dev/null
+
+      - name: Install the last release and see it fail
+        run: |
+          curl -fsSL -o old.deb https://github.com/kevin9038440334/StepbroTerminal-releases/releases/download/v0.1.0-beta.27/StepbroTerminal-0.1.0-beta.27-linux-amd64.deb
+          sudo apt-get install -y -qq ./old.deb > /dev/null
+          xvfb-run -a timeout 20 "/opt/stepbro terminal/StepbroTerminal" > old.log 2>&1 || true
+          grep -E "FATAL|sandbox" old.log || echo "(0.1.0-beta.27 did not report a sandbox failure here)"
+          pkill -f StepbroTerminal || true
+
+      - name: Upgrade to this build
+        run: sudo dpkg -i release/*.deb
+
+      - name: Check what it installed
+        run: |
+          set -euxo pipefail
+          test -x /opt/stepbro-terminal/StepbroTerminal
+          test ! -e "/opt/stepbro terminal"
+          test "$(readlink -f /usr/bin/StepbroTerminal)" = /opt/stepbro-terminal/StepbroTerminal
+          cat /etc/apparmor.d/stepbro-terminal
+          sudo aa-status | grep -F stepbro-terminal
+          stat -c '%a %U:%G %n' /opt/stepbro-terminal/chrome-sandbox
+          for s in 16 24 32 48 64 128 256 512; do test -f "/usr/share/icons/hicolor/${s}x${s}/apps/StepbroTerminal.png"; done
+          desktop=/usr/share/applications/StepbroTerminal.desktop
+          grep -E '^(Name|Exec|Icon|StartupWMClass)=' "$desktop"
+          grep -qx 'Name=stepbro terminal' "$desktop"
+          grep -qx 'StartupWMClass=stepbro terminal' "$desktop"
+
+      - name: Start it with the sandbox on
+        run: |
+          set -uxo pipefail
+          xvfb-run -a timeout 30 /opt/stepbro-terminal/StepbroTerminal > app.log 2>&1 &
+          sleep 20
+          ps -eo pid,args | grep -F /opt/stepbro-terminal | grep -v grep | cut -c1-200 || true
+          # The renderers run sandboxed: nothing was started with the sandbox turned off.
+          ! ps -eo args | grep -F /opt/stepbro-terminal | grep -F -- --no-sandbox
+          wait
+          cat app.log
+          grep -F 'spawning host' app.log
+          ! grep -E 'FATAL|SUID sandbox helper|failed to execvp' app.log
+
+      - name: Remove it
+        run: |
+          set -euxo pipefail
+          pkill -f StepbroTerminal || true
+          sudo apt-get remove -y -qq step-terminal > /dev/null
+          test ! -e /etc/apparmor.d/stepbro-terminal
+          ! sudo aa-status | grep -F stepbro-terminal
+          test ! -e /usr/bin/StepbroTerminal

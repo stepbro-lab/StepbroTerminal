@@ -93,13 +93,28 @@ dmg:
       y: 190
       type: link
       path: /Applications
+# Linux builds are made with productName set to stepbro-terminal (release.yml passes it): the .deb
+# installs into /opt/<productName>, and the space in "/opt/stepbro terminal" broke Chromium's
+# sandbox, which could not start the app's processes from there. The name people see stays below.
 linux:
   target:
     - AppImage
     - deb
-  icon: build/icon.png
+  # One file per size the hicolor theme knows (pnpm icons renders them); a lone 1024px icon
+  # was installed at a size launchers never look at.
+  icon: build/icons
   category: Development
   # The package description. (package.json's is just the name: Windows shows it as the process name.)
   description: A terminal for people who run coding agents all day.
   executableName: StepbroTerminal
   artifactName: StepbroTerminal-${version}-linux-${arch}.${ext}
+  # The launcher shows the app's own name, and matches its windows by the class Electron gives
+  # them, which comes from package.json's productName rather than the build's.
+  desktop:
+    Name: stepbro terminal
+    StartupWMClass: stepbro terminal
+deb:
+  # An AppArmor profile for Ubuntu 23.10 and later, and chrome-sandbox set up for systems that
+  # restrict user namespaces; see the scripts.
+  afterInstall: build/linux/after-install.tpl
+  afterRemove: build/linux/after-remove.tpl

@@ -66,10 +66,17 @@ jobs:
 
       - run: pnpm build
 
+      # On Linux the .deb installs into /opt/<productName>, and Chromium's sandbox cannot start
+      # the app's processes from a folder with a space in it: Linux builds go by stepbro-terminal.
+      # The name people see is set apart in electron-builder.yml.
+      - name: Name the Linux build
+        if: runner.os == 'Linux'
+        run: echo "BUILDER_ARGS=-c.productName=stepbro-terminal" >> "$GITHUB_ENV"
+
       # Pack once without installers and start the session host from the unpacked output, the
       # way the installed app does. A file left inside the asar would only fail here.
       - name: Check the packaged host starts
-        run: pnpm exec electron-builder --dir && node scripts/smoke-packaged-host.mjs
+        run: pnpm exec electron-builder --dir $BUILDER_ARGS && node scripts/smoke-packaged-host.mjs
 
       # Spotlight indexes every disk image the moment it is mounted, and while it does the image
       # cannot be ejected: "hdiutil detach" fails as busy and the installer is never finished.
@@ -81,4 +88,4 @@ jobs:
         env:
           # Fine-grained token with contents:write on StepbroTerminal-releases.
           GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
-        run: pnpm exec electron-builder --publish always
+        run: pnpm exec electron-builder --publish always $BUILDER_ARGS

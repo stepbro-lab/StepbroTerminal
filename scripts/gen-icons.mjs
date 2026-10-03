@@ -41,13 +41,20 @@ function render(svg, size, file) {
   return png
 }
 
-// App icon, from the default look. Windows and Linux take the full square; electron-builder
-// derives the sizes it needs from the 1024px PNG. The .ico also serves the dev Start Menu
-// shortcut so Windows shows name and logo in notifications, so it carries the small sizes explicitly.
+// App icon, from the default look. Windows and Linux take the full square. The .ico also serves
+// the dev Start Menu shortcut so Windows shows name and logo in notifications, so it carries the
+// small sizes explicitly.
 render(logoSvg(logos[DEFAULT], 1024), 1024, path.join(buildDir, 'icon.png'))
 const icoSizes = [16, 24, 32, 48, 64, 128, 256].map((s) => new Resvg(logoSvg(logos[DEFAULT], s), { fitTo: { mode: 'width', value: s } }).render().asPng())
 fs.writeFileSync(path.join(buildDir, 'icon.ico'), await pngToIco(icoSizes))
 console.log('wrote build/icon.ico')
+
+// Linux looks icons up in the hicolor theme, which only knows the sizes its index.theme lists
+// (up to 512). Given the 1024px PNG alone, the .deb installed just that size, and launchers found
+// no icon at all; given a folder of these, electron-builder installs each one where it belongs.
+const linuxIcons = path.join(buildDir, 'icons')
+fs.mkdirSync(linuxIcons, { recursive: true })
+for (const s of [16, 24, 32, 48, 64, 128, 256, 512]) render(logoSvg(logos[DEFAULT], s), s, path.join(linuxIcons, `${s}x${s}.png`))
 
 // macOS does not mask app icons, and the Dock expects artwork with room around it: Apple's own
 // icons fill about 80% of the canvas. This variant keeps the same look at the same visual size
