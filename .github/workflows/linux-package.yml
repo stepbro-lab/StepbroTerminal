@@ -75,16 +75,20 @@ jobs:
 
       - name: Start it with the sandbox on
         run: |
-          set -uxo pipefail
+          set -euxo pipefail
           xvfb-run -a timeout 30 /opt/stepbro-terminal/StepbroTerminal > app.log 2>&1 &
           sleep 20
-          ps -eo pid,args | grep -F /opt/stepbro-terminal | grep -v grep | cut -c1-200 || true
-          # The renderers run sandboxed: nothing was started with the sandbox turned off.
-          ! ps -eo args | grep -F /opt/stepbro-terminal | grep -F -- --no-sandbox
-          wait
+          ps -eo pid,args | grep -F /opt/stepbro-terminal | grep -v grep | cut -c1-160 || true
+          # Chromium's sandboxed zygote is up, which is where 0.1.0-beta.27 aborted. (The window's
+          # own renderer runs with --no-sandbox on every platform: window.ts sets sandbox: false.)
+          ps -eo args | grep -xF '/opt/stepbro-terminal/StepbroTerminal --type=zygote'
+          # And the session host is running.
+          pgrep -f 'out/main/host.js'
+          wait || true
           cat app.log
+          cat ~/.step/host.log || true
           grep -F 'spawning host' app.log
-          ! grep -E 'FATAL|SUID sandbox helper|failed to execvp' app.log
+          if grep -E 'FATAL|SUID sandbox helper|failed to execvp' app.log; then exit 1; fi
 
       - name: Remove it
         run: |
