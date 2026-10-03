@@ -82,12 +82,14 @@ jobs:
           # Chromium's sandboxed zygote is up, which is where 0.1.0-beta.27 aborted. (The window's
           # own renderer runs with --no-sandbox on every platform: window.ts sets sandbox: false.)
           ps -eo args | grep -xF '/opt/stepbro-terminal/StepbroTerminal --type=zygote'
-          # And the session host is running.
-          pgrep -f 'out/main/host.js'
+          # One session host, running.
+          test "$(pgrep -fc 'out/main/host.js')" -eq 1
           wait || true
           cat app.log
-          cat ~/.step/host.log || true
-          grep -F 'spawning host' app.log
+          cat ~/.step/host.log
+          # Started once: the app logs each host it starts, and each host logs its own start.
+          test "$(grep -c 'spawning host' app.log)" -eq 1
+          test "$(grep -c 'step-host .* starting' ~/.step/host.log)" -eq 1
           if grep -E 'FATAL|SUID sandbox helper|failed to execvp' app.log; then exit 1; fi
 
       - name: Remove it
