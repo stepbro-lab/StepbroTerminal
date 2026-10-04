@@ -23,6 +23,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-10-01',
     headline: 'Sessions with short names that fit, agents that keep their screen whole while you resize, and the .deb working on Ubuntu 24.04.',
     changes: [
+      { kind: 'new', text: 'Type any address into the preview\'s bar: click it, write a link and press Enter. localhost:3000/admin, 127.0.0.1:5173 or :8080 open your dev server, example.com opens over https, and Esc puts the address back.' },
       { kind: 'improved', text: 'A Claude Code session takes the few words Claude sums the conversation up in ("Status line mejora"), instead of your first prompt cut off, and every automatic name fits its row in whole words: the little words go first, then words off the end. The full name is under the pointer, and a name you gave a session is never touched.' },
       { kind: 'fixed', text: 'On Ubuntu 23.10 and later, 24.04 included, the .deb starts again with Chromium\'s sandbox on: it installs into /opt/stepbro-terminal, without the space that kept the sandbox from starting the app, brings the AppArmor profile those releases ask for, and its icon shows in the launcher.' },
       { kind: 'fixed', text: 'Dragging the edge of the preview, of a split or of the sidebar, or resizing the window, no longer leaves an agent\'s screen in pieces: the terminals keep their columns while the edge moves, however long you drag, and the agent redraws once, when you let go.' },
