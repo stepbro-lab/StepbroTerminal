@@ -4,6 +4,7 @@ import { useData } from '@/stores/data'
 import { useUi } from '@/stores/ui'
 import { AgentLogo } from '../sidebar/AgentLogo'
 import { t } from '@/lib/i18n'
+import { addressFrom } from '@/lib/previewAddress'
 
 /**
  * How long the pane keeps saying an agent is using the page after its last move on it. Long enough
@@ -14,6 +15,7 @@ const USING_MS = 8000
 
 interface WebviewEl extends HTMLElement {
   src: string
+  loadURL: (url: string) => Promise<void>
   reload: () => void
   goBack: () => void
   canGoBack: () => boolean
@@ -31,6 +33,9 @@ export function PreviewPane({ url, sessionId }: { url: string; sessionId: string
   const closeSide = useUi((s) => s.closeSide)
   const ref = useRef<WebviewEl | null>(null)
   const [current, setCurrent] = useState(url)
+  // What is being typed into the address bar; null while it shows the page's own address.
+  const [draft, setDraft] = useState<string | null>(null)
+  const [badAddress, setBadAddress] = useState(false)
   const [loading, setLoading] = useState(true)
   const [failed, setFailed] = useState<string | null>(null)
   // The agent at work on the page: the pane says so, in its color, while it moves on the page and
@@ -132,9 +137,45 @@ export function PreviewPane({ url, sessionId }: { url: string; sessionId: string
         <button className="icon-btn" title={t('Reload')} onClick={() => ref.current?.reload()}>
           <RotateCw size={13} className={loading ? 'animate-spin' : undefined} />
         </button>
-        <span className="mx-1 min-w-0 flex-1 truncate rounded-md px-2 py-1 font-mono text-[11.5px] text-secondary" style={{ background: 'var(--bg-hover)' }}>
-          {current}
-        </span>
+        {/* The address, as the page is now; click it to type another and press Enter, Esc to leave it. */}
+        <input
+          className="mx-1 min-w-0 flex-1 rounded-md px-2 py-1 font-mono text-[11.5px] text-secondary outline-none"
+          style={{ background: 'var(--bg-hover)', boxShadow: badAddress ? 'inset 0 0 0 1px var(--danger)' : undefined }}
+          value={draft ?? current}
+          spellCheck={false}
+          autoComplete="off"
+          aria-label={t('Address')}
+          title={t('Type a link and press Enter')}
+          onFocus={(e) => {
+            setDraft(current)
+            setBadAddress(false)
+            const field = e.currentTarget
+            requestAnimationFrame(() => field.select())
+          }}
+          onChange={(e) => {
+            setDraft(e.target.value)
+            setBadAddress(false)
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              e.currentTarget.blur()
+              return
+            }
+            if (e.key !== 'Enter') return
+            const to = addressFrom(draft ?? '')
+            if (!to) {
+              setBadAddress(true)
+              return
+            }
+            setCurrent(to)
+            void ref.current?.loadURL(to).catch(() => undefined)
+            e.currentTarget.blur()
+          }}
+          onBlur={() => {
+            setDraft(null)
+            setBadAddress(false)
+          }}
+        />
         <button className="icon-btn" title={t('Open in your browser')} onClick={() => void window.step.invoke('app:openExternal', current)}>
           <ExternalLink size={13} />
         </button>
