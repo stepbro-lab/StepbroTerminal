@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { AlertTriangle } from 'lucide-react'
+import { AlertTriangle, X } from 'lucide-react'
 import type { Session } from '@shared/types'
 import { useData } from '@/stores/data'
 import { usePrefs } from '@/stores/prefs'
@@ -288,6 +288,7 @@ function DropHighlight({ zone }: { zone: DropZone }) {
  */
 function PaneCard({ id, connected, multi, bare, underRail }: { id: string; connected: boolean; multi: boolean; bare: boolean; underRail: boolean }) {
   const session = useData((s) => s.sessions[id])
+  const dismissedError = useUi((s) => s.dismissedErrors[id])
   const focused = useUi((s) => s.activeId === id)
   const searchOpen = useUi((s) => s.searchOpen)
   const setSearchOpen = useUi((s) => s.setSearchOpen)
@@ -322,7 +323,7 @@ function PaneCard({ id, connected, multi, bare, underRail }: { id: string; conne
             registry.focus(id)
           }}
         />
-        {session.status === 'error' && session.error && <ErrorBar session={session} />}
+        {session.status === 'error' && session.error && dismissedError !== session.error && <ErrorBar session={session} />}
         {!session.alive && session.status === 'exited' && !session.archived && (
           <Bar>
             <span className="min-w-0 flex-1 truncate text-muted">{session.exitCode !== undefined ? t('Process exited with code {code}.', { code: session.exitCode }) : t('Process exited.')}</span>
@@ -403,6 +404,10 @@ function ErrorBar({ session }: { session: Session }) {
         )}
         <button className="btn btn-secondary h-7 px-3 text-[12.5px]" onClick={() => restartSession(session.id)}>
           {t('Retry')}
+        </button>
+        {/* Out of the way, the session as it is: a different error brings the bar back. */}
+        <button className="icon-btn h-7 w-7 shrink-0" title={t('Dismiss')} aria-label={t('Dismiss')} onClick={() => useUi.getState().dismissError(session.id, session.error ?? '')}>
+          <X size={14} />
         </button>
       </div>
       {open && detail && (

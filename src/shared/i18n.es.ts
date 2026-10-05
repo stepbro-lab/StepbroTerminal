@@ -57,6 +57,7 @@ export const es: Record<string, string> = {
   'Process exited with code {code}.': 'El proceso terminó con código {code}.',
   Error: 'Error',
   Retry: 'Reintentar',
+  Dismiss: 'Cerrar aviso',
   Restart: 'Reiniciar',
   Close: 'Cerrar',
   Shell: 'Shell',
@@ -479,6 +480,8 @@ export const es: Record<string, string> = {
     'Una sesión de Claude Code toma las pocas palabras con que Claude resume la conversación ("Status line mejora"), en vez de tu primer mensaje cortado, y todo nombre automático cabe en su fila con palabras enteras: primero se quitan las palabras pequeñas y luego palabras del final. El nombre completo sale al pasar el puntero, y un nombre que tú pusiste nunca se toca.',
   "Type any address into the preview's bar: click it, write a link and press Enter. localhost:3000/admin, 127.0.0.1:5173 or :8080 open your dev server, example.com opens over https, and Esc puts the address back.":
     'Escribe cualquier dirección en la barra de la vista previa: haz clic, escribe un link y pulsa Enter. localhost:3000/admin, 127.0.0.1:5173 o :8080 abren tu servidor de desarrollo, ejemplo.com se abre por https, y Esc vuelve a dejar la dirección como estaba.',
+  'The bar a session shows when something went wrong, such as a turn Claude Code could not finish, closes with its X and leaves the session as it is. It stays closed until a different error comes.':
+    'El aviso que muestra una sesión cuando algo sale mal, como un turno que Claude Code no pudo terminar, se cierra con su X y deja la sesión como está. Sigue cerrado hasta que llega un error distinto.',
   "On Ubuntu 23.10 and later, 24.04 included, the .deb starts again with Chromium's sandbox on: it installs into /opt/stepbro-terminal, without the space that kept the sandbox from starting the app, brings the AppArmor profile those releases ask for, and its icon shows in the launcher.":
     'En Ubuntu 23.10 y posteriores, 24.04 incluido, el .deb vuelve a arrancar con el sandbox de Chromium activado: se instala en /opt/stepbro-terminal, sin el espacio que impedía al sandbox arrancar la app, trae el perfil de AppArmor que esas versiones piden y su icono se ve en el lanzador.',
   "Dragging the edge of the preview, of a split or of the sidebar, or resizing the window, no longer leaves an agent's screen in pieces: the terminals keep their columns while the edge moves, however long you drag, and the agent redraws once, when you let go.":

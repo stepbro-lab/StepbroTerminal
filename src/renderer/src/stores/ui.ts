@@ -30,6 +30,8 @@ interface UiState {
   dragging: string | null
   /** The folded sidebar out over the terminal for a look (SidebarPeek). */
   sidebarPeek: boolean
+  /** Per session, the error whose bar was closed: it stays closed until a different error comes. */
+  dismissedErrors: Record<string, string>
   /**
    * Side panels next to the terminals, at most one per session: a dev-server preview or the
    * session's changes. Each belongs to its session and only shows while that session is on screen.
@@ -63,6 +65,7 @@ interface UiState {
   dropSession: (id: string, target: string, zone: DropZone) => void
   setDragging: (id: string | null) => void
   setSidebarPeek: (peek: boolean) => void
+  dismissError: (id: string, error: string) => void
   setRatio: (path: Array<'a' | 'b'>, ratio: number) => void
   /** Opens a panel beside its session, in place of whatever panel that session had. */
   openSide: (side: SidePanel) => void
@@ -101,6 +104,7 @@ export const useUi = create<UiState>((set, get) => ({
   booted: false,
   dragging: null,
   sidebarPeek: false,
+  dismissedErrors: {},
   sides: {},
   activeProject: null,
   paletteOpen: false,
@@ -220,6 +224,7 @@ export const useUi = create<UiState>((set, get) => ({
   },
   setDragging: (dragging) => set({ dragging }),
   setSidebarPeek: (sidebarPeek) => set((s) => (s.sidebarPeek === sidebarPeek ? s : { sidebarPeek })),
+  dismissError: (id, error) => set((s) => ({ dismissedErrors: { ...s.dismissedErrors, [id]: error } })),
   setRatio: (path, ratio) => {
     const { views, activeView } = get()
     if (!views[activeView]) return
