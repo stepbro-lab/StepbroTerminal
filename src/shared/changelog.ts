@@ -23,6 +23,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-10-01',
     headline: 'Sessions with short names that fit, agents that keep their screen whole while you resize, and the .deb working on Ubuntu 24.04.',
     changes: [
+      { kind: 'improved', text: 'The folded sidebar comes out over the terminal again when the pointer reaches the left edge, as a solid card of its own, the way Arc and Helium bring out their tabs: nothing under it moves or resizes, so no agent redraws for it. The sidebar shortcut keeps it out for good, in its place at once.' },
       { kind: 'improved', text: 'The bar a session shows when something went wrong, such as a turn Claude Code could not finish, closes with its X and leaves the session as it is. It stays closed until a different error comes.' },
       { kind: 'new', text: 'Type any address into the preview\'s bar: click it, write a link and press Enter. localhost:3000/admin, 127.0.0.1:5173 or :8080 open your dev server, example.com opens over https, and Esc puts the address back.' },
       { kind: 'improved', text: 'A Claude Code session takes the few words Claude sums the conversation up in ("Status line mejora"), instead of your first prompt cut off, and every automatic name fits its row in whole words: the little words go first, then words off the end. The full name is under the pointer, and a name you gave a session is never touched.' },
