@@ -93,6 +93,45 @@ button:disabled {
 /* It sits on the frame, which may be the blurred desktop, so its fills are the theme's text or
    card colour laid thinly over whatever is behind (--side-hover, --side-active in tokens.css)
    rather than solid colours of their own. */
+
+/* Folded away and out for a look (SidebarPeek): a card over the terminals, the way Arc and Helium
+   bring their tabs out, sliding in from the edge. Solid, so the terminal under it never shows
+   through, and nothing under it moves or resizes. Above the panes, below the top bar. */
+aside[data-peek] {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 35;
+  height: auto;
+  width: var(--sidebar-w) !important;
+  border-radius: var(--radius-card);
+  background: var(--bg-sidebar);
+  box-shadow:
+    0 0 0 1px var(--border),
+    var(--shadow-pop);
+  animation: peek-in 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+aside[data-peek='out'] {
+  pointer-events: none;
+  animation: peek-out 160ms cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+@keyframes peek-in {
+  from {
+    transform: translateX(calc(-100% - 16px));
+  }
+}
+@keyframes peek-out {
+  to {
+    transform: translateX(calc(-100% - 16px));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  aside[data-peek] {
+    animation: none;
+  }
+}
+
 .fab {
   display: inline-flex;
   align-items: center;

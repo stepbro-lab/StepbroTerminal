@@ -38,6 +38,8 @@ const MAX_W = 360
 const DRAG_FIT_MS = 160
 
 const reducedMotion = (): boolean => window.matchMedia('(prefers-reduced-motion: reduce)').matches
+/** How long the card takes to slide back out of sight; global.css's peek-out runs as long. */
+const PEEK_OUT_MS = 160
 
 export function Sidebar() {
   const model = useSidebarModel()
@@ -50,10 +52,25 @@ export function Sidebar() {
   const closeView = useUi((s) => s.closeView)
   const width = prefs?.sidebarWidth ?? 240
   const collapsed = prefs?.sidebarCollapsed ?? false
-  // Out for a look from the left edge (SidebarPeek): it opens in its place, the way it does when it
-  // is unfolded, pushing the terminals over rather than lying on top of them, and folds back after.
+  // Out for a look from the left edge (SidebarPeek): a card of its own over the terminals, the way
+  // Arc and Helium show their tabs, so nothing under it moves or resizes. It slides back when it
+  // goes, and only then leaves the page: `peekOut` is that last moment.
   const peek = useUi((s) => s.sidebarPeek)
-  const shown = !collapsed || peek
+  const shown = !collapsed
+  const [peekOut, setPeekOut] = useState(false)
+  const wasPeek = useRef(false)
+  useEffect(() => {
+    const was = wasPeek.current
+    wasPeek.current = peek
+    if (!was || peek || !collapsed || reducedMotion()) return
+    setPeekOut(true)
+    const t = window.setTimeout(() => setPeekOut(false), PEEK_OUT_MS)
+    return () => {
+      window.clearTimeout(t)
+      setPeekOut(false)
+    }
+  }, [peek, collapsed])
+  const floating = collapsed ? (peek ? 'in' : peekOut ? 'out' : undefined) : undefined
   const dragging = useRef(false)
   const list = useRef<HTMLDivElement>(null)
   // Folders dragged in from the desktop land in the sidebar the same way "Add folder" would.
@@ -162,15 +179,24 @@ export function Sidebar() {
   // terminals fit once at the end instead of on every frame.
   const aside = useRef<HTMLElement>(null)
   const firstLayout = useRef(true)
+  const shownAs = useRef<string | undefined>(undefined)
   useLayoutEffect(() => {
     const el = aside.current
     if (!el) return
     const settle = (): void => {
       el.style.width = shown ? 'var(--sidebar-w)' : '0px'
     }
-    if (firstLayout.current || reducedMotion()) {
+    // Kept out for good while it was out for a look (the sidebar shortcut): it is already showing,
+    // so it takes its place at once rather than growing again from nothing. What the last frame
+    // showed decides, not the look itself, which may already have been put away by now.
+    const fromPeek = shown && shownAs.current === 'in'
+    if (firstLayout.current || reducedMotion() || fromPeek) {
       firstLayout.current = false
       settle()
+      if (fromPeek) {
+        registry.holdFits()
+        registry.releaseFits()
+      }
       return
     }
     gsap.killTweensOf(el)
@@ -195,6 +221,10 @@ export function Sidebar() {
       registry.releaseFits()
     }
   }, [shown])
+  // After the fold above has read it: how the sidebar showed in the frame just drawn.
+  useLayoutEffect(() => {
+    shownAs.current = floating
+  })
 
   const ins = reorder.insert
   const mark = (row: SidebarSession): 'before' | 'after' | undefined => (ins?.id === row.id ? (ins.after ? 'after' : 'before') : undefined)
@@ -250,7 +280,7 @@ export function Sidebar() {
   }
 
   return (
-    <aside {...drop.props} ref={aside} className="sidebar relative flex h-full shrink-0 flex-col overflow-hidden" data-peek={peek && collapsed ? '' : undefined}>
+    <aside {...drop.props} ref={aside} className="sidebar relative flex h-full shrink-0 flex-col overflow-hidden" data-peek={floating}>
       <div
         ref={list}
         className="scroll-thin flex-1 pl-1 pr-2 pt-1"

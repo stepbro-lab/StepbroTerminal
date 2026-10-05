@@ -5,9 +5,9 @@ import { useMenu } from '../ContextMenu'
 import { PeekController } from '@/lib/sidebarPeek'
 
 /**
- * With the sidebar folded away, the left edge of the window brings it out for a look, the way Arc
- * and Zen do it. It opens in its own place, as it does when unfolded, so nothing is covered: the
- * terminals make room while it is out and take it back after, refitting once each way.
+ * With the sidebar folded away, the left edge of the window brings it out for a look, the way Arc,
+ * Zen and Helium do it: a solid card sliding in over the terminals (global.css, aside[data-peek]),
+ * which stay exactly as they were underneath, so the programs in them are never resized.
  *
  * It comes out once the pointer has rested a moment in the thin strip along the edge, or has left
  * the window across that edge, below the window's buttons and with no button held. It stays out
