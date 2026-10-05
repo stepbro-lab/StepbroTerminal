@@ -474,8 +474,8 @@ export const es: Record<string, string> = {
   'A page for archived sessions in Settings: every session you put away, from every folder, newest first, with a search, a Restore button that brings it back where it left off, and a way to delete one or all of them.':
     'Una página de sesiones archivadas en Ajustes: todas las sesiones que guardaste, de todas las carpetas, las más recientes primero, con un buscador, un botón Restaurar que la recupera donde se quedó y la opción de borrar una o todas.',
   'Show it from the left edge': 'Mostrarla desde el borde izquierdo',
-  'Sessions with short names that fit, agents that keep their screen whole while you resize, and the .deb working on Ubuntu 24.04.':
-    'Sesiones con nombres cortos que caben, agentes que mantienen su pantalla entera al cambiar tamaños y el .deb funcionando en Ubuntu 24.04.',
+  "Short session names, a sidebar that floats out like Arc's, any link in the preview, and the .deb working on Ubuntu 24.04.":
+    'Nombres de sesión cortos, una barra lateral que sale flotando como la de Arc, cualquier link en la vista previa y el .deb funcionando en Ubuntu 24.04.',
   'A Claude Code session takes the few words Claude sums the conversation up in ("Status line mejora"), instead of your first prompt cut off, and every automatic name fits its row in whole words: the little words go first, then words off the end. The full name is under the pointer, and a name you gave a session is never touched.':
     'Una sesión de Claude Code toma las pocas palabras con que Claude resume la conversación ("Status line mejora"), en vez de tu primer mensaje cortado, y todo nombre automático cabe en su fila con palabras enteras: primero se quitan las palabras pequeñas y luego palabras del final. El nombre completo sale al pasar el puntero, y un nombre que tú pusiste nunca se toca.',
   "Type any address into the preview's bar: click it, write a link and press Enter. localhost:3000/admin, 127.0.0.1:5173 or :8080 open your dev server, example.com opens over https, and Esc puts the address back.":
