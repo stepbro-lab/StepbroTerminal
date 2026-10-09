@@ -181,3 +181,40 @@ describe('Claude waiting in its registry', () => {
     expect(reduceStatus(base('idle', false, { registryPid: 7 }), waiting('dialog open', 'acknowledge the billing notice'))).toEqual({ status: 'attention' })
   })
 })
+
+describe('an MCP server asking the person something', () => {
+  // What Claude Code 2.1 sends its hooks when a server like Supabase asks before a destructive query.
+  const asked = {
+    mcp_server_name: 'supabase',
+    message: 'This SQL includes destructive operations (DROP, DELETE, TRUNCATE or UPDATE without WHERE).\nIt may permanently remove data.',
+    mode: 'form'
+  }
+
+  it('calls the person over the moment the dialog opens, saying who asks and what', () => {
+    expect(reduceStatus(base('working', false, { tool: 'mcp__supabase__apply_migration' }), hook('Elicitation', asked))).toEqual({
+      status: 'attention',
+      agent: { lastMessage: 'supabase: This SQL includes destructive operations (DROP, DELETE, TRUNCATE or UPDATE without WHERE). It may permanently remove data.' }
+    })
+    expect(reduceStatus(base('working'), hook('Elicitation', { message: 'Open the link to sign in' }))).toEqual({
+      status: 'attention',
+      agent: { lastMessage: 'Open the link to sign in' }
+    })
+    expect(reduceStatus(base('working'), hook('Elicitation', {}))).toEqual({ status: 'attention', agent: { lastMessage: undefined } })
+  })
+
+  it('goes back to the tool that asked once answered, and forgets the question', () => {
+    const answered = hook('ElicitationResult', { mcp_server_name: 'supabase', action: 'accept' })
+    expect(reduceStatus(base('attention', false, { tool: 'mcp__supabase__apply_migration', lastMessage: 'supabase: …' }), answered)).toEqual({
+      status: 'working',
+      agent: { lastMessage: undefined }
+    })
+    // Asked outside a turn, nothing is running once it is answered.
+    expect(reduceStatus(base('attention', false, { lastMessage: 'supabase: …' }), answered)).toEqual({ status: 'idle', agent: { lastMessage: undefined } })
+    expect(reduceStatus(base('working', false, { tool: 'x' }), answered)).toEqual({ agent: { lastMessage: undefined } })
+  })
+
+  it("does not let the last turn's closing words pass for a question in the next one", () => {
+    const r = reduceStatus(base('done', false, { lastMessage: 'All tests pass' }), hook('UserPromptSubmit'))
+    expect(r?.agent).toHaveProperty('lastMessage', undefined)
+  })
+})

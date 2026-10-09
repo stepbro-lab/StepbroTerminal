@@ -37,6 +37,10 @@ function str(v: unknown): string | undefined {
   return typeof v === 'string' && v.length ? v : undefined
 }
 
+function oneLine(text: string): string {
+  return text.replace(/\s+/g, ' ').trim().slice(0, 200)
+}
+
 /** Sessions whose status comes from hooks or the Claude registry ignore what the output looks like. */
 function managed(s: Input): boolean {
   return s.launch.hooks || !!s.agent.hooked || !!s.agent.registryPid
@@ -108,11 +112,23 @@ function reduceHook(s: Input, e: HookEvent): StatusPatch | null {
     }
     case 'PermissionRequest':
       return { status: 'attention' }
+    case 'Elicitation': {
+      // An MCP server asking the person something, like Supabase checking before a destructive
+      // query. Claude's own notice for it comes six seconds later and only says it needs input;
+      // this one comes with the dialog, and says who asks and what.
+      const server = str(p['mcp_server_name'])
+      const message = str(p['message'])
+      return { status: 'attention', agent: { lastMessage: message ? oneLine(server ? `${server}: ${message}` : message) : undefined } }
+    }
+    case 'ElicitationResult':
+      // Answered: the tool that asked carries on. Asked outside a tool, there is nothing running.
+      if (s.status !== 'attention') return { agent: { lastMessage: undefined } }
+      return { status: s.agent.tool ? 'working' : 'idle', agent: { lastMessage: undefined } }
     case 'Stop': {
       const last = str(p['last_assistant_message'])
       return {
         status: 'done',
-        agent: { tool: undefined, lastMessage: last ? last.replace(/\s+/g, ' ').trim().slice(0, 200) : undefined }
+        agent: { tool: undefined, lastMessage: last ? oneLine(last) : undefined }
       }
     }
     case 'StopFailure': {
@@ -130,6 +146,8 @@ function reduceHook(s: Input, e: HookEvent): StatusPatch | null {
         const patch: StatusPatch = { status: 'working', agent: {} }
         const tool = str(p['tool_name'])
         patch.agent!.tool = e.name === 'PreToolUse' ? tool : e.name === 'UserPromptSubmit' ? undefined : s.agent.tool
+        // The last turn's closing words would read as the question in a notice during this one.
+        if (e.name === 'UserPromptSubmit') patch.agent!.lastMessage = undefined
         const mode = str(p['permission_mode'])
         if (mode) patch.agent!.permissionMode = mode
         return patch

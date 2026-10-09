@@ -9,6 +9,8 @@ const HOOK_EVENTS = [
   'PostToolUse',
   'PostToolUseFailure',
   'Notification',
+  'Elicitation',
+  'ElicitationResult',
   'Stop',
   'StopFailure',
   'PostModelSwitch',
