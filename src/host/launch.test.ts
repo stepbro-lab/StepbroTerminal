@@ -202,7 +202,7 @@ describe('writeHooksSettings', () => {
   it('writes http hooks for every lifecycle event', () => {
     const file = writeHooksSettings(tmp, 's1', 'http://127.0.0.1:1234/hooks/tok')
     const json = JSON.parse(fs.readFileSync(file, 'utf8'))
-    for (const ev of ['SessionStart', 'UserPromptSubmit', 'PreToolUse', 'Notification', 'Stop', 'SessionEnd']) {
+    for (const ev of ['SessionStart', 'UserPromptSubmit', 'PreToolUse', 'Notification', 'Elicitation', 'ElicitationResult', 'Stop', 'SessionEnd']) {
       expect(json.hooks[ev][0].hooks[0]).toMatchObject({ type: 'http', url: 'http://127.0.0.1:1234/hooks/tok' })
     }
     expect(Object.keys(json)).toEqual(['hooks'])

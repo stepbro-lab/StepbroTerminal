@@ -34,6 +34,12 @@ describe('noticeFor', () => {
     expect(n?.body).toBe('Claude needs your permission to use Bash — tap to answer in the terminal.')
   })
 
+  it('passes on what an MCP server asks', () => {
+    const n = noticeFor(session({}, { lastMessage: 'supabase: This SQL includes destructive operations. Run it on project abc?' }), 'Claude Code')
+    expect(n?.body).toBe('supabase: This SQL includes destructive operations. Run it on project abc? — tap to answer in the terminal.')
+    expect(n?.sticky).toBe(true)
+  })
+
   it('falls back to the session title for a plain shell', () => {
     const n = noticeFor(session({ presetId: 'shell' }), null)
     expect(n?.title).toBe('Orchestrator needs you')
