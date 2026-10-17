@@ -38,6 +38,7 @@ import { claudeConversationExists, conversationFromTranscript, latestClaudeConve
 import { TranscriptTitles } from './claudeTitle'
 import { codexHome, codexThreadsSince, justWritten, latestSince } from './codexThreads'
 import { OutputPressure } from './OutputPressure'
+import { modesSerializeMisses } from './screenModes'
 
 export interface SessionManagerOpts {
   stateFile: string
@@ -198,7 +199,7 @@ export class SessionManager extends EventEmitter {
     await this.restoreScreen(l)
     await l.drained
     try {
-      return Buffer.from(l.serializer.serialize({ scrollback: this.opts.scrollback }), 'utf8')
+      return Buffer.from(this.serialize(l), 'utf8')
     } catch (e) {
       log('serialize failed', id, e)
       return new Uint8Array(0)
@@ -873,6 +874,11 @@ export class SessionManager extends EventEmitter {
     })
   }
 
+  /** The screen and its scrollback as escape sequences, with the modes the serializer leaves out. */
+  private serialize(l: Live): string {
+    return l.serializer.serialize({ scrollback: this.opts.scrollback }) + modesSerializeMisses(l.screen)
+  }
+
   private newScreen(s: Session): { screen: HeadlessTerminal; serializer: SerializeAddon } {
     const screen = new HeadlessTerminal({
       cols: s.cols || 80,
@@ -1325,7 +1331,7 @@ export class SessionManager extends EventEmitter {
     l.flow.set('rotate', true)
     try {
       await l.drained
-      return generation === l.generation ? l.serializer.serialize({ scrollback: this.opts.scrollback }) : undefined
+      return generation === l.generation ? this.serialize(l) : undefined
     } catch (e) {
       log('keeping the screen failed', l.s.id, e)
       return undefined
@@ -1400,7 +1406,7 @@ export class SessionManager extends EventEmitter {
         try {
           // Whatever arrived last is on the screen only once the emulator has read it.
           await l.drained
-          await fs.promises.writeFile(file + '.tmp', l.serializer.serialize({ scrollback: this.opts.scrollback }))
+          await fs.promises.writeFile(file + '.tmp', this.serialize(l))
           await fs.promises.rename(file + '.tmp', file)
         } catch (e) {
           log('saving the screen failed', l.s.id, e)
