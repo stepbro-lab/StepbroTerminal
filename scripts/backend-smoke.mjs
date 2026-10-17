@@ -94,6 +94,27 @@ try {
   await until(() => output.includes('ready-native-ok'), 'native shell command')
   console.log('native shell input/output: passed')
 
+  // A program that takes the mouse the way Codex does: once, as it starts, with SGR reports. The
+  // window must hear about the encoding through the PTY (ConPTY on Windows) and again when it
+  // reconnects, or every move of the mouse is typed into the program as "[MC…".
+  const setsMode = (text, mode) => new RegExp(`\\x1b\\[\\?(?:\\d+;)*${mode}(?:;\\d+)*h`).test(text)
+  const app = path.join(dir, 'mouse-app.cjs')
+  await fs.writeFile(app, [
+    "process.stdout.write('\\x1b[?1000h\\x1b[?1002h\\x1b[?1003h\\x1b[?1006hmouse-app-ready\\r\\n')",
+    "setTimeout(() => process.stdout.write('\\x1b[?1006l\\x1b[?1003l\\x1b[?1002l\\x1b[?1000lmouse-app-done\\r\\n'), 8000)"
+  ].join('\n'))
+  output = ''
+  send({ t: 'input', id: sessionId }, Buffer.from(`"${process.execPath}" "${app}"${win ? '\r' : '\n'}`))
+  await until(() => output.includes('mouse-app-ready'), 'mouse program start')
+  assert.ok(setsMode(output, 1003) && setsMode(output, 1006), `the mouse mode and its SGR encoding must reach the window: ${JSON.stringify(output.slice(-400))}`)
+  const replays = messages.filter((m) => m.t === 'replay').length
+  output = ''
+  send({ t: 'attach', id: sessionId })
+  await until(() => messages.filter((m) => m.t === 'replay').length > replays, 'snapshot for a reconnecting window')
+  assert.ok(setsMode(output, 1003) && setsMode(output, 1006), `a reconnecting window must get the mouse mode and its SGR encoding: ${JSON.stringify(output.slice(-400))}`)
+  await until(() => output.includes('mouse-app-done'), 'mouse program end')
+  console.log('a program that takes the mouse keeps its SGR reports across a reconnect: passed')
+
   output = ''
   delayAck = true
   const line = 'x'.repeat(100)
