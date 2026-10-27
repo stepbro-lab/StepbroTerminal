@@ -19,6 +19,17 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.1.0-beta.29',
+    date: '2026-10-27',
+    headline: 'MCP questions that call you at once, the mouse in Codex fixed, and a sidebar of frosted glass.',
+    changes: [
+      { kind: 'improved', text: 'When an MCP server asks you something, such as Supabase checking before it runs a destructive query, stepbro calls you the moment the question opens instead of seconds later, and the notification says which server asks and what. Once you answer, the session goes back to work.' },
+      { kind: 'improved', text: 'The sidebar that comes out from the left edge is frosted glass: what is behind it shows through as a soft blur, and its corners now match the terminal cards\'. With Reduce transparency on in macOS, it stays solid.' },
+      { kind: 'fixed', text: 'Moving the mouse over Codex no longer types "[MC…" into its prompt after the window has reopened, reloaded or reconnected: a screen that comes back keeps the mouse reports Codex asked for. It happened most on Windows, and on macOS on the right side of wide terminals.' },
+      { kind: 'fixed', text: 'A "needs you" notification no longer shows the last words of the previous turn as if they were the question.' }
+    ]
+  },
+  {
     version: '0.1.0-beta.28',
     date: '2026-10-05',
     headline: 'Short session names, a sidebar that floats out like Arc\'s, any link in the preview, and the .deb working on Ubuntu 24.04.',

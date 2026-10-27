@@ -474,6 +474,16 @@ export const es: Record<string, string> = {
   'A page for archived sessions in Settings: every session you put away, from every folder, newest first, with a search, a Restore button that brings it back where it left off, and a way to delete one or all of them.':
     'Una página de sesiones archivadas en Ajustes: todas las sesiones que guardaste, de todas las carpetas, las más recientes primero, con un buscador, un botón Restaurar que la recupera donde se quedó y la opción de borrar una o todas.',
   'Show it from the left edge': 'Mostrarla desde el borde izquierdo',
+  'MCP questions that call you at once, the mouse in Codex fixed, and a sidebar of frosted glass.':
+    'Las preguntas de MCP te avisan al instante, el ratón en Codex arreglado y una barra lateral de cristal esmerilado.',
+  'When an MCP server asks you something, such as Supabase checking before it runs a destructive query, stepbro calls you the moment the question opens instead of seconds later, and the notification says which server asks and what. Once you answer, the session goes back to work.':
+    'Cuando un servidor MCP te pregunta algo, como Supabase confirmando antes de ejecutar una consulta destructiva, stepbro te avisa en el momento en que se abre la pregunta en vez de segundos después, y la notificación dice qué servidor pregunta y qué. En cuanto respondes, la sesión vuelve a trabajar.',
+  "The sidebar that comes out from the left edge is frosted glass: what is behind it shows through as a soft blur, and its corners now match the terminal cards'. With Reduce transparency on in macOS, it stays solid.":
+    'La barra lateral que sale desde el borde izquierdo es de cristal esmerilado: lo que hay detrás se ve como un desenfoque suave, y sus esquinas ahora son iguales a las de las tarjetas del terminal. Con Reducir transparencia activado en macOS, se queda sólida.',
+  'Moving the mouse over Codex no longer types "[MC…" into its prompt after the window has reopened, reloaded or reconnected: a screen that comes back keeps the mouse reports Codex asked for. It happened most on Windows, and on macOS on the right side of wide terminals.':
+    'Mover el ratón sobre Codex ya no escribe "[MC…" en su prompt después de que la ventana se reabra, se recargue o se reconecte: una pantalla que vuelve conserva el formato del ratón que pidió Codex. Pasaba sobre todo en Windows, y en macOS en la parte derecha de las terminales anchas.',
+  'A "needs you" notification no longer shows the last words of the previous turn as if they were the question.':
+    'Una notificación de "te necesita" ya no muestra las últimas palabras del turno anterior como si fueran la pregunta.',
   "Short session names, a sidebar that floats out like Arc's, any link in the preview, and the .deb working on Ubuntu 24.04.":
     'Nombres de sesión cortos, una barra lateral que sale flotando como la de Arc, cualquier link en la vista previa y el .deb funcionando en Ubuntu 24.04.',
   'A Claude Code session takes the few words Claude sums the conversation up in ("Status line mejora"), instead of your first prompt cut off, and every automatic name fits its row in whole words: the little words go first, then words off the end. The full name is under the pointer, and a name you gave a session is never touched.':
