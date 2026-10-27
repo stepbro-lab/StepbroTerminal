@@ -32,6 +32,12 @@ function changes() {
 }
 
 const unsigned = 'The builds are not signed yet, so Windows and macOS warn the first time you open them. On Windows click "More info" and then "Run anyway"; on macOS right-click the app and choose "Open".'
+// Since 23.10 Ubuntu keeps unconfined programs from making the namespaces Chromium's sandbox runs
+// in, and an AppImage cannot carry the setuid helper Chromium falls back on, so it stops before
+// it opens. The .deb installs an AppArmor profile that lets it (build/linux/after-install.tpl).
+const ubuntu = 'On Ubuntu 23.10 and later, install the .deb: Ubuntu does not let an AppImage start the sandbox Chromium runs in, so the AppImage closes before it opens. The .deb sets up what it needs as it installs.'
+// What src/main/updates.ts does on each: only the Windows installer and the AppImage replace themselves.
+const updates = 'Already installed? On Windows and in the AppImage the app updates itself; on macOS and with the .deb it tells you when there is a new version and brings you here.'
 
 function notes() {
   return [
@@ -42,9 +48,11 @@ function notes() {
     '',
     `- **Windows**: \`${file('win-x64', 'exe')}\``,
     `- **macOS**: \`${file('mac-arm64', 'dmg')}\` for Apple Silicon, \`${file('mac-x64', 'dmg')}\` for Intel`,
-    `- **Linux**: \`${file('linux-x86_64', 'AppImage')}\` or \`${file('linux-amd64', 'deb')}\``,
+    `- **Linux**: \`${file('linux-amd64', 'deb')}\` for Ubuntu and Debian, \`${file('linux-x86_64', 'AppImage')}\` for other distributions`,
     '',
-    'Already installed? The app updates itself.',
+    ubuntu,
+    '',
+    updates,
     '',
     unsigned
   ].join('\n')
@@ -66,9 +74,11 @@ function readme() {
     `- **Windows**: [${file('win-x64', 'exe')}](${link(file('win-x64', 'exe'))})`,
     `- **macOS (Apple Silicon)**: [${file('mac-arm64', 'dmg')}](${link(file('mac-arm64', 'dmg'))})`,
     `- **macOS (Intel)**: [${file('mac-x64', 'dmg')}](${link(file('mac-x64', 'dmg'))})`,
-    `- **Linux**: [AppImage](${link(file('linux-x86_64', 'AppImage'))}) or [.deb](${link(file('linux-amd64', 'deb'))})`,
+    `- **Linux**: [.deb](${link(file('linux-amd64', 'deb'))}) for Ubuntu and Debian, [AppImage](${link(file('linux-x86_64', 'AppImage'))}) for other distributions`,
     '',
-    `What changed in each version is on the [Releases](https://github.com/${REPO}/releases) page. Once installed, the app updates itself.`,
+    ubuntu,
+    '',
+    `What changed in each version is on the [Releases](https://github.com/${REPO}/releases) page. ${updates}`,
     '',
     unsigned,
     '',
