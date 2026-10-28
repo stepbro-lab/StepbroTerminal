@@ -484,6 +484,12 @@ export const es: Record<string, string> = {
   '1 session open': '1 sesión abierta',
   '{n} sessions open': '{n} sesiones abiertas',
   'Get stepbro terminal': 'Descargar stepbro terminal',
+  'stepbro terminal on your Discord profile, and notes Claude always finds.':
+    'stepbro terminal en tu perfil de Discord, y notas que Claude siempre encuentra.',
+  'While stepbro terminal is open, your Discord profile says so: "Playing stepbro terminal", with the agents you are coding with, how many are working, and a button for others to get the app. Your folders, sessions and what you write never show. Settings, under Appearance, can turn it off.':
+    'Mientras stepbro terminal está abierto, tu perfil de Discord lo dice: "Jugando a stepbro terminal", con los agentes con los que programas, cuántos están trabajando y un botón para que otros descarguen la app. Tus carpetas, sesiones y lo que escribes nunca se muestran. Se puede apagar en Ajustes, en Apariencia.',
+  "Ask Claude Code to note something (\"note that…\", \"anota que…\") and it goes straight to stepbro's notes every time. It used to miss that they were there, and could go looking for a notes feature in your project instead.":
+    'Pídele a Claude Code que anote algo ("anota que…") y va directo a las notas de stepbro, siempre. Antes no se enteraba de que existían y podía ponerse a buscar cómo tomar notas en tu proyecto.',
   'MCP questions that call you at once, the mouse in Codex fixed, and a sidebar of frosted glass.':
     'Las preguntas de MCP te avisan al instante, el ratón en Codex arreglado y una barra lateral de cristal esmerilado.',
   'When an MCP server asks you something, such as Supabase checking before it runs a destructive query, stepbro calls you the moment the question opens instead of seconds later, and the notification says which server asks and what. Once you answer, the session goes back to work.':

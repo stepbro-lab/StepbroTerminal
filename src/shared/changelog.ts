@@ -19,6 +19,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.1.0-beta.30',
+    date: '2026-10-28',
+    headline: 'stepbro terminal on your Discord profile, and notes Claude always finds.',
+    changes: [
+      { kind: 'new', text: 'While stepbro terminal is open, your Discord profile says so: "Playing stepbro terminal", with the agents you are coding with, how many are working, and a button for others to get the app. Your folders, sessions and what you write never show. Settings, under Appearance, can turn it off.' },
+      { kind: 'fixed', text: 'Ask Claude Code to note something ("note that…", "anota que…") and it goes straight to stepbro\'s notes every time. It used to miss that they were there, and could go looking for a notes feature in your project instead.' }
+    ]
+  },
+  {
     version: '0.1.0-beta.29',
     date: '2026-10-27',
     headline: 'MCP questions that call you at once, the mouse in Codex fixed, and a sidebar of frosted glass.',
