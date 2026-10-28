@@ -51,12 +51,14 @@ export class FrameReader {
 export function socketPaths(platform: NodeJS.Platform = process.platform, env: NodeJS.ProcessEnv = process.env): string[] {
   const ids = Array.from({ length: 10 }, (_, i) => i)
   if (platform === 'win32') return ids.map((i) => `\\\\?\\pipe\\discord-ipc-${i}`)
-  const bases = [env['XDG_RUNTIME_DIR'], env['TMPDIR'], env['TMP'], env['TEMP'], os.tmpdir(), '/tmp'].filter((b): b is string => !!b).map((b) => path.resolve(b))
+  // Sockets live only on macOS and Linux, so their paths are POSIX ones wherever this runs.
+  const p = path.posix
+  const bases = [env['XDG_RUNTIME_DIR'], env['TMPDIR'], env['TMP'], env['TEMP'], os.tmpdir(), '/tmp'].filter((b): b is string => !!b).map((b) => p.resolve(b))
   const dirs: string[] = []
   for (const b of bases) {
-    for (const d of [b, path.join(b, 'app', 'com.discordapp.Discord'), path.join(b, 'snap.discord')]) if (!dirs.includes(d)) dirs.push(d)
+    for (const d of [b, p.join(b, 'app', 'com.discordapp.Discord'), p.join(b, 'snap.discord')]) if (!dirs.includes(d)) dirs.push(d)
   }
-  return ids.flatMap((i) => dirs.map((d) => path.join(d, `discord-ipc-${i}`)))
+  return ids.flatMap((i) => dirs.map((d) => p.join(d, `discord-ipc-${i}`)))
 }
 
 /** An open link to Discord, ready for activities once it said it was. */
