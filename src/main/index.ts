@@ -15,6 +15,7 @@ import { LiveClaudeWatcher } from './claude/liveSessions'
 import { computeProjects } from './projects'
 import { applyAppIcon, applyWindowTheme, createWindow } from './window'
 import { Notifier } from './notifications'
+import { DiscordPresence } from './discord/presence'
 import { StepTray } from './tray'
 import { PreviewBridge } from './preview'
 import { PromptLog } from './prompts'
@@ -181,6 +182,7 @@ async function boot(): Promise<void> {
     activeId: null,
     notifier: null as unknown as Notifier,
     tray: null as unknown as StepTray,
+    presence: null as unknown as DiscordPresence,
     previews: null as unknown as PreviewBridge,
     prompts: new PromptLog(),
     updates: null as unknown as Updates,
@@ -219,6 +221,7 @@ async function boot(): Promise<void> {
         buildAppMenu(ctx)
         ctx.tray.refresh()
       }
+      if (partial.language !== undefined || partial.discordPresence !== undefined || partial.logo !== undefined) ctx.presence.update()
       return ctx.prefs
     },
     refreshPresets: () => {
@@ -237,15 +240,17 @@ async function boot(): Promise<void> {
     }
   }
 
+  // The agent running in a session ("Claude Code", "Codex"), or null for a plain shell.
+  const agentName = (s: Session): string | null => {
+    const id = s.agent.detectedPreset ?? s.presetId
+    return id === 'shell' ? null : (ctx.presets.find((p) => p.id === id)?.name ?? null)
+  }
   ctx.notifier = new Notifier({
     getPrefs: () => ctx.prefs,
     getWindow: () => ctx.win,
     getActive: () => ctx.activeId,
     log: (...parts) => ctx.log(...parts),
-    agentName: (s) => {
-      const id = s.agent.detectedPreset ?? s.presetId
-      return id === 'shell' ? null : (ctx.presets.find((p) => p.id === id)?.name ?? null)
-    },
+    agentName,
     focusSession: (id) => {
       // A click on a notification while the app was closed: the window is still loading, so hold the request.
       if (ctx.rendererReady && ctx.win && !ctx.win.isDestroyed()) ctx.emit('ui:focusSession', id)
@@ -259,6 +264,14 @@ async function boot(): Promise<void> {
     focusSession: (id) => ctx.emit('ui:focusSession', id),
     getPrefs: () => ctx.prefs
   })
+  ctx.presence = new DiscordPresence({
+    enabled: () => ctx.prefs.discordPresence !== false,
+    sessions: () => [...ctx.sessions.values()],
+    logo: () => ctx.prefs.logo,
+    agentName,
+    log: (...parts) => ctx.log(...parts)
+  })
+  ctx.presence.update()
 
   ctx.prompts.load()
   ctx.refreshPresets()
@@ -344,6 +357,7 @@ async function boot(): Promise<void> {
     quitting = true
     // Never kill the host: sessions must survive the app.
     client.disconnect()
+    ctx.presence.stop()
     history.stop()
     live.stop()
     ctx.tray.destroy()
@@ -358,6 +372,7 @@ function wireHostClient(ctx: Ctx): void {
     ctx.emit('host:sessions', list)
     ctx.emitProjects()
     ctx.tray.update()
+    ctx.presence.update()
   })
   client.on('session', (s: Session) => {
     const isNew = !ctx.sessions.has(s.id)
@@ -368,6 +383,7 @@ ${s.errorDetail}`)
     ctx.emit('host:session', s)
     ctx.notifier.onSession(s)
     ctx.tray.update()
+    ctx.presence.update()
     if (isNew) ctx.emitProjects()
   })
   client.on('removed', (id: string) => {
@@ -376,6 +392,7 @@ ${s.errorDetail}`)
     ctx.emit('host:removed', id)
     ctx.emitProjects()
     ctx.tray.update()
+    ctx.presence.update()
   })
   client.on('output', (id: string, bytes: Uint8Array) => ctx.emit('host:output', id, bytes, false))
   client.on('replay', (id: string, bytes: Uint8Array) => ctx.emit('host:output', id, bytes, true))

@@ -6,6 +6,7 @@ import type { HistoryIndex } from './claude/history'
 import type { LiveClaudeWatcher } from './claude/liveSessions'
 import type { Notifier } from './notifications'
 import type { StepTray } from './tray'
+import type { DiscordPresence } from './discord/presence'
 import type { PromptLog } from './prompts'
 import type { Updates } from './updates'
 import type { PreviewBridge } from './preview'
@@ -25,6 +26,8 @@ export interface Ctx {
   activeId: string | null
   notifier: Notifier
   tray: StepTray
+  /** What the person's Discord profile says while the app runs. */
+  presence: DiscordPresence
   prompts: PromptLog
   updates: Updates
   /** The preview pane, driven for agents through the stepbro MCP server. */

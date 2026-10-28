@@ -474,6 +474,16 @@ export const es: Record<string, string> = {
   'A page for archived sessions in Settings: every session you put away, from every folder, newest first, with a search, a Restore button that brings it back where it left off, and a way to delete one or all of them.':
     'Una página de sesiones archivadas en Ajustes: todas las sesiones que guardaste, de todas las carpetas, las más recientes primero, con un buscador, un botón Restaurar que la recupera donde se quedó y la opción de borrar una o todas.',
   'Show it from the left edge': 'Mostrarla desde el borde izquierdo',
+  'While stepbro terminal is open, your Discord profile says you are using it and with which agents. Your folders, sessions and what you write never show.':
+    'Mientras stepbro terminal está abierto, tu perfil de Discord dice que lo estás usando y con qué agentes. Tus carpetas, sesiones y lo que escribes nunca se muestran.',
+  'Show on my Discord profile': 'Mostrar en mi perfil de Discord',
+  'In the terminal': 'En la terminal',
+  'Coding with {agent}': 'Programando con {agent}',
+  'Coding with {agent} and {other}': 'Programando con {agent} y {other}',
+  'Coding with {n} agents': 'Programando con {n} agentes',
+  '1 session open': '1 sesión abierta',
+  '{n} sessions open': '{n} sesiones abiertas',
+  'Get stepbro terminal': 'Descargar stepbro terminal',
   'MCP questions that call you at once, the mouse in Codex fixed, and a sidebar of frosted glass.':
     'Las preguntas de MCP te avisan al instante, el ratón en Codex arreglado y una barra lateral de cristal esmerilado.',
   'When an MCP server asks you something, such as Supabase checking before it runs a destructive query, stepbro calls you the moment the question opens instead of seconds later, and the notification says which server asks and what. Once you answer, the session goes back to work.':
