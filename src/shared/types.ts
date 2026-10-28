@@ -227,6 +227,11 @@ export interface Prefs {
    */
   discordPresence?: boolean
   /**
+   * Error reports go to the developer, cleaned of anything that names the person (main/errorScrub.ts).
+   * Unset until the person answers when asked; nothing is sent before they say yes.
+   */
+  errorReports?: boolean
+  /**
    * Windows: closing the window leaves the app running in the tray, still telling you when a
    * session needs you, until it is quit from there. On unless turned off.
    */

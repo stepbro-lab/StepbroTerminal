@@ -22,11 +22,17 @@ interface Client {
 const FLUSH_MS = 8
 const PAUSE_ABOVE = 1024 * 1024
 const RESUME_BELOW = 256 * 1024
+const FAULT_QUIET_MS = 10 * 60 * 1000
+const MAX_KEPT_FAULTS = 10
 
 /** Local socket server: fans out session events and output to attached clients with flow control. */
 export class HostServer {
   private server: net.Server
   private clients = new Set<Client>()
+  /** Errors caught while no app was connected, handed to the next one that says hello. */
+  private faults: Array<{ message: string; stack?: string }> = []
+  /** When each error was last passed on: the same one again within FAULT_QUIET_MS is not. */
+  private faultSeen = new Map<string, number>()
   private owners = new SizeOwners<Client>()
   /** Preview requests out to the app, waiting for its answer. */
   private browserPending = new Map<string, { resolve: (r: BrowserResult) => void; reject: (e: Error) => void; timer: NodeJS.Timeout }>()
@@ -140,6 +146,7 @@ export class HostServer {
         this.send(c, { t: 'hello', version: this.version, pid: process.pid })
         this.send(c, { t: 'sessions', sessions: this.sm.list() })
         this.send(c, { t: 'notes', notes: this.notes.list() })
+        for (const f of this.faults.splice(0)) this.send(c, { t: 'fault', ...f })
         break
       case 'list':
         this.send(c, { t: 'sessions', sessions: this.sm.list() })
@@ -340,6 +347,20 @@ export class HostServer {
     }
     if (max > PAUSE_ABOVE) this.sm.pause(id)
     else if (max < RESUME_BELOW) this.sm.resume(id)
+  }
+
+  /**
+   * An error the host caught and lived through. The app is the one that can report it, so it goes
+   * there; one that keeps happening is passed on once every FAULT_QUIET_MS, not on every repeat.
+   */
+  fault(message: string, stack?: string, now = Date.now()): void {
+    const key = message.slice(0, 300)
+    const last = this.faultSeen.get(key)
+    if (last !== undefined && now - last < FAULT_QUIET_MS) return
+    this.faultSeen.set(key, now)
+    const f = { message: message.slice(0, 2000), ...(stack ? { stack: stack.slice(0, 8000) } : {}) }
+    if (this.clients.size) this.broadcast({ t: 'fault', ...f })
+    else if (this.faults.length < MAX_KEPT_FAULTS) this.faults.push(f)
   }
 
   private broadcast(msg: HostMsg): void {

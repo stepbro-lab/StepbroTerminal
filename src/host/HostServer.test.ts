@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { EventEmitter } from 'node:events'
 import net from 'node:net'
-import { encodeFrame } from '@shared/protocol'
+import { FrameParser, encodeFrame } from '@shared/protocol'
 import { HostServer } from './HostServer'
 import type { SessionManager } from './SessionManager'
 import type { NoteStore } from './NoteStore'
@@ -66,5 +66,46 @@ describe('socket output pressure', () => {
     sock.destroy()
     expect(sm.resume).toHaveBeenCalledWith('s')
     expect(server.clientCount).toBe(0)
+  })
+})
+
+describe('errors the host lives through', () => {
+  /** What the app on this socket was sent, as messages. */
+  function received(sock: Socket): Array<Record<string, unknown>> {
+    const out: Array<Record<string, unknown>> = []
+    const parser = new FrameParser()
+    parser.onFrame = (msg) => out.push(msg as Record<string, unknown>)
+    for (const [data] of sock.write.mock.calls) parser.push(data)
+    return out
+  }
+  function hello(): Socket {
+    Object.assign(sm, { list: () => [] })
+    ;(server as any).notes.list = () => []
+    const sock = new Socket()
+    accept(sock as unknown as net.Socket)
+    sock.emit('data', encodeFrame({ t: 'hello', version: 'test' }))
+    return sock
+  }
+
+  it('go to the app, the same one only once every ten minutes', () => {
+    const sock = hello()
+    server.fault('boom', 'Error: boom\n    at x', 0)
+    server.fault('boom', 'Error: boom\n    at x', 60_000)
+    server.fault('other', undefined, 60_000)
+    server.fault('boom', 'Error: boom\n    at x', 11 * 60_000)
+    const faults = received(sock).filter((m) => m.t === 'fault')
+    expect(faults).toEqual([
+      { t: 'fault', message: 'boom', stack: 'Error: boom\n    at x' },
+      { t: 'fault', message: 'other' },
+      { t: 'fault', message: 'boom', stack: 'Error: boom\n    at x' }
+    ])
+  })
+
+  it('wait for the next app to connect when none is there', () => {
+    server.fault('while closed', undefined, 0)
+    const sock = hello()
+    expect(received(sock).filter((m) => m.t === 'fault')).toEqual([{ t: 'fault', message: 'while closed' }])
+    const again = hello()
+    expect(received(again).filter((m) => m.t === 'fault')).toEqual([])
   })
 })
