@@ -17,6 +17,8 @@ const api = {
   platform: process.platform,
   osVersion: process.getSystemVersion(),
   version: process.env['STEP_VERSION'] ?? '0.0.0',
+  /** This build sends error reports when the person agrees (see main/errorReports.ts). */
+  reportsErrors: process.argv.includes('--step-error-reports'),
   invoke,
   send,
   on,

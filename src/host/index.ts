@@ -192,8 +192,23 @@ async function main(): Promise<void> {
   process.on('SIGHUP', () => {
     /* keep running when the launching terminal goes away */
   })
-  process.on('uncaughtException', (e) => log('uncaught', e))
-  process.on('unhandledRejection', (e) => log('unhandled', e))
+  // The host keeps running through an error it did not expect; the app hears of it to report it.
+  const fault = (e: unknown): void => {
+    try {
+      const err = e instanceof Error ? e : new Error(String(e))
+      server.fault(err.message, err.stack)
+    } catch {
+      /* passing it on must never be what fails */
+    }
+  }
+  process.on('uncaughtException', (e) => {
+    log('uncaught', e)
+    fault(e)
+  })
+  process.on('unhandledRejection', (e) => {
+    log('unhandled', e)
+    fault(e)
+  })
 }
 
 main().catch((e) => {
