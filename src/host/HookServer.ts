@@ -11,15 +11,6 @@ export type McpHandler = (sessionId: string, req: http.IncomingMessage, res: htt
 
 const MAX_BODY = 1024 * 1024
 
-/** Handed to Claude Code at session start, so "note that…" goes straight to the notes tools. */
-const NOTES_CONTEXT =
-  'You are running inside stepbro terminal and its `stepbro` MCP server is connected: it keeps the notes of the person you are working with. ' +
-  'When they ask you to note, write down, remember, keep or save something for later (in Spanish: anota, anótate, apunta, guárdame, acuérdate), ' +
-  'call the save_note tool right away with the note in their own words, and do not look for a notes feature in the project. ' +
-  'list_notes reads the notes, update_note edits them or marks them done, delete_note removes one. ' +
-  'When they ask you to send, pass or hand something to another agent or session of this terminal ("send this to codex"), ' +
-  'call send_to_session with a complete, self-contained message; list_sessions shows what is open.'
-
 /** Local HTTP endpoint that Claude Code's `type: "http"` hooks post to. Always answers 200 `{}`. */
 export class HookServer {
   private server: http.Server
@@ -81,7 +72,6 @@ export class HookServer {
       if (size <= MAX_BODY) chunks.push(c)
     })
     req.on('end', () => {
-      let reply: Record<string, unknown> = {}
       if (size <= MAX_BODY) {
         try {
           const body = JSON.parse(Buffer.concat(chunks).toString('utf8'))
@@ -89,13 +79,12 @@ export class HookServer {
           const name = body?.hook_event_name
           if (typeof sid === 'string' && typeof name === 'string') {
             this.sink.applyHook(sid, name, body, stepSessionId)
-            if (name === 'SessionStart') reply = { hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: NOTES_CONTEXT } }
           }
         } catch (e) {
           log('hook parse error', e)
         }
       }
-      res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify(reply))
+      res.writeHead(200, { 'content-type': 'application/json' }).end('{}')
     })
     req.on('error', () => {
       try {

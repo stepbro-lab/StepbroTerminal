@@ -55,12 +55,18 @@ const INSTRUCTIONS = `You are running inside stepbro terminal, next to other ses
 - Sessions are terminals. list_sessions shows them, read_screen shows what is on one, send_to_session types into one as if the user had.
 - Agents talk to each other with report. A message you send with report shows up in the other agent's conversation as soon as it is free, the same way a message from another agent arrives in yours as a new turn.
 To delegate: send_to_session the task, then end your turn. Do not sit waiting: the answer arrives in your conversation as a message, and you continue from there. Keep the conversation going: answer questions, ask for what you need, and say when you are done. When someone hands you work, report back to them when you finish. wait exists for the rare case where you must block, for example to watch a session finish; it is not needed to receive messages.`
+const NOTES_INSTRUCTIONS = `- The person's notes are kept here too. When they ask you to note, write down, remember, keep or save something for later (in Spanish: anota, anótate, apunta, guárdame, acuérdate), call save_note right away with the note in their own words, and do not look for a notes feature in the project. list_notes reads the notes, update_note edits one or marks it done, delete_note removes one.`
 const TOPITO_INSTRUCTIONS = `- Topito is the little mole in the person's window. The topito tool has him come out at the corner of their terminal with a short message from you, which they notice even while looking at another session. Keep it for what needs their eyes now.`
 const WORKSPACE_INSTRUCTIONS = `- Workspaces are saved sets of panes the user opens in one go, each pane in its own folder running the shell or an agent. When the user asks to see, create, change, delete or open one, list_workspaces, create_workspace, update_workspace, delete_workspace and open_workspace do it; Settings shows the change at once, so they do not have to go there.`
 const PREVIEW_INSTRUCTIONS = `- The preview pane is a browser beside your session. open_preview shows a page there (the dev server you started, a site the user names); then preview_screenshot shows you what it looks like, preview_read gives its text or an outline of its headings, links, buttons and fields, and preview_scroll, preview_click, preview_type, preview_eval and preview_console let you work the page and watch its console. Open it when the user asks to see something, and when you need to check what a page shows.`
 
-/** What agents are told about the server; Topito only comes into it while he is turned on. */
-const instructions = (topito: boolean): string => [INSTRUCTIONS, ...(topito ? [TOPITO_INSTRUCTIONS] : []), WORKSPACE_INSTRUCTIONS, PREVIEW_INSTRUCTIONS].join('\n')
+/**
+ * What agents are told about the server; Topito only comes into it while he is turned on. Claude
+ * Code puts this in every conversation, /clear and compaction included, and cuts it at 4096
+ * characters, so the end would go missing past that.
+ */
+export const instructions = (topito: boolean): string =>
+  [INSTRUCTIONS, NOTES_INSTRUCTIONS, ...(topito ? [TOPITO_INSTRUCTIONS] : []), WORKSPACE_INSTRUCTIONS, PREVIEW_INSTRUCTIONS].join('\n')
 
 /**
  * The MCP endpoint agents get per session (`claude --mcp-config`, `codex -c mcp_servers…`).
