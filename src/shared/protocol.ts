@@ -56,8 +56,6 @@ export type HostMsg =
   /** An agent asks, through the MCP server, to read or change the saved workspaces, or to open one. */
   | { t: 'workspaces'; reqId: string; op: WorkspaceOp }
   | { t: 'error'; message: string; id?: string; reqId?: string }
-  /** An error the host caught and kept running through, for the app to report if the person allowed it. */
-  | { t: 'fault'; message: string; stack?: string }
 
 const HEADER = 8
 const EMPTY = new Uint8Array(0)

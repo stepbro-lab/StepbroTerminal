@@ -16,7 +16,6 @@ import { computeProjects } from './projects'
 import { applyAppIcon, applyWindowTheme, createWindow } from './window'
 import { Notifier } from './notifications'
 import { DiscordPresence } from './discord/presence'
-import { reportHostFault, reportHostStartFailure, startErrorReports } from './errorReports'
 import { StepTray } from './tray'
 import { PreviewBridge } from './preview'
 import { PromptLog } from './prompts'
@@ -54,15 +53,6 @@ if (!app.requestSingleInstanceLock()) {
   // Dev only: a random DevTools port, published in <userData>/DevToolsActivePort (see scripts/cdp.mjs).
   // Set after winning the lock so a second instance launched by a step:// link never overwrites it.
   if (!app.isPackaged) app.commandLine.appendSwitch('remote-debugging-port', '0')
-  // Before the app is ready, as the reporting SDK needs. Nothing is sent until the person agrees,
-  // and the answer is read when a report would go, so a change in Settings counts at once.
-  startErrorReports(() => {
-    try {
-      return (ctxRef?.prefs ?? loadPrefs()).errorReports === true
-    } catch {
-      return false
-    }
-  })
   void boot()
 }
 
@@ -446,10 +436,6 @@ ${s.errorDetail}`)
     }
   })
   client.on('error', (m: string) => ctx.log('host error:', m))
-  client.on('fault', (f: { message: string; stack?: string }) => {
-    ctx.log('host fault:', f.message)
-    reportHostFault(f)
-  })
   client.on('disconnected', () => {
     ctx.log('host disconnected, reconnecting')
     setHostState(ctx, { kind: 'connecting' })
@@ -480,7 +466,6 @@ function connectHost(ctx: Ctx): Promise<void> {
     } catch (e: any) {
       const message = e?.message ?? String(e)
       ctx.log('host unavailable:', message)
-      reportHostStartFailure(e)
       let tail = ''
       try {
         tail = fs.readFileSync(hostLogPath(), 'utf8').split('\n').slice(-5).join('\n')
