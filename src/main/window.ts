@@ -3,7 +3,6 @@ import { appLogoPath, dockLogoPath } from './branding'
 import { join } from 'node:path'
 import type { Prefs } from '@shared/types'
 import { canBlurBehind, isTranslucent } from '@shared/frame'
-import { reportsErrors } from './errorReports'
 
 const BG = { light: '#f6f3f2', dark: '#1c1b1b' }
 const CLEAR = '#00000000'
@@ -68,9 +67,7 @@ export function createWindow(prefs: Prefs): BrowserWindow {
       contextIsolation: true,
       spellcheck: false,
       backgroundThrottling: false,
-      webviewTag: true,
-      // Whether this build reports errors, so the window starts its side of it and can ask.
-      additionalArguments: reportsErrors() ? ['--step-error-reports'] : []
+      webviewTag: true
     }
   })
   materials.set(win, clear)

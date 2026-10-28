@@ -404,13 +404,6 @@ export function AdvancedPage() {
           </Row>
         </Section>
       )}
-      {window.step.reportsErrors && (
-        <Section title={t('Error reports')} description={t('When something in stepbro terminal fails, it can send what went wrong so it gets fixed. Never what you type, what your terminals show, or the names of your folders.')}>
-          <Row label={t('Send error reports')}>
-            <Toggle value={p.errorReports === true} onChange={(errorReports) => upd({ errorReports })} />
-          </Row>
-        </Section>
-      )}
       <Section
         title={t('Session host')}
         description={t('A small background process owns every shell so they survive the window. Restarting it ends the shells that are open right now.')}

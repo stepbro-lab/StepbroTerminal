@@ -477,14 +477,6 @@ export const es: Record<string, string> = {
   'While stepbro terminal is open, your Discord profile says you are using it and with which agents. Your folders, sessions and what you write never show.':
     'Mientras stepbro terminal está abierto, tu perfil de Discord dice que lo estás usando y con qué agentes. Tus carpetas, sesiones y lo que escribes nunca se muestran.',
   'Show on my Discord profile': 'Mostrar en mi perfil de Discord',
-  'Send error reports?': '¿Enviar informes de errores?',
-  'When something in stepbro terminal fails, it can send what went wrong so it gets fixed. Never what you type, what your terminals show, or the names of your folders.':
-    'Cuando algo falla en stepbro terminal, puede enviar qué salió mal para que se arregle. Nunca lo que escribes, lo que muestran tus terminales ni los nombres de tus carpetas.',
-  'You can change this in Settings, under Advanced.': 'Puedes cambiarlo en Ajustes, en Avanzado.',
-  'No, thanks': 'No, gracias',
-  'Send reports': 'Enviar informes',
-  'Error reports': 'Informes de errores',
-  'Send error reports': 'Enviar informes de errores',
   'In the terminal': 'En la terminal',
   'Coding with {agent}': 'Programando con {agent}',
   'Coding with {agent} and {other}': 'Programando con {agent} y {other}',
