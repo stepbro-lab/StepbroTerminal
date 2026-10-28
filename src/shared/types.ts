@@ -222,6 +222,11 @@ export interface Prefs {
   /** Text chosen with the mouse in a terminal goes straight on the clipboard. On unless turned off. */
   copyOnSelect?: boolean
   /**
+   * The Discord profile of whoever runs the app says they are using stepbro terminal, with which
+   * agents, never a folder or a session's name. On unless turned off.
+   */
+  discordPresence?: boolean
+  /**
    * Windows: closing the window leaves the app running in the tray, still telling you when a
    * session needs you, until it is quit from there. On unless turned off.
    */

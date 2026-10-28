@@ -121,8 +121,14 @@ export function AppearancePage() {
         </Row>
       </Section>
 
+      <Section title="Discord" description={t('While stepbro terminal is open, your Discord profile says you are using it and with which agents. Your folders, sessions and what you write never show.')}>
+        <Row label={t('Show on my Discord profile')}>
+          <Toggle value={p.discordPresence !== false} onChange={(discordPresence) => upd({ discordPresence })} />
+        </Row>
+      </Section>
+
       <Footer>
-        <SmallButton onClick={() => upd({ theme: 'system', accent: 'graphite', logo: DEFAULT_LOGO, fontFamily: 'JetBrains Mono', fontSize: 13, lineHeight: 1, sidebarWidth: 240, frameOpacity: 0, contentOpacity: 0.9, barHides: true, edgePeek: true })}>{t('Revert to default')}</SmallButton>
+        <SmallButton onClick={() => upd({ theme: 'system', accent: 'graphite', logo: DEFAULT_LOGO, fontFamily: 'JetBrains Mono', fontSize: 13, lineHeight: 1, sidebarWidth: 240, frameOpacity: 0, contentOpacity: 0.9, barHides: true, edgePeek: true, discordPresence: true })}>{t('Revert to default')}</SmallButton>
       </Footer>
     </>
   )
