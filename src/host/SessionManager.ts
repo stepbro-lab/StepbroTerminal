@@ -362,11 +362,7 @@ export class SessionManager extends EventEmitter {
     if (l.pty) {
       const old = l.pty
       l.pty = undefined
-      try {
-        old.kill()
-      } catch {
-        /* already gone */
-      }
+      this.hangUp(old)
     }
     l.flow.connect()
     // Pending emulator writes belong to the old run. Drain/dispose that emulator separately.
@@ -409,11 +405,44 @@ export class SessionManager extends EventEmitter {
   kill(id: string): void {
     const l = this.live.get(id)
     if (!l?.pty) return
-    try {
-      l.pty.kill()
-    } catch {
-      /* already gone */
+    this.hangUp(l.pty)
+  }
+
+  /**
+   * Ends a session's program, and with it whatever it left running underneath: an agent starts
+   * servers and watchers apart from itself, which the shell's own goodbye never reaches, and they
+   * went on holding their ports after the pane was gone. Each gets the hang-up a closing terminal
+   * sends, so what was started with nohup still stays, as it would anywhere. What had already left
+   * the session (a double fork) is no longer underneath it, and is left alone.
+   */
+  private hangUp(p: nodePty.IPty): void {
+    const end = (): void => {
+      try {
+        p.kill()
+      } catch {
+        /* already gone */
+      }
     }
+    // Windows ends the whole console with it.
+    if (process.platform === 'win32') return end()
+    const root = p.pid
+    void readProcesses()
+      .then((procs) => {
+        // Only a program this host started itself: never a stranger that happens to have its number.
+        if (procs.get(root)?.ppid !== process.pid) return []
+        return subtree(procs, root, processChildren(procs)).map((x) => x.pid).filter((pid) => pid !== root)
+      })
+      .catch(() => [] as number[])
+      .then((under) => {
+        end()
+        for (const pid of under) {
+          try {
+            process.kill(pid, 'SIGHUP')
+          } catch {
+            /* gone already */
+          }
+        }
+      })
   }
 
   /**
@@ -441,11 +470,7 @@ export class SessionManager extends EventEmitter {
     if (l.pty) {
       const p = l.pty
       l.pty = undefined
-      try {
-        p.kill()
-      } catch {
-        /* already gone */
-      }
+      this.hangUp(p)
     }
     if (l.quietTimer) clearTimeout(l.quietTimer)
     l.generation++
