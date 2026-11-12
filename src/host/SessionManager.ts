@@ -87,6 +87,8 @@ interface Live {
   screenBytes: number
   /** Exited sessions restore their scrollback only when someone requests it. */
   restorePending?: boolean
+  /** When its screen was last asked for, or it ended: an ended session nobody looks at lets its screen go after a while. */
+  readAt?: number
   /** The size the pty was last told about, which is not always what the session record says. */
   ptyCols?: number
   ptyRows?: number
@@ -146,6 +148,8 @@ interface HeldHandoff {
 }
 
 const QUIET_MS = 1500
+/** How long an ended session nobody is looking at keeps its screen in memory before it goes back to disk. */
+const REST_AFTER_MS = 10 * 60 * 1000
 /** Output must keep flowing this long before a plain shell shows as working. */
 const BUSY_AFTER_MS = 400
 /** How often the screen of an agent that never stops drawing is read for whether it is working. */
@@ -196,6 +200,7 @@ export class SessionManager extends EventEmitter {
   async snapshot(id: string): Promise<Uint8Array> {
     const l = this.live.get(id)
     if (!l) return new Uint8Array(0)
+    l.readAt = Date.now()
     await this.restoreScreen(l)
     await l.drained
     try {
@@ -712,6 +717,7 @@ export class SessionManager extends EventEmitter {
   async screenLines(id: string, max: number): Promise<string[]> {
     const l = this.live.get(id)
     if (!l) return []
+    l.readAt = Date.now()
     await this.restoreScreen(l)
     await l.drained
     if (!this.live.has(id)) return []
@@ -1066,6 +1072,7 @@ export class SessionManager extends EventEmitter {
       s.alive = false
       s.pid = undefined
       s.exitCode = exitCode
+      l.readAt = Date.now()
       if (l.quietTimer) clearTimeout(l.quietTimer)
       this.apply(l, { kind: 'exit', code: exitCode })
       this.emit('exit', s.id, exitCode)
@@ -1216,12 +1223,15 @@ export class SessionManager extends EventEmitter {
 
   /** The port of the host's own HTTP endpoints, so their URLs never pass for a dev server. */
   private ownPort(): number | undefined {
+    // Asked with every piece of output, and the same for as long as the host lives once it listens.
+    if (this.ownPortKnown) return this.ownPortKnown
     try {
-      return Number(new URL(this.opts.hookUrl('x')).port) || undefined
+      return (this.ownPortKnown = Number(new URL(this.opts.hookUrl('x')).port) || undefined)
     } catch {
       return undefined
     }
   }
+  private ownPortKnown?: number
 
   /** A window title an agent sent, as a session name; null when it only says who or where it is. */
   private nameFromOsc(s: Session, title: string): string | null {
@@ -1385,6 +1395,44 @@ export class SessionManager extends EventEmitter {
     const tail = await readLogTail(file, LOG_KEEP)
     const cut = (await fs.promises.stat(file)).size - tail.length
     return cut > 0 && (await altScreenBefore(file, cut)) ? Buffer.concat([Buffer.from(ALT_SCREEN), tail]) : tail
+  }
+
+  /**
+   * Ended sessions that nobody has looked at for a while put their screen away: written beside the
+   * log, as on the way out, and dropped from memory, to be read back the next time someone opens
+   * them. Thousands of lines each, they would otherwise stay for as long as the host lives.
+   */
+  async rest(now = Date.now()): Promise<number> {
+    let rested = 0
+    for (const l of [...this.live.values()]) {
+      const id = l.s.id
+      const idle = (): boolean =>
+        this.live.get(id) === l && !l.s.alive && !l.pty && !l.restorePending && !l.restoring && !this.opts.viewed?.(id) && now - (l.readAt ?? now) >= REST_AFTER_MS
+      if (!idle()) continue
+      const generation = l.generation
+      const file = this.screenPath(id)
+      try {
+        await l.drained
+        await fs.promises.writeFile(file + '.tmp', this.serialize(l))
+        await fs.promises.rename(file + '.tmp', file)
+      } catch (e) {
+        log('putting the screen away failed', id, e)
+        continue
+      }
+      // Opened or started again while it was written: it stays, and the file is written anew later.
+      if (!idle() || generation !== l.generation) continue
+      const old = l.screen
+      const fresh = this.newScreen(l.s)
+      l.screen = fresh.screen
+      l.serializer = fresh.serializer
+      this.answerWhenUnseen(l, fresh.screen)
+      l.drained = Promise.resolve()
+      l.screenBytes = 0
+      l.restorePending = true
+      old.dispose()
+      rested++
+    }
+    return rested
   }
 
   private screenPath(id: string): string {

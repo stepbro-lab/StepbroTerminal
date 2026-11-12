@@ -1,4 +1,4 @@
-import { app, BrowserWindow, nativeTheme, Notification } from 'electron'
+import { app, BrowserWindow, dialog, nativeTheme, Notification, session } from 'electron'
 import { join, resolve } from 'node:path'
 import fs from 'node:fs'
 import os from 'node:os'
@@ -7,7 +7,7 @@ import type { EventMap, EventName } from '@shared/ipc'
 import type { BrowserOp, HostState, Prefs, Session, Note, Handoff, TopitoSay, WorkspaceOp, WorkspaceResult } from '@shared/types'
 import { HostClient } from './host/HostClient'
 import { ensureHost, requestHostShutdown } from './host/launcher'
-import { loadPrefs, savePrefs } from './prefs'
+import { flushWorkspace, loadPrefs, savePrefs } from './prefs'
 import { shellEnv } from './shellEnv'
 import { detectPresets } from './presets/detect'
 import { HistoryIndex } from './claude/history'
@@ -157,13 +157,17 @@ async function boot(): Promise<void> {
       /* window gone */
     }
   }
+  // The login shell's environment takes a moment (a slow .zshrc, seconds): asked for now, while
+  // Electron itself starts, and never waited on to show the window.
+  const shellEnvironment = shellEnv()
   await app.whenReady()
   app.setAppUserModelId(APP_ID)
   ensureWindowsShortcut()
   migrateUserData()
 
   const prefs = loadPrefs()
-  const env = await shellEnv()
+  // Until the shell's arrives: the app's own, which on a Mac misses what Homebrew and npm install.
+  const env: NodeJS.ProcessEnv = { ...process.env }
   const history = new HistoryIndex(join(claudeDir(), 'history.jsonl'))
   const live = new LiveClaudeWatcher(join(claudeDir(), 'sessions'))
   const client = new HostClient()
@@ -318,6 +322,12 @@ async function boot(): Promise<void> {
     })
     return w
   }
+  // Electron says yes to whatever a page asks for unless told otherwise. A page in the preview pane
+  // gets none of the clipboard, camera, microphone, location or notifications; the app's own window may ask.
+  const own = (wc: Electron.WebContents | null): boolean => !!wc && !!ctx.win && !ctx.win.isDestroyed() && wc.id === ctx.win.webContents.id
+  const PAGES = new Set(['fullscreen', 'pointerLock', 'clipboard-sanitized-write'])
+  session.defaultSession.setPermissionRequestHandler((wc, permission, answer) => answer(own(wc) || PAGES.has(permission)))
+  session.defaultSession.setPermissionCheckHandler((wc, permission) => own(wc) || PAGES.has(permission))
   ctx.win = openWindow()
   forward = (line: string): void => ctx.emit('diag', line)
   log(`app ${VERSION} on ${process.platform} ${process.arch}, host entry ${hostEntry()}`)
@@ -331,6 +341,12 @@ async function boot(): Promise<void> {
   ctx.pendingFolders.push(...folderArgs(process.argv, process.cwd(), [app.getAppPath(), process.execPath]), ...onlyFolders(earlyFolders, process.cwd()))
   earlyFolders.length = 0
   for (const u of earlyUrls.splice(0)) handleStepUrl(ctx, u)
+  // The host starts sessions in the environment it is given, so it waits for the shell's; the
+  // agents found with it replace the ones found without.
+  envLoaded = shellEnvironment.then((loaded) => {
+    ctx.env = loaded
+    ctx.refreshPresets()
+  })
   void connectHost(ctx)
 
   app.on('second-instance', (_e, argv, cwd) => {
@@ -355,6 +371,7 @@ async function boot(): Promise<void> {
   })
   app.on('before-quit', () => {
     quitting = true
+    flushWorkspace()
     // Never kill the host: sessions must survive the app.
     client.disconnect()
     ctx.presence.stop()
@@ -453,13 +470,39 @@ function setHostState(ctx: Ctx, state: HostState): void {
   ctx.emit('host:state', state)
 }
 
+/** Resolves once the login shell's environment is in `ctx.env`. */
+let envLoaded: Promise<void> = Promise.resolve()
+/** The person chose to leave the previous version's host running, with its agents at work: not asked again this run. */
+let keptBusyHost = false
+
+/**
+ * The app was updated while agents worked in the previous version's host. Restarting it stops them
+ * mid-turn, so the person chooses: let them finish (the host is replaced the next time the app
+ * opens with none at work), or restart now.
+ */
+async function keepBusyHost(ctx: Ctx, working: number, version: string): Promise<boolean> {
+  if (keptBusyHost) return true
+  const options = {
+    type: 'question' as const,
+    buttons: [t('Let them finish'), t('Restart them now')],
+    defaultId: 0,
+    cancelId: 0,
+    message: t(working === 1 ? 'An agent is still working from before the update' : '{n} agents are still working from before the update', { n: working }),
+    detail: t('Finishing the update restarts every session, which stops them mid-turn. Let them finish and it happens the next time you open stepbro terminal with none at work. Until then the sessions run as they did in {version}.', { version })
+  }
+  const r = ctx.win && !ctx.win.isDestroyed() ? await dialog.showMessageBox(ctx.win, options) : await dialog.showMessageBox(options)
+  keptBusyHost = r.response === 0
+  return keptBusyHost
+}
+
 let connecting: Promise<void> | null = null
 function connectHost(ctx: Ctx): Promise<void> {
   if (connecting) return connecting
   connecting = (async () => {
     setHostState(ctx, { kind: 'connecting' })
     try {
-      const info = await ensureHost({ version: ctx.version, entry: hostEntry(), env: ctx.env, log: ctx.log })
+      await envLoaded
+      const info = await ensureHost({ version: ctx.version, entry: hostEntry(), env: ctx.env, log: ctx.log, keepBusyHost: (working, version) => keepBusyHost(ctx, working, version) })
       await ctx.client.connect(info, ctx.version)
       sendTopito(ctx)
       setHostState(ctx, { kind: 'connected', info })

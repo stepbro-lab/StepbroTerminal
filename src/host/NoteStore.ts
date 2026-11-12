@@ -1,8 +1,8 @@
 import fs from 'node:fs'
-import path from 'node:path'
 import { EventEmitter } from 'node:events'
 import { randomBytes } from 'node:crypto'
 import type { Note, NoteSource } from '@shared/types'
+import { writeFileAtomic } from '@shared/atomic'
 
 const MAX_TEXT = 4000
 const MAX_NOTES = 1000
@@ -65,8 +65,7 @@ export class NoteStore extends EventEmitter {
 
   private commit(added?: Note): void {
     try {
-      fs.mkdirSync(path.dirname(this.file), { recursive: true })
-      fs.writeFileSync(this.file, JSON.stringify(this.notes, null, 2))
+      writeFileAtomic(this.file, JSON.stringify(this.notes, null, 2))
     } catch {
       /* the list still lives in memory; the next change tries again */
     }

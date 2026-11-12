@@ -76,4 +76,20 @@ describe('frame codec', () => {
     p.push(Buffer.concat([frame, encodeFrame({ t: 'ok' })]))
     expect(got).toEqual(['ok'])
   })
+
+  it('drops a frame that claims to be larger than any real one, and says so', () => {
+    const p = new FrameParser()
+    const got: any[] = []
+    let oversize = 0
+    p.onFrame = (m) => got.push(m.t)
+    p.onOversize = () => oversize++
+    const header = Buffer.alloc(8)
+    header.writeUInt32BE(0xffffffff, 0)
+    header.writeUInt32BE(0xffffffff, 4)
+    p.push(Buffer.concat([header, Buffer.from('whatever follows')]))
+    expect(oversize).toBe(1)
+    // Nothing is kept waiting for bytes that will never make a message.
+    p.push(encodeFrame({ t: 'ok' }))
+    expect(got).toEqual(['ok'])
+  })
 })

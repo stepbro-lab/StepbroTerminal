@@ -58,6 +58,8 @@ export type HostMsg =
   | { t: 'error'; message: string; id?: string; reqId?: string }
 
 const HEADER = 8
+/** No frame is ever near this big (the largest is a session's whole scrollback); one that claims to be is not ours. */
+export const MAX_FRAME = 256 * 1024 * 1024
 const EMPTY = new Uint8Array(0)
 
 /** Frame layout: [u32 jsonLen][u32 binLen][json][bin] (big endian). */
@@ -79,6 +81,8 @@ export class FrameParser {
   private available = 0
   private lengths?: { json: number; bin: number }
   onFrame: (msg: any, bin: Uint8Array) => void = () => {}
+  /** A frame announced itself larger than any real one: what was received is dropped, and the connection should be too. */
+  onOversize: () => void = () => {}
 
   push(chunk: Buffer): void {
     // Common case: complete small frames already fit in this socket read. Avoid the queue.
@@ -108,6 +112,16 @@ export class FrameParser {
         if (this.available < HEADER) return
         const header = this.read(HEADER)
         this.lengths = { json: header.readUInt32BE(0), bin: header.readUInt32BE(4) }
+        if (this.lengths.json + this.lengths.bin > MAX_FRAME) {
+          // Waiting for it would mean holding on to gigabytes that never make a message.
+          this.chunks = []
+          this.head = 0
+          this.offset = 0
+          this.available = 0
+          this.lengths = undefined
+          this.onOversize()
+          return
+        }
       }
       const { json: jsonLen, bin: binLen } = this.lengths
       if (this.available < jsonLen + binLen) return

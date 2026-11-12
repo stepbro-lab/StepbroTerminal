@@ -2,6 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { app } from 'electron'
 import type { Prefs, WorkspaceState } from '@shared/types'
+import { writeFileAtomic } from '@shared/atomic'
 import { dropRetiredPrefs } from './retiredPrefs'
 
 export const defaultPrefs: Prefs = {
@@ -39,8 +40,10 @@ function file(): string {
 }
 
 export function loadPrefs(): Prefs {
+  let text: string | null = null
   try {
-    const raw = JSON.parse(fs.readFileSync(file(), 'utf8'))
+    text = fs.readFileSync(file(), 'utf8')
+    const raw = JSON.parse(text)
     // 'Geist Mono' at line height 1.2 used to be the default terminal text; those who never
     // chose it themselves move onto the new default. Anyone can pick Geist Mono again in Settings.
     if (raw && raw.fontFamily === 'Geist Mono') {
@@ -63,6 +66,14 @@ export function loadPrefs(): Prefs {
     if (raw && dropRetiredPrefs(prefs)) savePrefs(prefs)
     return prefs
   } catch {
+    // There, but unreadable: kept aside before the defaults are saved over it, so it can be mended by hand.
+    if (text !== null) {
+      try {
+        fs.writeFileSync(`${file()}.unreadable`, text)
+      } catch {
+        /* nothing to do about it */
+      }
+    }
     // No preferences yet: a first launch, with nothing that changed since a version it never ran.
     return { ...defaultPrefs, seenVersion: app.getVersion() }
   }
@@ -82,22 +93,31 @@ export function loadWorkspace(): WorkspaceState | null {
 }
 
 let workspaceTimer: NodeJS.Timeout | null = null
+let workspaceWaiting: WorkspaceState | null = null
 export function saveWorkspace(state: WorkspaceState): void {
+  workspaceWaiting = state
   if (workspaceTimer) clearTimeout(workspaceTimer)
-  workspaceTimer = setTimeout(() => {
-    workspaceTimer = null
-    try {
-      fs.writeFileSync(workspaceFile(), JSON.stringify(state))
-    } catch {
-      /* non-fatal */
-    }
-  }, 300)
+  workspaceTimer = setTimeout(flushWorkspace, 300)
+}
+
+/** Writes the layout still waiting to be saved, now: when its moment comes, and before the app quits. */
+export function flushWorkspace(): void {
+  if (workspaceTimer) clearTimeout(workspaceTimer)
+  workspaceTimer = null
+  const state = workspaceWaiting
+  workspaceWaiting = null
+  if (!state) return
+  try {
+    writeFileAtomic(workspaceFile(), JSON.stringify(state))
+  } catch {
+    /* non-fatal */
+  }
 }
 
 export function savePrefs(p: Prefs): void {
   try {
-    fs.mkdirSync(path.dirname(file()), { recursive: true })
-    fs.writeFileSync(file(), JSON.stringify(p, null, 2))
+    // It may hold a key: the person's alone to read.
+    writeFileAtomic(file(), JSON.stringify(p, null, 2), 0o600)
   } catch {
     /* non-fatal */
   }

@@ -3,6 +3,7 @@ import fs from 'node:fs'
 import net from 'node:net'
 import path from 'node:path'
 import { hostInfoPath, stepDir } from '@shared/paths'
+import { encodeFrame, FrameParser, type HostMsg } from '@shared/protocol'
 import type { HostInfo } from '@shared/types'
 
 export interface EnsureHostOpts {
@@ -10,6 +11,33 @@ export interface EnsureHostOpts {
   entry: string
   env: NodeJS.ProcessEnv
   log: (...a: unknown[]) => void
+  /**
+   * A host from another version has agents at work, this many: whether to leave it running for now
+   * rather than restart it, which would stop them mid-turn. Not asked when none is working.
+   */
+  keepBusyHost?: (working: number, version: string) => Promise<boolean>
+}
+
+/** How many of a host's sessions are in the middle of something: a turn, or a question to the person. 0 when it does not say. */
+export function workingSessions(socketPath: string, timeoutMs = 1500): Promise<number> {
+  return new Promise((resolve) => {
+    let done = false
+    const s = net.connect(socketPath)
+    const finish = (n: number): void => {
+      if (done) return
+      done = true
+      s.destroy()
+      resolve(n)
+    }
+    const parser = new FrameParser()
+    parser.onFrame = (msg: HostMsg) => {
+      if (msg.t === 'sessions') finish(msg.sessions.filter((x) => x.alive && (x.status === 'working' || x.status === 'attention')).length)
+    }
+    s.once('connect', () => s.write(encodeFrame({ t: 'hello', version: 'probe' })))
+    s.on('data', (d) => parser.push(d))
+    s.once('error', () => finish(0))
+    setTimeout(() => finish(0), timeoutMs)
+  })
 }
 
 function readInfo(): HostInfo | null {
@@ -60,6 +88,11 @@ export async function ensureHost(opts: EnsureHostOpts): Promise<HostInfo> {
     if (existing.version === opts.version) return existing
     // A host from an older build is still running and would serve the new app its old code
     // (this is exactly how a fixed bug can seem unfixed after an update). Retire it and start fresh.
+    const working = opts.keepBusyHost ? await workingSessions(existing.socketPath) : 0
+    if (working && (await opts.keepBusyHost!(working, existing.version))) {
+      opts.log(`host ${existing.version} is stale, app is ${opts.version}; kept, ${working} at work`)
+      return existing
+    }
     opts.log(`host ${existing.version} is stale, app is ${opts.version}; restarting the host`)
     await requestHostShutdown()
     const gone = Date.now()
