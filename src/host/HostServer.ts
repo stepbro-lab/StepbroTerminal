@@ -29,9 +29,9 @@ export class HostServer {
   private clients = new Set<Client>()
   private owners = new SizeOwners<Client>()
   /** Preview requests out to the app, waiting for its answer. */
-  private browserPending = new Map<string, { resolve: (r: BrowserResult) => void; reject: (e: Error) => void; timer: NodeJS.Timeout }>()
+  private browserPending = new Map<string, { resolve: (r: BrowserResult) => void; reject: (e: Error) => void; timer: NodeJS.Timeout; client: Client }>()
   /** Workspace requests out to the app, which keeps the preferences they live in. */
-  private workspacePending = new Map<string, { resolve: (r: WorkspaceResult) => void; reject: (e: Error) => void; timer: NodeJS.Timeout }>()
+  private workspacePending = new Map<string, { resolve: (r: WorkspaceResult) => void; reject: (e: Error) => void; timer: NodeJS.Timeout; client: Client }>()
   /** Whether the app has Topito turned on. He starts off, and agents are only offered him while he is on. */
   topitoOn = false
   onClientsChange: () => void = () => {}
@@ -111,6 +111,10 @@ export class HostServer {
         this.send(c, { t: 'error', message: String((e as Error)?.message ?? e) })
       }
     }
+    c.parser.onOversize = () => {
+      log('client sent a frame too large to be real; dropping it')
+      sock.destroy()
+    }
     sock.on('data', (d) => c.parser.push(d))
     sock.on('drain', () => {
       c.blocked = false
@@ -123,6 +127,15 @@ export class HostServer {
       for (const id of c.attached) {
         this.recheckFlow(id)
         this.letGo(c, id)
+      }
+      // What was asked of this window will never be answered: the agent hears so now, not when its time runs out.
+      for (const pending of [this.browserPending, this.workspacePending]) {
+        for (const [reqId, p] of pending) {
+          if (p.client !== c) continue
+          pending.delete(reqId)
+          clearTimeout(p.timer)
+          p.reject(new Error('The terminal window closed before it answered.'))
+        }
       }
       this.onClientsChange()
     }
@@ -272,7 +285,7 @@ export class HostServer {
         this.browserPending.delete(reqId)
         reject(new Error('The preview pane did not answer in time.'))
       }, timeoutMs)
-      this.browserPending.set(reqId, { resolve, reject, timer })
+      this.browserPending.set(reqId, { resolve, reject, timer, client: c })
       this.send(c, { t: 'browser', reqId, sessionId, op })
     })
   }
@@ -290,7 +303,7 @@ export class HostServer {
         this.workspacePending.delete(reqId)
         reject(new Error('stepbro terminal did not answer in time.'))
       }, timeoutMs)
-      this.workspacePending.set(reqId, { resolve, reject, timer })
+      this.workspacePending.set(reqId, { resolve, reject, timer, client: c })
       this.send(c, { t: 'workspaces', reqId, op })
     })
   }

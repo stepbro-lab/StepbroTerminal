@@ -167,6 +167,9 @@ async function main(): Promise<void> {
     log('registry watch unavailable', e)
   }
 
+  // Ended sessions nobody looks at give their screens back to disk.
+  setInterval(() => void sm.rest().then((n) => n && log(`put away ${n} screen${n === 1 ? '' : 's'}`), (e) => log('rest failed', e)), 60_000).unref()
+
   let shuttingDown = false
   const shutdown = (why: string): void => {
     if (shuttingDown) return

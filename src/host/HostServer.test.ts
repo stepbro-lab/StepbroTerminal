@@ -34,6 +34,16 @@ async function attach(): Promise<Socket> {
   sm.resume.mockClear()
   return sock
 }
+describe('what an agent asks of the window', () => {
+  it('fails at once when the window goes away, rather than when its time runs out', async () => {
+    const sock = await attach()
+    const asked = server.browser('s', { kind: 'screenshot' })
+    const failed = expect(asked).rejects.toThrow(/window closed/)
+    sock.destroy()
+    await failed
+  })
+})
+
 describe('socket output pressure', () => {
   it('counts bytes before the batch timer flushes and releases them on detach', async () => {
     const sock = await attach()

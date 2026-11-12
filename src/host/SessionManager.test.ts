@@ -86,6 +86,33 @@ describe('session output lifecycle', () => {
   })
 })
 
+describe('an ended session nobody looks at', () => {
+  it('puts its screen away after a while, and shows it again when opened', async () => {
+    const s = create()
+    ptys[0].data('hello from before\r\n')
+    ptys[0].exit({ exitCode: 0 })
+    watched = false
+    // Still fresh: it stays in memory.
+    expect(await sm.rest(Date.now() + 60_000)).toBe(0)
+    expect(await sm.rest(Date.now() + 11 * 60_000)).toBe(1)
+    // Nothing left to put away the second time.
+    expect(await sm.rest(Date.now() + 30 * 60_000)).toBe(0)
+    expect(Buffer.from(await sm.snapshot(s.id)).toString()).toContain('hello from before')
+    expect((await sm.screenLines(s.id, 5)).join('\n')).toContain('hello from before')
+  })
+
+  it('keeps the screen of one that is running or being watched', async () => {
+    const s = create()
+    ptys[0].data('still here\r\n')
+    watched = false
+    expect(await sm.rest(Date.now() + 60 * 60_000)).toBe(0)
+    ptys[0].exit({ exitCode: 0 })
+    watched = true
+    expect(await sm.rest(Date.now() + 60 * 60_000)).toBe(0)
+    expect(Buffer.from(await sm.snapshot(s.id)).toString()).toContain('still here')
+  })
+})
+
 describe('full-screen programs through a host restart', () => {
   /** A second host over the same files, the way an update starts one. */
   const restarted = (): SessionManager =>

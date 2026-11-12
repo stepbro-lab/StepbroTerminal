@@ -670,5 +670,11 @@ export const es: Record<string, string> = {
   'Host log': 'Registro del host',
   'Show in Finder': 'Mostrar en Finder',
   'Show in Explorer': 'Mostrar en el Explorador',
-  'Show in file manager': 'Mostrar en el gestor de archivos'
+  'Show in file manager': 'Mostrar en el gestor de archivos',
+  'Let them finish': 'Dejar que terminen',
+  'Restart them now': 'Reiniciarlos ahora',
+  'An agent is still working from before the update': 'Un agente sigue trabajando desde antes de la actualización',
+  '{n} agents are still working from before the update': '{n} agentes siguen trabajando desde antes de la actualización',
+  'Finishing the update restarts every session, which stops them mid-turn. Let them finish and it happens the next time you open stepbro terminal with none at work. Until then the sessions run as they did in {version}.':
+    'Terminar la actualización reinicia todas las sesiones, y eso los corta a mitad de turno. Si dejas que terminen, se hará la próxima vez que abras stepbro terminal sin ninguno trabajando. Hasta entonces las sesiones funcionan como en la {version}.'
 }

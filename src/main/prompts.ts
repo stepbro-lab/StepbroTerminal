@@ -2,6 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { app } from 'electron'
 import type { PromptRecord } from '@shared/types'
+import { writeFileAtomic } from '@shared/atomic'
 
 const MAX = 2000
 
@@ -22,7 +23,10 @@ export class PromptLog {
           /* skip bad line */
         }
       }
+      const read = this.items.length
       if (this.items.length > MAX) this.items = this.items.slice(-MAX)
+      // The file only ever grows; once it holds twice what is kept, it is cut back to that.
+      if (read > MAX * 2) writeFileAtomic(this.file, this.items.map((r) => JSON.stringify(r)).join('\n') + '\n')
     } catch {
       /* first run */
     }
