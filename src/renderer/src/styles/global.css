@@ -42,6 +42,18 @@ select {
   letter-spacing: inherit;
 }
 
+/* Windows and Linux draw a list's choices and every scrollbar themselves: without this the choices
+   come out light on white, and the scrollbars wide and grey. */
+option,
+optgroup {
+  background: var(--bg-elevated);
+  color: var(--text);
+}
+:where(:root:not([data-platform='darwin'])) :where(*) {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+
 /* Anything that can be pressed says so: the hand, the way Windows and the web have always shown it. */
 button {
   background: none;
