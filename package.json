@@ -8,6 +8,15 @@
     "name": "Kevin",
     "email": "roloocoste@gmail.com"
   },
+  "license": "SEE LICENSE IN LICENSE.md",
+  "homepage": "https://github.com/stepbro-lab/StepbroTerminal#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stepbro-lab/StepbroTerminal.git"
+  },
+  "bugs": {
+    "url": "https://github.com/stepbro-lab/StepbroTerminal/issues"
+  },
   "main": "out/main/index.js",
   "packageManager": "pnpm@10.33.0",
   "engines": {
