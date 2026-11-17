@@ -1,0 +1,75 @@
+name: Bug report
+description: Something in stepbro terminal does not work as it should.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this. Please search the [existing issues](https://github.com/stepbro-lab/StepbroTerminal/issues) first, in case it is already known.
+        **Security problems must not be reported here.** Follow [SECURITY.md](https://github.com/stepbro-lab/StepbroTerminal/blob/main/SECURITY.md) instead.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What went wrong, and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open a folder
+        2. Start Claude Code from its +
+        3. …
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      description: Shown at the bottom of Settings.
+      placeholder: 0.1.0-beta.30
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Windows
+        - macOS (Apple silicon)
+        - macOS (Intel)
+        - Linux (AppImage)
+        - Linux (.deb)
+    validations:
+      required: true
+  - type: input
+    id: os-version
+    attributes:
+      label: System version
+      placeholder: Windows 11 24H2, macOS 26.1, Ubuntu 24.04…
+  - type: input
+    id: agent
+    attributes:
+      label: Agent involved
+      description: The agent and its version, if the problem happens with one.
+      placeholder: Claude Code 2.1.0, Codex 0.50.0, none…
+  - type: input
+    id: shell
+    attributes:
+      label: Shell
+      placeholder: zsh, bash, PowerShell 7…
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs and screenshots
+      description: |
+        Screenshots help, especially for anything visual. The session host's log is `~/.step/host.log`. Remove anything private from logs and screenshots before you attach them.
+  - type: checkboxes
+    id: latest
+    attributes:
+      label: Checks
+      options:
+        - label: It still happens on the latest release.
+          required: true
