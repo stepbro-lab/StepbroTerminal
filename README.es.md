@@ -30,6 +30,13 @@ o lo que quieras. Encima de eso añade lo que le falta a una pestaña de termina
 trabajan varios agentes a la vez: sabe qué hace cada uno, te avisa cuando uno te necesita, mantiene
 vivas las sesiones aunque cierres la ventana y deja que los agentes trabajen entre ellos.
 
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/hero-dark.png">
+    <img src="docs/screenshots/hero-light.png" alt="Un servidor de desarrollo en una sesión, su página abierta en la vista previa al lado, y la barra lateral con dos carpetas de proyecto y sus sesiones">
+  </picture>
+</p>
+
 ## Funciones
 
 - **Sesiones que sobreviven a la ventana.** Cada shell corre en un pequeño proceso aparte de la app.
@@ -56,6 +63,17 @@ vivas las sesiones aunque cierres la ventana y deja que los agentes trabajen ent
   que hacen tus agentes, y la interfaz en inglés y español.
 - **Primero el teclado.** Paleta de comandos, historial de prompts, búsqueda, y todos los atajos se
   pueden cambiar.
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/palette-dark.png">
+    <img src="docs/screenshots/palette-light.png" width="49%" alt="Dos paneles divididos, pruebas e historial de git, con la paleta de comandos abierta en las acciones que inician sesiones de Codex y Claude Code">
+  </picture>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/settings-dark.png">
+    <img src="docs/screenshots/settings-light.png" width="49%" alt="Ajustes, Apariencia: Topito el topo, los modos claro y oscuro, los colores de la app y el idioma">
+  </picture>
+</p>
 
 ### Agentes que reconoce
 

@@ -30,6 +30,13 @@ On top of that it adds what a plain terminal tab is missing when several agents 
 knows what each one is doing, tells you when one needs you, keeps every session alive when the
 window closes, and lets the agents work with each other.
 
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/hero-dark.png">
+    <img src="docs/screenshots/hero-light.png" alt="A dev server running in one session, its page open in the preview pane beside it, and the sidebar with two project folders and their sessions">
+  </picture>
+</p>
+
 ## Features
 
 - **Sessions that outlive the window.** Every shell runs in a small host process outside the app.
@@ -55,6 +62,17 @@ window closes, and lets the agents work with each other.
 - **Made to be looked at.** Light and dark themes, a translucent window, Topito the mole who acts
   out what your agents are doing, and the interface in English and Spanish.
 - **Keyboard first.** A command palette, prompt history, search, and every shortcut can be changed.
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/palette-dark.png">
+    <img src="docs/screenshots/palette-light.png" width="49%" alt="Two split panes, tests and git history, with the command palette open on the actions that start Codex and Claude Code sessions">
+  </picture>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/settings-dark.png">
+    <img src="docs/screenshots/settings-light.png" width="49%" alt="Settings, Appearance: Topito the mole, the light and dark modes, the app colors and the language">
+  </picture>
+</p>
 
 ### Agents it knows
 
