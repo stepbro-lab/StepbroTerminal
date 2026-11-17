@@ -18,5 +18,6 @@ build/icons/
 .env
 .env.*
 
-# Design notes stay out of the repository
-docs/
+# Design notes stay out of the repository; the README's screenshots go in
+docs/*
+!docs/screenshots/
