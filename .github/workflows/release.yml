@@ -8,6 +8,11 @@ on:
       - 'v*'
   workflow_dispatch:
 
+# The installers are published with RELEASES_TOKEN to the releases repository; the token GitHub
+# gives this workflow only needs to read the code.
+permissions:
+  contents: read
+
 jobs:
   # The release is made once, before anything is built: named the way the app names its versions,
   # with what changed from the app's changelog, on a commit of its own in the releases repository.
