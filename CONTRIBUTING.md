@@ -35,8 +35,8 @@ commands and helper scripts.
 - **Keep it focused.** One fix or one feature per pull request. Unrelated cleanups go in their own.
 - **Match the code around you.** TypeScript throughout, single quotes, no semicolons, two-space
   indentation. There is no formatter to run: do not reformat code you are not changing.
-- **Comment the why.** Comments are plain English sentences that explain what is not obvious from
-  the code, such as why a value is what it is or which platform needs a step.
+- **Let the code speak.** Clear names come first. Add a comment only for what the code cannot say,
+  such as a platform quirk or a workaround.
 - **Every word people see is translated.** Strings in the interface are written in English and
   looked up through `t()`; add the Spanish for each new one to `src/shared/i18n.es.ts`. The tests
   fail when one is missing.

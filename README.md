@@ -182,9 +182,6 @@ src/renderer  The React interface. xterm.js instances live outside React, and on
 src/shared    Types, the frame codec, paths and strings used by all of them.
 ```
 
-How the host was made fast, with numbers you can reproduce, is in
-[BACKEND_PERFORMANCE.md](BACKEND_PERFORMANCE.md).
-
 ## Contributing
 
 Bug reports, ideas and pull requests are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) before
