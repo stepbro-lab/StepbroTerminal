@@ -188,9 +188,6 @@ src/renderer  La interfaz en React. Las instancias de xterm.js viven fuera de Re
 src/shared    Tipos, el códec de mensajes, rutas y textos que usan todas las partes.
 ```
 
-Cómo se hizo rápido el host, con números que puedes reproducir, está en
-[BACKEND_PERFORMANCE.md](BACKEND_PERFORMANCE.md) (en inglés).
-
 ## Contribuir
 
 Los reportes de errores, las ideas y los pull requests son bienvenidos. Lee
