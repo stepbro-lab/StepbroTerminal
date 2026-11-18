@@ -9,16 +9,6 @@ import { defaultTitle } from '@/lib/sidebarModel'
 import { t } from '@/lib/i18n'
 import { ambientClip, clipForMood, moments, newlyWaiting } from './mood'
 
-/**
- * Keeps Topito in step with the app: works out the clip he should be playing from the stores
- * (mood.ts), throws in the one-off moments as they happen, and brings him out at the corner of the
- * terminal when someone is waiting on you.
- */
-
-/**
- * An agent's tool changes every few seconds, and a mole that changed what he was doing that often
- * would only twitch. A new look has to hold this long before he takes it up.
- */
 const SETTLE_MS = 2500
 
 const title = (s: Session): string => s.title || defaultTitle(s)
@@ -64,7 +54,6 @@ export function startTopito(): () => void {
   }
 }
 
-/** Jumps to a session, the way every other link to one does. */
 export function openSession(id: string): void {
   const s = useData.getState().sessions[id]
   if (!s) return
@@ -73,7 +62,6 @@ export function openSession(id: string): void {
   ui.setActive(id)
 }
 
-/** An agent asked Topito to say something: he comes out at the corner of the terminal with it. */
 export function topitoSay(say: TopitoSay): void {
   const data = useData.getState()
   const s = data.sessions[say.sessionId]
@@ -81,13 +69,10 @@ export function topitoSay(say: TopitoSay): void {
   const name = agent ? (data.presets.find((p) => p.id === agent)?.name ?? agent) : undefined
   const from = s ? [name, title(s)].filter(Boolean).join(' · ') : undefined
   const clip = clipForMood(say.mood)
-  // Long enough to read at a glance: a little more for every word, within reason.
   const ms = Math.min(12000, Math.max(5000, 3500 + say.message.length * 55))
-  // The corner is where he says it; the sidebar's Topito ducks into his hole meanwhile, so there is only ever one of him.
   useTopito.getState().showCorner({ clip, text: say.message, from, sessionId: s ? say.sessionId : undefined }, ms)
 }
 
-/** What Topito tells you when you click him: who is waiting, who is working, who is done. */
 export function askTopito(): void {
   const sessions = Object.values(useData.getState().sessions).filter((s) => s.alive && !s.archived)
   const { needsYou, done, working } = attentionCounts(sessions)

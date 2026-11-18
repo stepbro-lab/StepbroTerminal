@@ -25,7 +25,6 @@ const GLYPH: Record<string, string> = {
   starting: '◌'
 }
 
-/** The chosen logo with a dot for the mood; on macOS the menu bar copy, drawn at the bar's size, and its @2x beside it. */
 function loadIcon(mood: TrayMood, logo: LogoId): Electron.NativeImage {
   const file = process.platform === 'darwin' ? `tray-${mood}-mac-${logo}.png` : `tray-${mood}-${logo}.png`
   const p = join(iconsDir(), file)
@@ -35,7 +34,6 @@ function loadIcon(mood: TrayMood, logo: LogoId): Electron.NativeImage {
 export class StepTray {
   private tray: Tray | null = null
   private mood: TrayMood = 'idle'
-  /** Which picture is up: the mood and the logo it was drawn with. */
   private shown = ''
 
   private logo(): LogoId {
@@ -57,7 +55,6 @@ export class StepTray {
     this.refresh()
   }
 
-  /** Whether the icon is up: the system may have no tray to put it in. */
   get isUp(): boolean {
     return this.tray !== null
   }
@@ -67,7 +64,6 @@ export class StepTray {
     this.tray = null
   }
 
-  /** Debounced rebuild of icon, tooltip and menu. */
   update(): void {
     if (!this.tray) return
     if (this.timer) clearTimeout(this.timer)

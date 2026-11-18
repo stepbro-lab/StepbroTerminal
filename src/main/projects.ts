@@ -2,7 +2,6 @@ import fs from 'node:fs'
 import { normalizeProjectPath, projectName, sameProject } from '@shared/paths'
 import type { Prefs, Project, Session } from '@shared/types'
 
-/** Projects = folders the user added ∪ folders that own a live session, minus hidden ones. */
 export function computeProjects(prefs: Prefs, sessions: Session[]): Project[] {
   const out: Project[] = []
   const add = (p: string, source: Project['sources'][number]): void => {
@@ -20,7 +19,6 @@ export function computeProjects(prefs: Prefs, sessions: Session[]): Project[] {
   return inOrder(shown, prefs.projectOrder ?? [])
 }
 
-/** The folders in the order the person put them; ones they never moved keep their place at the end. */
 export function inOrder(projects: Project[], order: string[]): Project[] {
   const rank = (p: Project): number => {
     const i = order.findIndex((o) => sameProject(o, p.path))

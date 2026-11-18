@@ -5,11 +5,8 @@ describe('the left edge', () => {
   it('counts only a thin strip along it, below the window buttons, with no button held', () => {
     expect(atLeftEdge(0, 300, 0)).toBe(true)
     expect(atLeftEdge(PEEK_BAND_PX, 300, 0)).toBe(true)
-    // Working near the edge, in the terminal, is not reaching for the sidebar.
     expect(atLeftEdge(PEEK_BAND_PX + 20, 300, 0)).toBe(false)
-    // On the way to the traffic lights or the top bar.
     expect(atLeftEdge(2, PEEK_TOP_GUARD_PX - 1, 0)).toBe(false)
-    // Dragging a selection out to the left.
     expect(atLeftEdge(2, 300, 1)).toBe(false)
   })
 

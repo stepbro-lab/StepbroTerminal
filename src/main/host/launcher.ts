@@ -11,14 +11,9 @@ export interface EnsureHostOpts {
   entry: string
   env: NodeJS.ProcessEnv
   log: (...a: unknown[]) => void
-  /**
-   * A host from another version has agents at work, this many: whether to leave it running for now
-   * rather than restart it, which would stop them mid-turn. Not asked when none is working.
-   */
   keepBusyHost?: (working: number, version: string) => Promise<boolean>
 }
 
-/** How many of a host's sessions are in the middle of something: a turn, or a question to the person. 0 when it does not say. */
 export function workingSessions(socketPath: string, timeoutMs = 1500): Promise<number> {
   return new Promise((resolve) => {
     let done = false
@@ -44,9 +39,7 @@ function readInfo(): HostInfo | null {
   try {
     const j = JSON.parse(fs.readFileSync(hostInfoPath(), 'utf8'))
     if (typeof j?.socketPath === 'string' && typeof j?.pid === 'number') return j as HostInfo
-  } catch {
-    /* missing or corrupt */
-  }
+  } catch {}
   return null
 }
 
@@ -68,7 +61,6 @@ export function probe(socketPath: string, timeoutMs = 800): Promise<boolean> {
 
 const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms))
 
-/** The first lines the host wrote to stderr before dying: the message sits at the top of a Node stack trace. */
 function stderrTail(file: string): string {
   try {
     const lines = fs
@@ -81,13 +73,10 @@ function stderrTail(file: string): string {
   }
 }
 
-/** Returns a reachable host, spawning a detached one when needed. */
 export async function ensureHost(opts: EnsureHostOpts): Promise<HostInfo> {
   const existing = readInfo()
   if (existing && (await probe(existing.socketPath))) {
     if (existing.version === opts.version) return existing
-    // A host from an older build is still running and would serve the new app its old code
-    // (this is exactly how a fixed bug can seem unfixed after an update). Retire it and start fresh.
     const working = opts.keepBusyHost ? await workingSessions(existing.socketPath) : 0
     if (working && (await opts.keepBusyHost!(working, existing.version))) {
       opts.log(`host ${existing.version} is stale, app is ${opts.version}; kept, ${working} at work`)
@@ -100,7 +89,6 @@ export async function ensureHost(opts: EnsureHostOpts): Promise<HostInfo> {
   }
   fs.mkdirSync(stepDir(), { recursive: true })
   opts.log('spawning host', opts.entry)
-  // Whatever the host prints before dying lands in host.err, so a failed start can say why.
   const errPath = path.join(stepDir(), 'host.err')
   let errFd: number | undefined
   try {

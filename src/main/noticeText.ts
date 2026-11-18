@@ -4,22 +4,14 @@ import { t } from './i18n'
 export interface Notice {
   title: string
   body: string
-  /** Stays on screen until dismissed (a question the user has to answer). */
   sticky: boolean
 }
 
-/**
- * Words for a session notification. An agent that stops to ask something is named first, "Claude
- * Code needs an answer", so the user knows who is waiting even with several sessions open; the
- * session and what was asked, when known, go in the body. Finished and failed sessions are
- * announced by the session's own title.
- */
 export function noticeFor(s: Session, agent: string | null): Notice | null {
   const session = s.title || t('Session')
   const asked = s.agent.lastMessage
   switch (s.status) {
     case 'attention': {
-      // The session is the headline; the body says who waits and, when the hooks told us, for what.
       const who = agent ?? session
       const generic = !asked || asked === 'Waiting for your approval'
       const body = generic

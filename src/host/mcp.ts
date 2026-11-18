@@ -28,27 +28,17 @@ export interface McpDeps {
   bus: AgentBus
   session: (id: string) => Session | undefined
   sessions: () => Session[]
-  /** Types text into another session on behalf of the caller; `suffix` is typed too but kept out of the session's title. */
-  /** Types into the session now, or holds the text until the agent there is free. */
   send: (from: string, to: string, text: string, submit: boolean, suffix?: string) => 'typed' | 'held' | 'lost'
-  /** The last lines on a session's screen, scrollback included. */
   screen: (id: string, lines: number) => Promise<string[]>
-  /** Something for the preview pane beside a session: the app does it and reports back. */
   browser: (sessionId: string, op: BrowserOp, timeoutMs?: number) => Promise<BrowserResult>
-  /** Reads or changes the saved workspaces, or opens one: the app keeps them and answers. */
   workspaces: (op: WorkspaceOp) => Promise<WorkspaceResult>
-  /** Has Topito, the mole in the person's window, come out with a few words from an agent. */
   topito: (say: TopitoSay) => void
-  /** Whether Topito is turned on in the app. He is off until the person turns him on, and agents are only offered him while he is on. */
   topitoOn: () => boolean
   version: string
 }
 
-// Claude Code gives an MCP tool call well under four minutes before it gives up on it; the wait
-// stays short and says to call again, which costs nothing.
 const WAIT_DEFAULT_S = 45
 const WAIT_MAX_S = 120
-/** After work is handed over, the target counts as busy this long even if its status has not moved yet. */
 const SETTLE_MS = 5000
 
 const INSTRUCTIONS = `You are running inside stepbro terminal, next to other sessions, and this server lets you work with them. Two layers:
@@ -60,19 +50,9 @@ const TOPITO_INSTRUCTIONS = `- Topito is the little mole in the person's window.
 const WORKSPACE_INSTRUCTIONS = `- Workspaces are saved sets of panes the user opens in one go, each pane in its own folder running the shell or an agent. When the user asks to see, create, change, delete or open one, list_workspaces, create_workspace, update_workspace, delete_workspace and open_workspace do it; Settings shows the change at once, so they do not have to go there.`
 const PREVIEW_INSTRUCTIONS = `- The preview pane is a browser beside your session. open_preview shows a page there (the dev server you started, a site the user names); then preview_screenshot shows you what it looks like, preview_read gives its text or an outline of its headings, links, buttons and fields, and preview_scroll, preview_click, preview_type, preview_eval and preview_console let you work the page and watch its console. Open it when the user asks to see something, and when you need to check what a page shows.`
 
-/**
- * What agents are told about the server; Topito only comes into it while he is turned on. Claude
- * Code puts this in every conversation, /clear and compaction included, and cuts it at 4096
- * characters, so the end would go missing past that.
- */
 export const instructions = (topito: boolean): string =>
   [INSTRUCTIONS, NOTES_INSTRUCTIONS, ...(topito ? [TOPITO_INSTRUCTIONS] : []), WORKSPACE_INSTRUCTIONS, PREVIEW_INSTRUCTIONS].join('\n')
 
-/**
- * The MCP endpoint agents get per session (`claude --mcp-config`, `codex -c mcp_servers…`).
- * Notes, the other sessions, and a way for agents to coordinate. Stateless: a server per request
- * is cheap and keeps request ids from colliding between sessions.
- */
 export async function handleMcp(deps: McpDeps, sessionId: string, req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
   const server = buildServer(deps, sessionId)
   const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true })
@@ -84,7 +64,6 @@ export async function handleMcp(deps: McpDeps, sessionId: string, req: http.Inco
   await transport.handleRequest(req, res)
 }
 
-// The server is built anew for every request, so what Topito remembers lives out here.
 const topitoGate = new TopitoGate()
 
 const short = (id: string): string => id.slice(0, 8)
@@ -95,7 +74,6 @@ const clip = (t: string, n: number): string => {
   return one.length > n ? one.slice(0, n - 1) + '…' : one
 }
 
-/** Whether a session is still at work: by its status, or because work was just typed in and the hooks have not caught up. */
 function busy(deps: McpDeps, s: Session): boolean {
   if (!s.alive) return false
   if (s.status === 'working' || s.status === 'starting') return true
@@ -116,8 +94,6 @@ function buildServer(deps: McpDeps, sessionId: string): McpServer {
     const names = others().map((s) => `${label(s)} (${agentOf(s)}, ${short(s.id)})`)
     return names.length ? `No session matches "${to}". Open sessions: ${names.join('; ')}.` : 'No other sessions are open.'
   }
-
-  // ---- Topito ----
 
   if (topitoOn) {
     server.registerTool(
@@ -143,8 +119,6 @@ function buildServer(deps: McpDeps, sessionId: string): McpServer {
       }
     )
   }
-
-  // ---- notes ----
 
   server.registerTool(
     'save_note',
@@ -200,8 +174,6 @@ function buildServer(deps: McpDeps, sessionId: string): McpServer {
     },
     async ({ id }) => text(deps.notes.remove(id) ? `Deleted note ${id}.` : `No note with id ${id}.`)
   )
-
-  // ---- sessions: terminals ----
 
   server.registerTool(
     'list_sessions',
@@ -268,8 +240,6 @@ function buildServer(deps: McpDeps, sessionId: string): McpServer {
       return text(`Sent to "${label(target)}" (${agentOf(target)}). ${tail}`)
     }
   )
-
-  // ---- agents: inboxes ----
 
   server.registerTool(
     'report',
@@ -362,10 +332,7 @@ function buildServer(deps: McpDeps, sessionId: string): McpServer {
     }
   )
 
-  // ---- workspaces: saved sets of panes that open together ----
-
   const failure = (e: unknown) => ({ content: [{ type: 'text' as const, text: String((e as Error)?.message ?? e) }], isError: true })
-  /** Where a relative folder starts: the folder the caller's terminal is in now. */
   const here = (): string => {
     const s = deps.session(sessionId)
     return s?.cwd || s?.projectPath || ''
@@ -515,13 +482,10 @@ function buildServer(deps: McpDeps, sessionId: string): McpServer {
     }
   )
 
-  // ---- the preview pane: a browser beside the session ----
-
   const preview = (op: BrowserOp, timeoutMs?: number): Promise<BrowserResult> => deps.browser(sessionId, op, timeoutMs)
   const where = (r: BrowserResult): string => `${r.title || '(no title)'} — ${r.url}`
   const failed = (e: unknown) => text(`Preview: ${String((e as Error)?.message ?? e)}`)
   const TARGET = 'A ref from the page outline (e12: the surest), a CSS selector, or text=… for the visible text of a link, button or other element (a partial match will do).'
-  /** The page as it is after an action, when the action brought it back. */
   const withPage = (head: string, after?: string): string => (after ? `${head}\n\n${after}` : head)
 
   server.registerTool(
@@ -694,18 +658,15 @@ function buildServer(deps: McpDeps, sessionId: string): McpServer {
   return server
 }
 
-/** How long open_workspace waits for the new sessions to show up before answering with what it has. */
 const OPEN_WAIT_MS = 15_000
 
 const splitOf = (layout: 'side_by_side' | 'stacked' | undefined): SplitDir | undefined => (layout ? (layout === 'stacked' ? 'column' : 'row') : undefined)
 const layoutName = (split: SplitDir): string => (split === 'column' ? 'stacked' : 'side by side')
-/** A folder as the app stores a session's: normalized, and any case on Windows. */
 const sameDir = (p: string): string => {
   const d = normalizeProjectPath(p)
   return process.platform === 'win32' ? d.toLowerCase() : d
 }
 
-/** A workspace for an agent to read: one line for it, one per pane. */
 function describeWorkspace(w: WorkspaceInfo): string {
   const n = w.panes.length
   const head = `"${w.name || '(untitled)'}" — ${n} ${n === 1 ? 'pane' : 'panes'}, ${layoutName(w.split)} — ${w.url} (id ${w.id})`

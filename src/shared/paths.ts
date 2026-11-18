@@ -1,7 +1,6 @@
 import os from 'node:os'
 import path from 'node:path'
 
-/** Where the host keeps its socket, state and logs. STEP_HOME moves it, so a dev build gets a host of its own. */
 export function stepDir(home = os.homedir()): string {
   return process.env['STEP_HOME'] || path.join(home, '.step')
 }
@@ -23,7 +22,6 @@ export function claudeDir(home = os.homedir()): string {
   return process.env['CLAUDE_CONFIG_DIR'] || path.join(home, '.claude')
 }
 
-/** Canonical form used to compare project paths across sources. */
 export function normalizeProjectPath(p: string, platform = process.platform): string {
   let out = platform === 'win32' ? path.win32.normalize(p) : path.posix.normalize(p)
   if (out.length > 1) out = out.replace(/[\\/]+$/, '')
@@ -40,7 +38,6 @@ export function sameProject(a: string, b: string, platform = process.platform): 
   return platform === 'win32' ? na.toLowerCase() === nb.toLowerCase() : na === nb
 }
 
-/** Claude Code stores transcripts under ~/.claude/projects/<encoded>/ where colon and slashes become '-'. */
 export function encodeClaudeProjectDir(p: string): string {
   return p.replace(/[:\\/]/g, '-')
 }
@@ -50,7 +47,6 @@ export function projectName(p: string): string {
   return parts[parts.length - 1] || p
 }
 
-/** Keeps a STEP_HOME host on its own pipe; Windows has no socket file to tell them apart. */
 function pipeSuffix(): string {
   const home = process.env['STEP_HOME']
   return home ? '-' + path.basename(home).replace(/[^a-zA-Z0-9_-]/g, '_') : ''

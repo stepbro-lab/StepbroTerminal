@@ -3,10 +3,8 @@ import { compareVersions, type ChangelogEntry } from '@shared/changelog'
 import { usePrefs } from './prefs'
 
 interface WhatsNewStore {
-  /** The releases on show, newest first; null while the page is closed. */
   entries: ChangelogEntry[] | null
   show: (entries: ChangelogEntry[]) => void
-  /** Closes the page and counts the running version as seen, so it does not come back on the next launch. */
   close: () => void
 }
 

@@ -24,16 +24,12 @@ export interface CreateRequest {
   presetId: string
   cols: number
   rows: number
-  /** Agent session id to resume (claude history). */
   resumeId?: string
   title?: string
-  /** From a launch configuration: typed into the pane once it first settles. */
   runOnStart?: string
-  /** Start there rather than in the project's folder, still under the project. */
   startDir?: string
 }
 
-/** Renderer -> main request/response channels. */
 export interface InvokeMap {
   'host:state': () => HostState
   'host:list': () => Session[]
@@ -56,10 +52,8 @@ export interface InvokeMap {
   'menu:popup': (items: MenuItemSpec[]) => string | null
   'app:openExternal': (url: string) => void
   'app:openPath': (path: string) => void
-  /** What the system clipboard holds right now, so paste can be routed correctly. */
   'clipboard:kind': () => 'image' | 'text' | 'none'
   'clipboard:readText': () => string
-  /** Saves the image on the clipboard as a PNG in the app's temp folder and returns its path, or null without one. */
   'clipboard:saveImage': () => string | null
   'prompts:list': () => PromptRecord[]
   'git:changes': (projectPath: string, since: number, touched: string[]) => GitChanges
@@ -70,21 +64,14 @@ export interface InvokeMap {
   'updates:check': () => UpdateState
   'updates:install': () => void
   'notes:list': () => Note[]
-  /** Folders dropped on the app icon or given on the command line before the window was ready; cleared once read. */
   'app:pendingFolders': () => string[]
-  /** Workspaces asked for by step://workspace links before the window was ready; cleared once read. */
   'app:pendingWorkspaces': () => string[]
-  /** The host and app logs, for reading real failures from DevTools. */
   'diag:dump': () => string
-  /** Memory and CPU of the app, the host and every live session, for Settings > Advanced. */
   'stats:get': () => AppStats
-  /** Where session data and the host log live on this machine. */
   'app:paths': () => { data: string; hostLog: string }
-  /** Shows a file selected in Finder, Explorer or the file manager. */
   'app:revealPath': (path: string) => void
 }
 
-/** Renderer -> main fire-and-forget channels. */
 export interface SendMap {
   'host:attach': (id: string) => void
   'host:detach': (id: string) => void
@@ -102,15 +89,12 @@ export interface SendMap {
   'win:minimize': () => void
   'win:maximize': () => void
   'win:close': () => void
-  /** The bar along the top edge opened, this many CSS pixels tall: report the pointer crossing it. 0 when it closed. */
   'win:bar': (height: number) => void
-  /** Show or hide a Mac's traffic lights, which only the open bar has room for. */
   'win:buttons': (visible: boolean) => void
   'win:setActiveSession': (id: string | null) => void
   'win:setTitle': (title: string) => void
   'clipboard:write': (text: string) => void
   'workspace:set': (state: WorkspaceState) => void
-  /** The preview pane beside a session has its browser view up, with this webContents id; and it is gone. */
   'preview:attached': (sessionId: string, webContentsId: number) => void
   'preview:detached': (sessionId: string) => void
   'notes:add': (text: string) => void
@@ -118,7 +102,6 @@ export interface SendMap {
   'notes:delete': (id: string) => void
 }
 
-/** Main -> renderer events. */
 export interface EventMap {
   'host:state': (state: HostState) => void
   'host:sessions': (sessions: Session[]) => void
@@ -134,37 +117,22 @@ export interface EventMap {
   'projects:update': (projects: Project[]) => void
   'ui:focusSession': (id: string) => void
   'ui:command': (name: string) => void
-  /** An agent asked for a page in the preview pane beside its session, or for that pane to go. */
   'ui:openPreview': (sessionId: string, url: string) => void
   'ui:closePreview': (sessionId: string) => void
-  /** The agent in a session is doing something with its preview pane right now. */
   'ui:previewActivity': (sessionId: string, presetId: string) => void
-  /** Play the notification sound; the renderer owns the audio file. */
   'ui:sound': () => void
   'ui:update': (state: UpdateState) => void
-  /** The notes list changed; `added` is the note an agent just saved, for the animation. */
   'notes:update': (notes: Note[], added?: Note) => void
   'ui:handoff': (handoff: Handoff) => void
-  /** An agent asked Topito to tell the person something, through the stepbro MCP server. */
   'ui:topito': (say: TopitoSay) => void
   'win:maximized': (maximized: boolean) => void
-  /**
-   * Whether the window can be seen: false once minimised or hidden, true when it is back. The page
-   * cannot tell by itself, since it is kept running at full speed whatever becomes of it.
-   */
   'win:seen': (seen: boolean) => void
-  /** macOS: the window went full screen, where the traffic lights leave the bar. */
   'win:fullscreen': (fullscreen: boolean) => void
-  /** While the top bar is open: the pointer went into it (true) or left it (false). */
   'win:barPointer': (inside: boolean) => void
-  /** Windows: the pointer is on the window's top edge, the part the page never sees. */
   'win:topEdge': () => void
-  /** A folder handed to the app from outside: dropped on its icon, or given on the command line. */
   'ui:openFolder': (path: string) => void
-  /** A step://workspace/<name> link: open that workspace. */
   'ui:openWorkspace': (key: string) => void
   'theme:system': (dark: boolean) => void
-  /** A line of host/app diagnostics, mirrored into the DevTools console. */
   'diag': (line: string) => void
 }
 

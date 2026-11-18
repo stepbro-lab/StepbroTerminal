@@ -1,7 +1,4 @@
-# Topito, the stepbro terminal mole: a little miner who works underneath the interface, with one
-# animation for each moment in the app. The pixel art lives here; running the script writes the
-# frames the app draws (src/renderer/src/lib/topito/frames.ts), and --gifs <folder> renders them
-# as GIFs to look at, which needs Pillow.
+# Topito's pixel art. Writes src/renderer/src/lib/topito/frames.ts; --gifs <folder> renders GIFs (needs Pillow).
 # Legend: . empty, W ink (body), S shade (helmet, props), D dim, K contrast (eyes, paper), A accent.
 import math
 import os
@@ -9,18 +6,16 @@ import os
 CELL = 12
 CW, CH = 24, 20
 GROUND = 14
-MX = 6            # where the hole is: the sprite's left column
-PEEK_Y = 6        # head and paws out of the hole
-OUT_Y = 3         # out to the waist
-STAND_Y = 2       # all the way out, feet on the ground
+MX = 6
+PEEK_Y = 6
+OUT_Y = 3
+STAND_Y = 2
 
 THEMES = {
     'dark': {'bg': (28, 27, 27), 'W': (236, 233, 232), 'S': (142, 145, 146), 'D': (62, 61, 64), 'K': (14, 13, 13), 'A': (91, 140, 255)},
     'light': {'bg': (243, 240, 239), 'W': (28, 27, 27), 'S': (107, 111, 112), 'D': (206, 202, 200), 'K': (255, 255, 255), 'A': (47, 109, 246)},
 }
 
-
-# ---------------------------------------------------------------- drawing helpers
 
 def check(name, rows):
     for i, r in enumerate(rows):
@@ -56,8 +51,6 @@ def dots(cv, cells, ch):
     return cv
 
 
-# ---------------------------------------------------------------- Topito
-
 PEEK = check('peek', [
     "....SSSS....",
     "...SSASSS...",
@@ -82,7 +75,6 @@ BODY = check('body', [
     ".WWWWWWWWWW.",
     "..WW....WW..",
 ])
-# Shoulders without the arms hanging at the sides, for poses that put the arms somewhere else.
 BODY_NO_ARMS = edit(BODY, [(7, 0), (7, 11)], '.')
 
 
@@ -146,7 +138,6 @@ def dirt(cv, spread):
     return dots(cv, [(MX + 1 - spread, GROUND - 2 - spread), (MX + 10 + spread, GROUND - 2 - spread), (MX + 5, GROUND - 3 - spread)], ch)
 
 
-# Arms, relative to a body drawn at (MX, y).
 def arm(cv, y, pose, side='right'):
     L = side == 'left'
     ax = MX - 1 if L else MX + 12
@@ -190,8 +181,6 @@ def sink():
     dirt(d, 2)
     return [(a, 90), (b, 90), (c, 140), (d, 160)]
 
-
-# ---------------------------------------------------------------- 1 · states of the agents
 
 def cavando():
     frames = []
@@ -263,17 +252,13 @@ def durmiendo():
     return frames
 
 
-# ---------------------------------------------------------------- 2 · what the agents are doing
-
 def pensando():
     frames = rise()[1:]
     for t in range(12):
         eyes = 'up' if t % 6 < 5 else 'closed'
         cv = scene(face(BODY_NO_ARMS, eyes, lamp='on' if t % 4 else 'dim'), OUT_Y)
-        # A paw on its chin.
         dots(cv, [(MX + 8, OUT_Y + 8), (MX + 9, OUT_Y + 7)], 'S')
         arm(cv, OUT_Y, 'up', 'left') if False else dots(cv, [(MX - 1, OUT_Y + 8)], 'W')
-        # Thought bubble: two puffs rising from the helmet, then a lumpy cloud whose dots fill in.
         dots(cv, [(17, 8)], 'S')
         dots(cv, [(17, 5), (18, 5), (17, 6), (18, 6)], 'S')
         cloud = ["..SS.SS..", ".S..S..S.", "S.......S", ".SSSSSSS."]
@@ -299,14 +284,12 @@ def tecleando():
     for t in range(14):
         cv = scene(face(BODY_NO_ARMS, 'down' if t % 7 else 'closed', lamp='on'), OUT_Y)
         stamp(cv, LAPTOP, MX, 9, below=GROUND)
-        # Lines of code growing on the screen, a line at a time, wrapping round.
         progress = t % 12
         for line in range(3):
             length = max(0, min(8, progress * 2 - line * 5))
             for c in range(length):
                 if (c + line) % 4 != 3:
                     dots(cv, [(MX + 2 + c, 10 + line)], 'A')
-        # Paws tapping at the keyboard, one then the other.
         dots(cv, [(MX + 3, 13) if t % 2 else (MX + 8, 13)], 'W')
         dots(cv, [(MX + 3, 12) if not t % 2 else (MX + 8, 12)], 'W')
         frames.append((cv, 120))
@@ -336,13 +319,11 @@ ENVELOPE = check('envelope', ["KKKKKKK", "KSKKKSK", "KKSKSKK", "KKKAKKK", "KKKKK
 def carta():
     frames = rise()[1:]
     held = face(BODY_NO_ARMS, 'happy', 'smile')
-    # Holding the letter up over its head.
     for t in range(3):
         cv = scene(held if t else face(BODY_NO_ARMS, 'open', 'smile'), OUT_Y)
         stamp(cv, ENVELOPE, MX + 11, OUT_Y - 2 - t)
         dots(cv, [(MX + 12, OUT_Y + 6), (MX + 12, OUT_Y + 5), (MX + 12, OUT_Y + 4)], 'W')
         frames.append((cv, 220))
-    # Off it goes, up and to the right, and it waves it goodbye.
     for i, (ex, ey) in enumerate([(19, -1), (21, -3), (23, -5)]):
         cv = scene(held, OUT_Y)
         stamp(cv, ENVELOPE, ex, ey)
@@ -362,7 +343,6 @@ def nota():
     frames = rise()[1:]
     for t in range(16):
         cv = scene(face(BODY_NO_ARMS, 'down', lamp='on'), OUT_Y)
-        # A small sheet held low, so the face stays in view above it.
         stamp(cv, ["KKKKKKKK"] * 3, MX + 2, 11, below=GROUND)
         dots(cv, [(MX + 1, 12), (MX + 10, 12)], 'W')
         written = min(t, 12)
@@ -371,11 +351,9 @@ def nota():
         px = MX + 3 + (written % 6)
         py = 11 + (written // 6) * 2
         if t < 12:
-            # The pencil follows the writing.
             dots(cv, [(px + 1, py - 1), (px + 2, py - 2)], 'S')
             dots(cv, [(px, py)], 'A')
         else:
-            # Done: a tick beside the page.
             dots(cv, [(MX + 12, 10), (MX + 13, 11), (MX + 14, 9), (MX + 15, 8)], 'A')
         frames.append((cv, 150 if t < 12 else 260))
     frames[-1] = (scene(face(BODY_NO_ARMS, 'happy', 'smile'), OUT_Y), 500)
@@ -387,10 +365,8 @@ def ups():
     for t in range(14):
         eyes = 'worried' if t % 5 else 'closed'
         cv = scene(face(BODY_NO_ARMS, eyes, 'frown', lamp='off' if t in (3, 5) else 'on'), OUT_Y)
-        # Scratching its helmet, paw going up and down.
         dots(cv, [(MX + 12, OUT_Y + 6), (MX + 12, OUT_Y + 5), (MX + 11, OUT_Y + (2 if t % 2 else 3))], 'W')
         dots(cv, [(MX - 1, OUT_Y + 8)], 'W')
-        # A drop of sweat sliding down its helmet.
         drop_y = OUT_Y + 1 + (t % 5)
         dots(cv, [(MX + 1, drop_y), (MX + 1, drop_y + 1)], 'A')
         glyph(cv, '?', 19, 1 - (1 if t % 4 < 2 else 0), 'S' if t % 3 else 'A')
@@ -422,7 +398,6 @@ def corazon():
     happy = face(BODY_NO_ARMS, 'happy', 'smile')
     for t in range(14):
         cv = scene(happy, OUT_Y + (1 if t % 4 == 3 else 0))
-        # Paws folded on its chest.
         dots(cv, [(MX + 3, OUT_Y + 9), (MX + 4, OUT_Y + 9), (MX + 7, OUT_Y + 9), (MX + 8, OUT_Y + 9)], 'S')
         big_y = OUT_Y - 1 - (t % 7)
         if big_y > -4:
@@ -433,8 +408,6 @@ def corazon():
         frames.append((cv, 170))
     return frames
 
-
-# ---------------------------------------------------------------- 3 · the voice agent
 
 def arcs(cv, x, y, n, ch, facing=1):
     for i in range(n):
@@ -447,10 +420,8 @@ def escucha():
     frames = rise()[1:]
     for t in range(12):
         cv = scene(face(BODY_NO_ARMS, 'right', lamp='on'), OUT_Y + (1 if t % 6 == 5 else 0))
-        # A paw cupped to the side of its head.
         dots(cv, [(MX + 12, OUT_Y + 6), (MX + 12, OUT_Y + 5), (MX + 12, OUT_Y + 4)], 'W')
         dots(cv, [(MX - 1, OUT_Y + 8)], 'W')
-        # Sound arriving from the right, the nearest arc lighting up last.
         step = t % 4
         for i in range(3):
             if i < step:
@@ -466,7 +437,6 @@ def habla():
     for t, m in enumerate(mouths):
         cv = scene(face(BODY_NO_ARMS, 'closed' if t == 7 else 'open', m, lamp='on'), OUT_Y)
         dots(cv, [(MX - 1, OUT_Y + 8), (MX + 12, OUT_Y + 8)], 'W')
-        # Words going out to the right, an arc further each time it speaks.
         step = t % 4
         for i in range(step):
             x = MX + 13 + i * 2
@@ -474,8 +444,6 @@ def habla():
         frames.append((cv, 150))
     return frames
 
-
-# ---------------------------------------------------------------- 4 · moments
 
 def hola():
     frames = rise()
@@ -519,7 +487,6 @@ def buscando():
         eyes = 'right' if spot > MX + 8 else ('left' if spot < MX + 3 else 'open')
         cv = scene(face(PEEK, eyes, lamp='on'), PEEK_Y)
         lx, ly = MX + 5, PEEK_Y + 1
-        # A dotted ray from the lamp down to the spot.
         for k in range(1, 6):
             x = round(lx + (spot - lx) * k / 6)
             y = round(ly + (GROUND - 1 - ly) * k / 6)
@@ -541,11 +508,9 @@ def cafecito():
         cv = scene(face(BODY_NO_ARMS, 'happy' if sip else 'open', 'sip' if sip else 'smile'), OUT_Y)
         dots(cv, [(MX - 1, OUT_Y + 8)], 'W')
         if sip:
-            # Mug up at its mouth.
             stamp(cv, MUG, MX + 4, OUT_Y + 7)
             dots(cv, [(MX + 3, OUT_Y + 8)], 'W')
         else:
-            # Mug held out to the side, steam rising beside its face rather than across it.
             mug_x, mug_y = MX + 12, OUT_Y + 8
             stamp(cv, MUG, mug_x, mug_y)
             dots(cv, [(MX + 12 - 1, mug_y + 1)], 'W')
@@ -573,7 +538,6 @@ def perdido():
         dots(cv, [(MX - 1, OUT_Y + 8)], 'W')
         glyph(cv, '?', 19, 1 - i % 2, 'A' if i % 2 else 'S')
         frames.append((cv, 170))
-    # A shrug: paws out, eyes shut, then a blink back at you.
     for eyes, ms in (('closed', 360), ('open', 260)):
         cv = scene(face(BODY_NO_ARMS, eyes), OUT_Y + (1 if eyes == 'closed' else 0))
         y = OUT_Y + (1 if eyes == 'closed' else 0)
@@ -625,11 +589,6 @@ def saluda():
     return frames
 
 
-# ---------------------------------------------------------------- the clips the app plays
-
-# Name in the app, the animation, and how many frames at its start are the way in (climbing out of
-# the hole). A clip that repeats plays those once and loops the rest, so it does not pop out anew
-# every time round.
 CLIPS = [
     ('dig', cavando, 0),
     ('peek', asoma, 4),

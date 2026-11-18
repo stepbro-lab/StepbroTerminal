@@ -5,13 +5,11 @@ import { projectMenu, toggleProjectCollapsed } from '@/lib/actions'
 import { FolderIcon } from './DotSpinner'
 import { QuickStrip } from './QuickStrip'
 
-/** The drag type of a folder row on its way to a new place in the sidebar. */
 export const PROJECT_DRAG_TYPE = 'application/x-step-project'
 
 interface Props {
   project: SidebarProject
   isActiveProject: boolean
-  /** A dragged folder would land above or below this one. */
   insert?: 'before' | 'after'
   onDragStart?: (project: SidebarProject) => void
   onDragEnd?: () => void
@@ -62,7 +60,6 @@ export function ProjectRow({ project, isActiveProject, insert, onDragStart, onDr
         <span className="row-title font-semibold tracking-[-0.005em]" style={{ color: isActiveProject ? 'var(--text)' : 'var(--text-secondary)' }}>
           {project.name}
         </span>
-        {/* Holds the resting "+"'s place; the open strip lies over the name, which steps aside. */}
         <span className="relative block h-6 w-7 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
           <QuickStrip projectPath={project.path} />
         </span>

@@ -1,7 +1,6 @@
 import { usePrefs } from '@/stores/prefs'
 import { LOGOS, logoOf } from '@/lib/logos'
 
-/** The app's logo in the look the person chose, still, with a soft glow in its own colors behind it. */
 export function LogoMark({ size = 72 }: { size?: number }) {
   const logo = LOGOS[logoOf(usePrefs((s) => s.prefs?.logo))]
   return (

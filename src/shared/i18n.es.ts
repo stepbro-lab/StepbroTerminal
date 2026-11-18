@@ -1,6 +1,4 @@
-/** Spanish. Keys are the English strings as written in the code; placeholders stay as {name}. */
 export const es: Record<string, string> = {
-  // ---- sessions, panes and views ----
   'New shell': 'Nueva shell',
   'New Shell': 'Nueva shell',
   'New session': 'Nueva sesión',
@@ -69,7 +67,6 @@ export const es: Record<string, string> = {
   'Copy Claude session id': 'Copiar id de sesión de Claude',
   'Session id copied': 'Id de sesión copiado',
 
-  // ---- folders and sidebar ----
   'Add folder': 'Añadir carpeta',
   'Add folder…': 'Añadir carpeta…',
   'Add Project…': 'Añadir proyecto…',
@@ -101,7 +98,6 @@ export const es: Record<string, string> = {
   Minimize: 'Minimizar',
   'Pick a folder, or drag one in, and stepbro terminal opens a shell in it.': 'Elige una carpeta, o arrastra una, y stepbro terminal abre una shell dentro.',
 
-  // ---- activity and notifications ----
   'Needs you': 'Te necesitan',
   '{n} needs you': '{n} te necesita',
   '{n} need you': '{n} te necesitan',
@@ -130,7 +126,6 @@ export const es: Record<string, string> = {
   'When stepbro terminal should get your attention.': 'Cuándo debe stepbro terminal reclamar tu atención.',
   Notifications: 'Notificaciones',
 
-  // ---- palette ----
   'Command palette': 'Paleta de comandos',
   'Command Palette': 'Paleta de comandos',
   Actions: 'Acciones',
@@ -160,7 +155,6 @@ export const es: Record<string, string> = {
   'Settings…': 'Ajustes…',
   now: 'ahora',
 
-  // ---- terminal menu and search ----
   Copy: 'Copiar',
   Paste: 'Pegar',
   'Send selection to': 'Enviar selección a',
@@ -177,7 +171,6 @@ export const es: Record<string, string> = {
   More: 'Más',
   'Changes in this folder': 'Cambios en esta carpeta',
 
-  // ---- changes pane ----
   Changes: 'Cambios',
   'By this session': 'De esta sesión',
   'This folder is not a git repository.': 'Esta carpeta no es un repositorio git.',
@@ -212,7 +205,6 @@ export const es: Record<string, string> = {
   'No newline at end of file': 'Sin salto de línea al final del archivo',
   'Showing the first {n} lines.': 'Se muestran las primeras {n} líneas.',
 
-  // ---- preview ----
   Back: 'Atrás',
   Reload: 'Recargar',
   'Open in your browser': 'Abrir en tu navegador',
@@ -222,7 +214,6 @@ export const es: Record<string, string> = {
   'Try again': 'Intentar de nuevo',
   'Could not load': 'No se pudo cargar',
 
-  // ---- notes ----
   Notes: 'Notas',
   'New note': 'Nueva nota',
   'Write it down…': 'Escríbelo…',
@@ -231,7 +222,6 @@ export const es: Record<string, string> = {
   'Claude Code and Codex save here with their save_note tool, and can read, change or remove notes too.': 'Claude Code y Codex guardan aquí con su herramienta save_note, y también pueden leer, cambiar o borrar notas.',
   Delete: 'Eliminar',
 
-  // ---- host ----
   'Connecting to the session host…': 'Conectando con el host de sesiones…',
   'The session host is not running': 'El host de sesiones no está en marcha',
   'Session host': 'Host de sesiones',
@@ -242,7 +232,6 @@ export const es: Record<string, string> = {
   'Session state, scrollback logs and per-session hook files.': 'Estado de las sesiones, registros de pantalla y archivos de hooks por sesión.',
   Open: 'Abrir',
 
-  // ---- updates ----
   'Update available': 'Actualización disponible',
   'Downloading {percent}%': 'Descargando {percent}%',
   'Downloading {version}': 'Descargando {version}',
@@ -254,7 +243,6 @@ export const es: Record<string, string> = {
   'Check now': 'Comprobar ahora',
   Version: 'Versión',
 
-  // ---- settings: pages ----
   Appearance: 'Apariencia',
   Terminal: 'Terminal',
   Agents: 'Agentes',
@@ -269,7 +257,6 @@ export const es: Record<string, string> = {
   'Everything you can do without leaving the keyboard, and the keys you prefer for it.': 'Todo lo que puedes hacer sin soltar el teclado, y las teclas que prefieres para ello.',
   'The session host, data on disk and paths.': 'El host de sesiones, los datos en disco y las rutas.',
 
-  // ---- settings: appearance ----
   Theme: 'Tema',
   Language: 'Idioma',
   'Shells and agents keep their own.': 'Las shells y los agentes conservan el suyo.',
@@ -295,7 +282,6 @@ export const es: Record<string, string> = {
   'Line height': 'Altura de línea',
   'Revert to default': 'Volver al valor por defecto',
 
-  // ---- settings: terminal ----
   'Every new session runs this program inside the selected folder. Leave it empty to use the system default.': 'Cada sesión nueva ejecuta este programa dentro de la carpeta seleccionada. Déjalo vacío para usar el del sistema.',
   Program: 'Programa',
   Cursor: 'Cursor',
@@ -313,7 +299,6 @@ export const es: Record<string, string> = {
   'Sessions run in a background host that outlives the window. When it ends — an update, a restart — stepbro terminal can bring them back on launch, resuming any agent where it stopped.': 'Las sesiones viven en un host en segundo plano que sobrevive a la ventana. Cuando termina (una actualización, un reinicio), stepbro terminal puede recuperarlas al abrir, retomando cada agente donde se quedó.',
   'Resume sessions on launch': 'Reanudar las sesiones al abrir',
 
-  // ---- settings: agents ----
   Detected: 'Detectados',
   'Type any of these in a shell and stepbro terminal recognizes it. Right-click a folder to start one directly with live status.': 'Escribe cualquiera de estos en una shell y stepbro terminal lo reconoce. Haz clic derecho en una carpeta para iniciar uno directamente con estado en vivo.',
   'Not installed': 'No instalado',
@@ -328,7 +313,6 @@ export const es: Record<string, string> = {
   Name: 'Nombre',
   Add: 'Añadir',
 
-  // ---- settings: workspaces ----
   'Your workspaces': 'Tus espacios de trabajo',
   'Each one opens its panes at once, every pane in its own folder, and types a start command as soon as the prompt is ready. Open them from here or from the palette.': 'Cada uno abre sus paneles de una vez, cada panel en su carpeta, y escribe un comando de inicio en cuanto el prompt está listo. Ábrelos desde aquí o desde la paleta.',
   'No workspaces yet.': 'Aún no hay espacios de trabajo.',
@@ -350,7 +334,6 @@ export const es: Record<string, string> = {
   'a pane could not start': 'un panel no pudo arrancar',
   'No workspace called "{name}"': 'No hay ningún espacio de trabajo llamado "{name}"',
 
-  // ---- settings: shortcuts ----
   'Click a shortcut to change it, then press the new keys. Esc keeps the old one, Backspace removes it. A combination that is already in use moves to the shortcut you are editing.': 'Haz clic en un atajo para cambiarlo y pulsa las teclas nuevas. Esc conserva el anterior, Retroceso lo quita. Una combinación ya en uso pasa al atajo que estás editando.',
   'Reset all': 'Restablecer todo',
   'Press keys…': 'Pulsa las teclas…',
@@ -375,7 +358,6 @@ export const es: Record<string, string> = {
   'Drop files onto the terminal': 'Soltar archivos en el terminal',
   'Inserts their paths.': 'Inserta sus rutas.',
 
-  // ---- app menu and tray ----
   File: 'Archivo',
   Edit: 'Editar',
   View: 'Ver',
@@ -383,7 +365,6 @@ export const es: Record<string, string> = {
   'Show stepbro terminal': 'Mostrar stepbro terminal',
   'Quit stepbro terminal': 'Salir de stepbro terminal',
 
-  // ---- the voice ----
   Voice: 'Voz',
   'Read aloud': 'Leer en voz alta',
   Pace: 'Ritmo',
@@ -393,7 +374,6 @@ export const es: Record<string, string> = {
   Beta: 'Beta',
   Microphone: 'Micrófono',
   Input: 'Entrada',
-  // ---- Topito ----
   '{title} needs you': '{title} te necesita',
   '{title} ran into trouble': '{title} tuvo un problema',
   'and {n} more': 'y {n} más',
@@ -414,7 +394,6 @@ export const es: Record<string, string> = {
   'Asleep. Turn him on and he moves in at the foot of the sidebar.': 'Dormido. Actívalo y se instala al pie de la barra lateral.',
   'Talk from any app': 'Hablar desde cualquier app',
   Listening: 'Te escucho',
-  // ---- what's new ----
   'What’s new': 'Novedades',
   'What’s new in {version}': 'Novedades de la {version}',
   'What changed in each release': 'Lo que cambió en cada versión',
@@ -612,7 +591,6 @@ export const es: Record<string, string> = {
   'The voice agent’s answers no longer come out choppy and cut into pieces.': 'Las respuestas del agente de voz ya no suenan entrecortadas ni a trozos.',
   'On a light translucent window, names and buttons no longer have an outline around them.':
     'En la ventana translúcida clara, los nombres y los botones ya no tienen un contorno alrededor.',
-  // ---- settings: agents, DeepSeek ----
   'Claude Code on DeepSeek models, through the Anthropic-shaped API DeepSeek serves: same hooks, notes and status. With a key, DeepSeek shows up next to the other agents.': 'Claude Code con los modelos de DeepSeek, a través de la API con forma de Anthropic que sirve DeepSeek: los mismos hooks, notas y estado. Con una clave, DeepSeek aparece junto a los demás agentes.',
   'API key': 'Clave de API',
   'Kept on this machine, in the app preferences.': 'Se guarda en este equipo, en las preferencias de la app.',
@@ -623,7 +601,6 @@ export const es: Record<string, string> = {
   'Model id': 'ID del modelo',
   'The id as DeepSeek lists it. Empty, sessions use V4 Pro. New sessions and restarts pick it up.': 'El ID tal como lo da DeepSeek. Vacío, las sesiones usan V4 Pro. Se aplica a las sesiones nuevas y al reiniciar.',
   'Needs an API key': 'Necesita una clave de API',
-  // ---- pane errors, title bar and stray strings ----
   'Connected to host {version}': 'Conectado al host {version}',
   'Connecting…': 'Conectando…',
   'Not running': 'No está en marcha',
@@ -638,7 +615,6 @@ export const es: Record<string, string> = {
   'The folder does not exist any more.': 'La carpeta ya no existe.',
   'The program was not found.': 'No se encontró el programa.',
   'Windows did not allow it. Check the folder permissions or your antivirus.': 'Windows no lo permitió. Revisa los permisos de la carpeta o tu antivirus.',
-  // ---- archived sessions ----
   'Archive': 'Archivar',
   'Unarchive': 'Desarchivar',
   'Restore and resume conversation': 'Restaurar y retomar la conversación',
@@ -649,7 +625,6 @@ export const es: Record<string, string> = {
   'Show fewer': 'Mostrar menos',
   'Archived sessions shown per folder': 'Sesiones archivadas visibles por carpeta',
   'The rest wait behind a "more" row.': 'El resto espera tras una fila de "más".',
-  // ---- settings: advanced, resource use ----
   'New versions download in the background and install when you restart.': 'Las versiones nuevas se descargan en segundo plano y se instalan al reiniciar.',
   'New versions are announced here and in the title bar. The download page has the installer for your system.': 'Las versiones nuevas se anuncian aquí y en la barra de título. La página de descarga tiene el instalador para tu sistema.',
   Memory: 'Memoria',

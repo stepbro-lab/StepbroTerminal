@@ -3,8 +3,6 @@ import type { Terminal } from '@xterm/xterm'
 
 let pace: 'live' | 'slow' | 'off' = 'live'
 vi.mock('@/lib/windowPace', () => ({
-  // The first question is what finds the window already behind another: the pace changes then,
-  // before anyone is listening, and nothing calls back to say so.
   currentPace: () => pace,
   onPace: () => () => {}
 }))

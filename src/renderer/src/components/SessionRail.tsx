@@ -11,35 +11,17 @@ import { DRAG_TYPE } from './pane/TerminalPane'
 import { AgentLogo } from './sidebar/AgentLogo'
 import { t } from '@/lib/i18n'
 
-/** Long enough to cross the gap between two rows without the rail folding shut behind you. */
 const LINGER_MS = 220
-/** A row's height plus the gap under it: a tally mark at rest, a pill open. Matches global.css. */
 const REST_PITCH = 10
 const OPEN_PITCH = 38
 const GAP = 4
-/**
- * Opening bounces: each pill overshoots its size by about a tenth and settles back (damping
- * ratio 0.56), and the well behind them follows a little softer and later (0.6), so the whole
- * thing wobbles as one. Closing is quicker and barely bounces (0.82): the marks it folds into
- * are too small to wobble.
- */
 const OPENING: SpringConfig = { stiffness: 380, damping: 22 }
 const WELL_OPENING: SpringConfig = { stiffness: 300, damping: 21 }
 const CLOSING: SpringConfig = { stiffness: 480, damping: 36 }
-/** Each row starts this long after the one above it when opening, and before it when closing. */
 const STAGGER_OPEN_MS = 32
 const STAGGER_CLOSE_MS = 12
-/** The folder menu's last item; no folder path can look like this. */
 const ADD_FOLDER = '\0add-folder'
 
-/**
- * Drives the rail's opening. Every row has its own spring, started a moment after the row above
- * it, so the rail opens as a wave and folds back from the bottom up. The rows are laid out here,
- * each frame, one under the other by their actual heights, so a row that is further along never
- * overlaps its neighbours. The well behind them follows a spring of its own; the footer comes in
- * with the last row to arrive and goes with the first to leave. Everything goes out as CSS
- * variables: --q and --y per row; --m, --fq and --span on the rail.
- */
 class RailMotion {
   root: HTMLDivElement | null = null
   open = false
@@ -57,7 +39,6 @@ class RailMotion {
     return r
   }
 
-  /** After each render: springs for new rows, none for rows that are gone. */
   sync(ids: string[]): void {
     for (const [id, r] of this.rows) {
       if (ids.includes(id)) continue
@@ -94,7 +75,6 @@ class RailMotion {
     return this.root ? [...this.root.querySelectorAll<HTMLElement>('[data-rail-row]')].map((el) => el.dataset.id!) : []
   }
 
-  /** Several springs move in one frame; the layout is written once, after all of them. */
   private queue(): void {
     if (this.queued) return
     this.queued = true
@@ -121,19 +101,10 @@ class RailMotion {
     root.style.setProperty('--m', m.toFixed(4))
     root.style.setProperty('--fq', fq.toFixed(4))
     root.style.setProperty('--foot-y', `${y.toFixed(2)}px`)
-    // The rows, and the footer below them as it comes in.
     root.style.setProperty('--span', `${(y - GAP + OPEN_PITCH * fq).toFixed(2)}px`)
   }
 }
 
-/**
- * The sessions of the folder in front, floating in the top-right corner of the terminal: one bar
- * per session beside its agent's mark, as little as a set of tally marks. A bar sweeps with light
- * while its agent works and turns amber while it waits on you. Point at the rail and it opens into
- * a list of pills with their titles, and a click puts that session in front; leave, and it folds
- * back. Drag a pill onto the terminal and that session lands beside the pane there. Below the
- * pills: a new session in this folder, and the folder itself, to switch to another.
- */
 export function SessionRail() {
   const model = useSidebarModel()
   const presets = useData((s) => s.presets)
@@ -197,7 +168,6 @@ export function SessionRail() {
       }}
       className="rail no-drag"
       data-open={open}
-      // While it is open, an open top bar stays open too: closing it would pull the rail out from under the pointer.
       data-bar-keep={open || undefined}
       style={{ '--n': rows.length } as React.CSSProperties}
       onMouseEnter={show}

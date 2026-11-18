@@ -6,11 +6,6 @@ import { AgentLogo } from '../sidebar/AgentLogo'
 import { t } from '@/lib/i18n'
 import { addressFrom } from '@/lib/previewAddress'
 
-/**
- * How long the pane keeps saying an agent is using the page after its last move on it. Long enough
- * to cover the thinking between one click and the next; past it, the agent has moved on to other
- * work, and the page is no longer in use even though its turn goes on.
- */
 const USING_MS = 8000
 
 interface WebviewEl extends HTMLElement {
@@ -24,22 +19,14 @@ interface WebviewEl extends HTMLElement {
   executeJavaScript?: (code: string) => Promise<unknown>
 }
 
-/**
- * A browser beside the terminal for whatever the dev server printed, or whatever an agent asked
- * to see. Runs in Electron's <webview>; once it is up, the main process is told which one, so an
- * agent can be given the page through the stepbro MCP server.
- */
 export function PreviewPane({ url, sessionId }: { url: string; sessionId: string }) {
   const closeSide = useUi((s) => s.closeSide)
   const ref = useRef<WebviewEl | null>(null)
   const [current, setCurrent] = useState(url)
-  // What is being typed into the address bar; null while it shows the page's own address.
   const [draft, setDraft] = useState<string | null>(null)
   const [badAddress, setBadAddress] = useState(false)
   const [loading, setLoading] = useState(true)
   const [failed, setFailed] = useState<string | null>(null)
-  // The agent at work on the page: the pane says so, in its color, while it moves on the page and
-  // a moment past its last move, and no longer: once it goes on to other work, or its turn ends.
   const [usedBy, setUsedBy] = useState<string | null>(null)
   const [recent, setRecent] = useState(false)
   const status = useData((s) => s.sessions[sessionId]?.status)
@@ -70,8 +57,6 @@ export function PreviewPane({ url, sessionId }: { url: string; sessionId: string
     }
   }, [sessionId])
 
-  // The cursor on the page follows the turn too: kept awake while it lasts, even between moves,
-  // and let fade once it is over. The next move brings it back.
   useEffect(() => {
     const run = (code: string): void => void ref.current?.executeJavaScript?.(code).catch(() => undefined)
     if (!usedBy) return
@@ -104,16 +89,13 @@ export function PreviewPane({ url, sessionId }: { url: string; sessionId: string
     const onReady = (): void => {
       try {
         window.step.send('preview:attached', sessionId, el.getWebContentsId())
-      } catch {
-        /* not attached yet; the next dom-ready will do */
-      }
+      } catch {}
     }
     el.addEventListener('did-start-loading', onStart)
     el.addEventListener('did-stop-loading', onStop)
     el.addEventListener('did-navigate', onNav)
     el.addEventListener('did-navigate-in-page', onNav)
     el.addEventListener('did-fail-load', onFail)
-    // As early as the view exists, so the page's first console lines are caught too; dom-ready again in case.
     el.addEventListener('did-attach', onReady)
     el.addEventListener('dom-ready', onReady)
     return () => {
@@ -137,7 +119,6 @@ export function PreviewPane({ url, sessionId }: { url: string; sessionId: string
         <button className="icon-btn" title={t('Reload')} onClick={() => ref.current?.reload()}>
           <RotateCw size={13} className={loading ? 'animate-spin' : undefined} />
         </button>
-        {/* The address, as the page is now; click it to type another and press Enter, Esc to leave it. */}
         <input
           className="mx-1 min-w-0 flex-1 rounded-md px-2 py-1 font-mono text-[11.5px] text-secondary outline-none"
           style={{ background: 'var(--bg-hover)', boxShadow: badAddress ? 'inset 0 0 0 1px var(--danger)' : undefined }}

@@ -20,7 +20,6 @@ import { titled } from '@/lib/shortcuts'
 
 gsap.registerPlugin(Flip)
 
-/** Consecutive rows that share a split view, so they can be drawn inside one box. */
 function chunk(rows: SidebarSession[]): Array<{ view: number | null; rows: SidebarSession[] }> {
   const out: Array<{ view: number | null; rows: SidebarSession[] }> = []
   for (const r of rows) {
@@ -33,12 +32,9 @@ function chunk(rows: SidebarSession[]): Array<{ view: number | null; rows: Sideb
 
 const MIN_W = 200
 const MAX_W = 360
-/** The margin the cards keep on the left once the sidebar is gone; matches the other sides. */
-/** While the sidebar is dragged, terminals refit this often rather than on every pixel. */
 const DRAG_FIT_MS = 160
 
 const reducedMotion = (): boolean => window.matchMedia('(prefers-reduced-motion: reduce)').matches
-/** How long the card takes to slide back out of sight; global.css's peek-out runs as long. */
 const PEEK_OUT_MS = 160
 
 export function Sidebar() {
@@ -52,9 +48,6 @@ export function Sidebar() {
   const closeView = useUi((s) => s.closeView)
   const width = prefs?.sidebarWidth ?? 240
   const collapsed = prefs?.sidebarCollapsed ?? false
-  // Out for a look from the left edge (SidebarPeek): a card of its own over the terminals, the way
-  // Arc and Helium show their tabs, so nothing under it moves or resizes. It slides back when it
-  // goes, and only then leaves the page: `peekOut` is that last moment.
   const peek = useUi((s) => s.sidebarPeek)
   const shown = !collapsed
   const [peekOut, setPeekOut] = useState(false)
@@ -73,10 +66,8 @@ export function Sidebar() {
   const floating = collapsed ? (peek ? 'in' : peekOut ? 'out' : undefined) : undefined
   const dragging = useRef(false)
   const list = useRef<HTMLDivElement>(null)
-  // Folders dragged in from the desktop land in the sidebar the same way "Add folder" would.
   const drop = useFolderDrop(addDroppedFolders)
 
-  // Rows slide to their new places after a drop: remember where they were just before.
   const before = useRef<ReturnType<typeof Flip.getState> | null>(null)
   const remember = useCallback((selector = '[data-session-row]') => {
     if (!list.current || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
@@ -84,7 +75,6 @@ export function Sidebar() {
   }, [])
   const reorder = useReorder(model, remember)
 
-  // A folder dragged up or down the list: a line shows where it would land, then the blocks slide.
   const [dragProject, setDragProject] = useState<string | null>(null)
   const [projectInsert, setProjectInsert] = useState<{ path: string; after: boolean } | null>(null)
   const projectPlan = (target: SidebarProject, e: React.DragEvent): { after: boolean; paths: string[] | null } | null => {
@@ -123,8 +113,6 @@ export function Sidebar() {
     Flip.from(state, { duration: 0.32, ease: 'power3.out', simple: true })
   }, [model])
 
-  // Dragging the edge: the width follows the pointer once per frame, the terminals refit only a few
-  // times a second while it moves and once more when it stops, so the text stops shivering.
   const onDragStart = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault()
@@ -139,7 +127,6 @@ export function Sidebar() {
         registry.holdFits()
       }, DRAG_FIT_MS)
       registry.holdFits()
-      // The terminals follow along as above; the agents behind them redraw once, when it is let go.
       registry.beginResizeDrag(false)
       const onMove = (ev: MouseEvent): void => {
         latest = Math.min(MAX_W, Math.max(MIN_W, startW + ev.clientX - startX))
@@ -165,7 +152,6 @@ export function Sidebar() {
       }
       window.addEventListener('mousemove', onMove)
       window.addEventListener('mouseup', onUp)
-      // A button let go outside the window never comes back as a mouseup.
       window.addEventListener('blur', onUp)
     },
     [width, setPrefs]
@@ -175,8 +161,6 @@ export function Sidebar() {
     document.documentElement.style.setProperty('--sidebar-w', `${width}px`)
   }, [width])
 
-  // Folding and unfolding: the sidebar slides with a tween rather than a CSS transition, and the
-  // terminals fit once at the end instead of on every frame.
   const aside = useRef<HTMLElement>(null)
   const firstLayout = useRef(true)
   const shownAs = useRef<string | undefined>(undefined)
@@ -186,9 +170,7 @@ export function Sidebar() {
     const settle = (): void => {
       el.style.width = shown ? 'var(--sidebar-w)' : '0px'
     }
-    // Kept out for good while it was out for a look (the sidebar shortcut): it is already showing,
-    // so it takes its place at once rather than growing again from nothing. What the last frame
-    // showed decides, not the look itself, which may already have been put away by now.
+
     const fromPeek = shown && shownAs.current === 'in'
     if (firstLayout.current || reducedMotion() || fromPeek) {
       firstLayout.current = false
@@ -221,14 +203,12 @@ export function Sidebar() {
       registry.releaseFits()
     }
   }, [shown])
-  // After the fold above has read it: how the sidebar showed in the frame just drawn.
   useLayoutEffect(() => {
     shownAs.current = floating
   })
 
   const ins = reorder.insert
   const mark = (row: SidebarSession): 'before' | 'after' | undefined => (ins?.id === row.id ? (ins.after ? 'after' : 'before') : undefined)
-  // Archived sessions sit dimmed under the live ones, a few at a time; a folder can show them all.
   const [showAllArchived, setShowAllArchived] = useState<Set<string>>(() => new Set())
   const archivedLimit = prefs?.archivedShown ?? 5
   const archivedOf = (p: SidebarProject): React.ReactNode => {
@@ -264,7 +244,6 @@ export function Sidebar() {
         <SessionRow key={row.key} row={row} insert={boxed && sourceView !== c.view ? undefined : mark(row)} onDragOver={reorder.onDragOver} onDrop={reorder.onDrop} />
       ))
       if (!boxed) return rows
-      // A session from outside lands above or below the whole box, so the box carries the mark.
       const first = c.rows[0]
       const last = c.rows[c.rows.length - 1]
       const outside = ins && sourceView !== c.view && ((ins.id === first.id && !ins.after) || (ins.id === last.id && ins.after))
@@ -287,7 +266,6 @@ export function Sidebar() {
         style={{ width: 'var(--sidebar-w)' }}
         onDragLeave={reorder.onDragLeave}
         onContextMenu={(e) => {
-          // Rows bring their own menus; this one is for the space below them.
           if ((e.target as HTMLElement).closest('.row')) return
           e.preventDefault()
           void sidebarMenu({ x: e.clientX, y: e.clientY })
@@ -318,7 +296,6 @@ export function Sidebar() {
           </div>
         ))}
       </div>
-      {/* Two round raised buttons of the same size and weight, lifted a little off the window's bottom edge, with Topito between them when he is on. */}
       <div className="relative mb-1 flex h-10 shrink-0 items-center justify-between pl-[4.25px] pr-2" style={{ width: 'var(--sidebar-w)' }}>
         <button className="fab" title={titled(t('Add folder'), 'add-project')} aria-label={t('Add folder')} onClick={() => void addProject()}>
           <Plus size={17} strokeWidth={2} />

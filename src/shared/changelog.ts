@@ -1,19 +1,10 @@
-/**
- * What changed in each release, newest first, the way the app tells people after an update. The
- * text is English like every other string, with its Spanish in i18n.es.ts; a release adds its entry
- * here before it is cut.
- */
-
 export type ChangeKind = 'new' | 'improved' | 'fixed'
 
 export interface ChangelogEntry {
   version: string
-  /** The day it shipped, YYYY-MM-DD. */
   date: string
-  /** One line on what the release is about. */
   headline: string
   changes: Array<{ kind: ChangeKind; text: string }>
-  /** Topito says hello at the top of this one: the release that brought him. */
   topito?: boolean
 }
 
@@ -161,10 +152,6 @@ export const CHANGELOG: ChangelogEntry[] = [
   }
 ]
 
-/**
- * Orders versions like 0.1.0, 0.1.0-beta.9 and 0.1.0-beta.21: numbers compare as numbers, and a
- * pre-release comes before the release it leads up to.
- */
 export function compareVersions(a: string, b: string): number {
   const split = (v: string): [number[], Array<string | number>] => {
     const [core, pre] = v.trim().replace(/^v/, '').split('-', 2)
@@ -193,11 +180,6 @@ export function compareVersions(a: string, b: string): number {
   return 0
 }
 
-/**
- * The entries someone has not been shown: those after the version they last saw, up to the one
- * running. Someone who has never seen any (they updated from before this page existed) gets the
- * running version's alone rather than the whole history.
- */
 export function unseenChanges(changelog: ChangelogEntry[], seen: string | undefined, current: string): ChangelogEntry[] {
   const upToCurrent = changelog.filter((e) => compareVersions(e.version, current) <= 0)
   if (seen === undefined) return upToCurrent.filter((e) => compareVersions(e.version, current) === 0)

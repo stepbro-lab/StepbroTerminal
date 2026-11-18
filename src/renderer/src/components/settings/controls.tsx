@@ -1,10 +1,5 @@
 import { Children, useId } from 'react'
 
-/**
- * A titled block: bold 13 px title, muted description, then its rows grouped on one rounded
- * surface, the way System Settings and Codex lay them out. `action` sits at the title's right,
- * `footnote` under the group. `plain` leaves the rows loose, for content that brings its own cards.
- */
 export function Section({
   title,
   description,
@@ -27,17 +22,12 @@ export function Section({
         {action}
       </div>
       {description && <p className="mt-1 max-w-[560px] text-[12.5px] leading-[1.5] text-muted">{description}</p>}
-      {/* Nothing to list (no terminals running, say): no empty card, the description says so. */}
       {Children.toArray(children).length > 0 && <div className={plain ? 'mt-3' : 'settings-group mt-3'}>{children}</div>}
       {footnote && <div className="mt-2 px-1 text-[11.5px] leading-relaxed text-muted">{footnote}</div>}
     </section>
   )
 }
 
-/**
- * Label on the left, control on the right. Rows separate themselves with hairlines. A hint stays on
- * one line (paths, versions) unless `wrapHint`, for a sentence that explains the row.
- */
 export function Row({ label, hint, wrapHint, children }: { label: string; hint?: string; wrapHint?: boolean; children: React.ReactNode }) {
   return (
     <div className="setting-row">
@@ -130,7 +120,6 @@ export function TextField({
   value: string
   placeholder?: string
   mono?: boolean
-  /** Shown as dots: a key or a password. */
   secret?: boolean
   width?: number
   list?: string[]

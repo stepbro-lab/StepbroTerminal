@@ -63,11 +63,9 @@ describe('agents typed inside a shell', () => {
     const none = { ...w, claude: undefined, codex: undefined }
     const ps = shellArgsWithAgents('pwsh', [], none, 'win32')
     expect(ps.slice(0, 2)).toEqual(['-NoExit', '-Command'])
-    // It wraps the prompt the profile set up, oh-my-posh or not, and calls it first.
     expect(ps[2]).toContain('$global:__stepPrompt = $function:prompt')
     expect(ps[2]).toContain('$s = & $global:__stepPrompt')
     expect(ps[2]).toContain("']9;9;' + $l.ProviderPath")
-    // It travels on the command line: no double quotes to escape.
     expect(ps[2]).not.toContain('"')
     const env: Record<string, string> = { PROMPT: '$P$G' }
     expect(shellArgsWithAgents('cmd.exe', [], none, 'win32', env)).toEqual([])
@@ -129,7 +127,6 @@ describe('posix shells define the agent functions', () => {
     expect(posixShellWithAgents('/bin/dash', ['-l'], w, env, '/b')).toEqual(['-l'])
     expect(posixShellWithAgents('/usr/local/bin/claude', ['--settings', 'x'], w, env, '/b')).toEqual(['--settings', 'x'])
     expect(env['ZDOTDIR']).toBeUndefined()
-    // Agents or not, a plain zsh gets our files: they also have it say which folder it is in.
     expect(posixShellWithAgents('/bin/zsh', ['-l'], { ...w, claude: undefined, codex: undefined }, env, '/b')).toEqual(['-l'])
     expect(env['ZDOTDIR']).toBe(path.join('/b', 'zsh'))
   })
@@ -147,15 +144,12 @@ describe('posix shells define the agent functions', () => {
   })
 
   it('makes a real bash run the function in place of the binary', () => {
-    // On Windows the bash on PATH is usually the WSL launcher, which runs a Linux bash that
-    // sees none of this; Git's own bash behaves like the real thing.
     const bash = process.platform === 'win32' ? ['C:\\Program Files\\Git\\bin\\bash.exe', 'C:\\Program Files\\Git\\usr\\bin\\bash.exe'].find((p) => fs.existsSync(p)) : findOnPath('bash', process.env)
     if (!bash) return
     writeShims(tmp)
     const fake = path.join(tmp, 'fakeclaude')
     fs.writeFileSync(fake, '#!/bin/sh\necho "ARGS:$@"\n')
     fs.chmodSync(fake, 0o755)
-    // Git Bash on Windows wants forward slashes; a real macOS or Linux path already has them.
     const posix = (p: string): string => p.replace(/\\/g, '/')
     const env = { ...process.env, HOME: posix(tmp), STEP_REAL_CLAUDE: posix(fake), STEP_HOOKS_SETTINGS: '/h/s.json', STEP_MCP_CONFIG: '/h/s.mcp.json', STEP_MCP_URL: 'http://h/mcp' }
     const args = posixShellWithAgents(bash, ['-l'], w, env as Record<string, string>, tmp).map(posix)
@@ -165,7 +159,6 @@ describe('posix shells define the agent functions', () => {
 })
 
 describe('shells say which folder they are in', () => {
-  // No agent at all: the folder is reported all the same.
   const w = { hooksSettings: '/h/s.json', mcpConfig: '/h/s.mcp.json', mcpUrl: 'http://h/mcp' }
   const run = (shell: string, args: string[], env: Record<string, string>, input: string): string =>
     spawnSync(shell, args, { env, input, encoding: 'utf8', timeout: 20_000 }).stdout ?? ''
@@ -228,9 +221,6 @@ describe('resolveCommand', () => {
   })
 
   it('resolves plain names on posix and returns null when missing', () => {
-    // Posix PATH splits on ':' so on Windows the dir must not carry a drive letter. A dir
-    // under the working directory keeps the relative path drive-free even when the temp
-    // folder lives on another drive, as it does on CI runners.
     const local = fs.mkdtempSync(path.join(process.cwd(), '.step-launch-'))
     try {
       const dir = path.relative(process.cwd(), local)
@@ -271,7 +261,6 @@ describe('stepbro opened from a shell of another stepbro', () => {
     const env: Record<string, string> = { ZDOTDIR: path.join(outer, 'zsh') }
     posixShellWithAgents('/bin/zsh', [], w, env, path.join(tmp, 'inner'))
     expect(env['STEP_USER_ZDOTDIR']).toBeUndefined()
-    // The user's own, which the outer one kept aside, is kept.
     const mine: Record<string, string> = { ZDOTDIR: path.join(outer, 'zsh'), STEP_USER_ZDOTDIR: '/Users/me/.config/zsh' }
     posixShellWithAgents('/bin/zsh', [], w, mine, path.join(tmp, 'inner'))
     expect(mine['STEP_USER_ZDOTDIR']).toBe('/Users/me/.config/zsh')

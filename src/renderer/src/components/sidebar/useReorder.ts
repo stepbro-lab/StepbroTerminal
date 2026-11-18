@@ -6,7 +6,6 @@ import { movedIds } from '@/lib/reorder'
 import { reorderSessions } from '@/lib/actions'
 import { DRAG_TYPE } from '../pane/TerminalPane'
 
-/** Where the dragged session would land: above or below the row it hovers. */
 export interface Insert {
   id: string
   after: boolean
@@ -18,11 +17,6 @@ interface Plan {
   after: boolean
 }
 
-/**
- * Drag a session row up or down its project to change the order. The rows show a line
- * where it would land; nothing crosses projects, and pinned rows stay above the rest.
- * `beforeMove` runs right before the order changes, for whoever wants to animate it.
- */
 export function useReorder(model: SidebarProject[], beforeMove: () => void) {
   const dragging = useUi((s) => s.dragging)
   const [insert, setInsert] = useState<Insert | null>(null)
@@ -41,7 +35,6 @@ export function useReorder(model: SidebarProject[], beforeMove: () => void) {
       const r = e.currentTarget.getBoundingClientRect()
       const after = e.clientY > r.top + r.height / 2
       if (source.view !== row.view) {
-        // A session in a split view stays in its box; another one may only land above or below the box.
         if (source.view !== null) return blocked
         const box = project.sessions.filter((s) => s.view === row.view)
         const edge = after ? box[box.length - 1] : box[0]
@@ -81,7 +74,6 @@ export function useReorder(model: SidebarProject[], beforeMove: () => void) {
     [plan, beforeMove]
   )
 
-  /** For the list around the rows: clears the line when the drag leaves it. */
   const onDragLeave = useCallback((e: React.DragEvent) => {
     if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setInsert(null)
   }, [])

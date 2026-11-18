@@ -6,7 +6,6 @@ import { defaultTitle, rowPresetId } from '@/lib/sidebarModel'
 import { AgentLogo } from './sidebar/AgentLogo'
 import { Flight, flightText, type FlightSpec } from './Flight'
 
-/** Where a session is on screen: its pane if visible, else its row in the sidebar. */
 function spot(id: string): { rect: DOMRect; pane: boolean; el: HTMLElement } | null {
   const pane = document.querySelector<HTMLElement>(`[data-session-id="${id}"]`)
   if (pane) return { rect: pane.getBoundingClientRect(), pane: true, el: pane }
@@ -15,11 +14,6 @@ function spot(id: string): { rect: DOMRect; pane: boolean; el: HTMLElement } | n
   return null
 }
 
-/**
- * One agent handed text to another session: the message flies from the sender's pane to the
- * receiver, which lights up when it lands. If the receiver is not on screen, the flight ends
- * on its sidebar row and a toast says where it went.
- */
 export function HandoffFlight() {
   const pending = useHandoff((s) => s.pending)
   const landed = useHandoff((s) => s.landed)
@@ -49,14 +43,11 @@ export function HandoffFlight() {
       icon: preset && preset.id !== 'shell' ? <AgentLogo presetId={preset.id} size={11} /> : <ArrowRight size={11} />,
       label: `→ ${name}`,
       text: flightText(pending.text, 42),
-      // The flight and the row lighting up say where it went; no toast on top of that.
       onLand: () => {
         to.el.classList.add('handoff-landed')
         window.setTimeout(() => to.el.classList.remove('handoff-landed'), 1300)
       }
     }
-    // The spec is built once per handoff; later store changes must not restart the flight.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pending])
 
   useEffect(() => {

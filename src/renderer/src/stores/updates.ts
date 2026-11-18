@@ -5,7 +5,6 @@ interface UpdatesStore {
   state: UpdateState
   set: (state: UpdateState) => void
   check: () => Promise<void>
-  /** Restart into the downloaded version, start the download, or open the releases page. */
   install: () => Promise<void>
 }
 

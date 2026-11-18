@@ -18,7 +18,6 @@ async function repoRoot(cwd: string): Promise<string | null> {
   }
 }
 
-/** A NUL byte near the start is how git itself decides a file is not text. */
 const looksBinary = (buf: Buffer): boolean => buf.subarray(0, 8000).includes(0)
 
 interface Counts {
@@ -27,7 +26,6 @@ interface Counts {
   binary: boolean
 }
 
-/** Lines added and removed per path from `git diff --numstat`; git writes "-" for a binary file. */
 async function numstat(root: string, args: string[]): Promise<Map<string, Counts>> {
   const map = new Map<string, Counts>()
   let out = ''
@@ -49,7 +47,6 @@ async function numstat(root: string, args: string[]): Promise<Map<string, Counts
   return map
 }
 
-/** Counts for a file git does not track yet: every line of it is new. */
 async function countNewFile(abs: string): Promise<Counts | null> {
   try {
     const buf = await readBounded(abs, 2_000_000, true)
@@ -64,10 +61,6 @@ async function countNewFile(abs: string): Promise<Counts | null> {
   }
 }
 
-/**
- * Working-tree changes of a folder's repository. Files edited by the session (from hooks) or
- * modified after it started are flagged so the panel can show what the agent touched.
- */
 export async function gitChanges(projectPath: string, since: number, touched: string[]): Promise<GitChanges> {
   const root = await repoRoot(projectPath)
   if (!root) return { root: null, files: [] }
@@ -82,7 +75,6 @@ export async function gitChanges(projectPath: string, since: number, touched: st
     const y = e[1]
     const rel = e.slice(3)
     if (x === 'R' || x === 'C') {
-      // Renames carry the old path as the next entry.
       i++
     }
     const abs = path.join(root, rel.replace(/\//g, path.sep))
@@ -97,14 +89,12 @@ export async function gitChanges(projectPath: string, since: number, touched: st
       mtime: 0
     })
   }
-  // How much each file changed: what is not staged plus what is, and a count of a new file's lines.
+
   const [unstaged, staged] = await Promise.all([numstat(root, []), numstat(root, ['--cached'])])
   await mapLimit(files, 8, async (f) => {
     try {
       f.mtime = (await fs.promises.stat(f.path)).mtimeMs
-    } catch {
-      /* deleted */
-    }
+    } catch {}
     f.bySession ||= f.mtime > since && since > 0
     const counts = f.untracked ? await countNewFile(f.path) : merge(unstaged.get(f.rel), staged.get(f.rel))
     if (!counts) return
@@ -121,7 +111,6 @@ function merge(a: Counts | undefined, b: Counts | undefined): Counts | null {
   return { added: (a?.added ?? 0) + (b?.added ?? 0), removed: (a?.removed ?? 0) + (b?.removed ?? 0), binary: !!(a?.binary || b?.binary) }
 }
 
-/** Unified diff of one file against the index; a file git does not track yet is shown whole, as additions. */
 export async function gitDiff(root: string, rel: string, untracked: boolean): Promise<FileDiff> {
   if (untracked) {
     const buf = await readBounded(path.join(root, rel), 400_000)
@@ -144,7 +133,6 @@ export async function gitDiff(root: string, rel: string, untracked: boolean): Pr
   }
 }
 
-/** Throws away the file's changes: untracked files are deleted, tracked ones restored from HEAD. */
 export async function gitRevert(root: string, rel: string, untracked: boolean): Promise<void> {
   if (untracked) {
     await fs.promises.rm(path.join(root, rel), { force: true })
@@ -153,7 +141,6 @@ export async function gitRevert(root: string, rel: string, untracked: boolean): 
   await git(root, ['checkout', 'HEAD', '--', rel])
 }
 
-/** Read at most limit + 1 bytes, including if a file grows while being inspected. */
 async function readBounded(file: string, limit: number, skipLarge = false): Promise<Buffer | null> {
   let fh: fs.promises.FileHandle | undefined
   try {

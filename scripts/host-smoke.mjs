@@ -1,5 +1,4 @@
-// Manual smoke test for step-host: connects, creates a shell session, sends a command,
-// prints output, then closes the session. Usage: node scripts/host-smoke.mjs
+// Usage: node scripts/host-smoke.mjs
 import net from 'node:net'
 import fs from 'node:fs'
 import os from 'node:os'

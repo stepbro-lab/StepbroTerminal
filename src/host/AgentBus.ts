@@ -2,35 +2,22 @@ import { randomUUID } from 'node:crypto'
 import type { AgentMessage, Session } from '@shared/types'
 import { agentOf } from './handoff'
 
-/** After work was typed into a session, leave it alone this long before typing anything else. */
 const AFTER_SEND_MS = 1500
 
 export interface AgentBusDeps {
   session: (id: string) => Session | undefined
-  /** Types the messages into the receiving agent's conversation, as one turn. */
   deliver: (to: string, messages: AgentMessage[]) => void
 }
 
-/**
- * How agents talk to each other. Every session has an inbox; `report` drops a message in one and
- * `wait` sleeps until something lands in the caller's inbox or a watched session changes state.
- * A message for an agent that is free is typed straight into its conversation, so the two keep
- * talking without either having to sit in a wait; one for an agent that is busy, or answering a
- * person, waits until it is free. Nothing is ever typed into a plain shell.
- */
 export class AgentBus {
   private inbox = new Map<string, AgentMessage[]>()
   private waiters = new Map<string, Set<() => void>>()
-  /** Sessions currently inside a wait call: their inbox is theirs to read, not to be typed. */
   private waiting = new Set<string>()
-  /** Who last handed work to a session, so a report without a target goes back to them. */
   private lastSender = new Map<string, string>()
   private lastSentAt = new Map<string, number>()
   private retry = new Map<string, NodeJS.Timeout>()
 
   constructor(private readonly deps: AgentBusDeps) {}
-
-  // ---- messages ----
 
   post(from: string, to: string, text: string): AgentMessage {
     const m: AgentMessage = { id: randomUUID(), ts: Date.now(), from, to, text }
@@ -42,7 +29,6 @@ export class AgentBus {
     return m
   }
 
-  /** Every message waiting for a session, removed from the inbox. */
   take(sessionId: string): AgentMessage[] {
     const list = this.inbox.get(sessionId) ?? []
     this.inbox.delete(sessionId)
@@ -66,18 +52,10 @@ export class AgentBus {
     return this.lastSentAt.get(sessionId)
   }
 
-  // ---- delivery into a free agent's conversation ----
-
-  /**
-   * Types the pending messages into the session if it is an agent that is free right now. Called
-   * when a message arrives and whenever the session changes state, so a message for a busy agent
-   * goes in the moment it finishes its turn.
-   */
   tryDeliver(to: string): void {
     if (!this.pending(to) || this.waiting.has(to)) return
     const s = this.deps.session(to)
     if (!s || !s.alive || agentOf(s) === 'shell') return
-    // Only a prompt that is free: never while it works, and never while it asks a person something.
     if (s.status !== 'idle' && s.status !== 'done') return
     const sent = this.lastSentAt.get(to)
     const since = sent ? Date.now() - sent : Infinity
@@ -111,9 +89,6 @@ export class AgentBus {
     return this.waiting.has(sessionId)
   }
 
-  // ---- waiting ----
-
-  /** Resolves true as soon as any of the keys is woken, false when the time runs out. */
   waitFor(keys: string[], ms: number): Promise<boolean> {
     return new Promise((resolve) => {
       let done = false

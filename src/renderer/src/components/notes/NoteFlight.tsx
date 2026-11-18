@@ -5,17 +5,13 @@ import { useNotes } from '@/stores/notes'
 import { Flight, flightText, type FlightSpec } from '../Flight'
 import { OPEN_BAR } from '../Chrome'
 
-/** When an agent saves a note, its first words fly from that session's pane to the Notes button. */
 export function NoteFlight() {
   const arrived = useNotes((s) => s.arrived)
   const landed = useNotes((s) => s.landed)
 
-  // Worked out once the page has drawn what the note brought: the first note is what puts the
-  // Notes button on screen at all, and until then there is nowhere for it to fly to.
   const [spec, setSpec] = useState<FlightSpec | null>(null)
   useLayoutEffect(() => {
     const next = flightFor()
-    // Nothing to fly to (the button is not on screen): let the note through without a flight.
     if (arrived && !next) landed()
     setSpec(next)
   }, [arrived, landed])
@@ -41,7 +37,6 @@ export function NoteFlight() {
     }
   }
 
-  // The Notes button lives in the bar along the top edge: it opens for the flight and stays open until it lands.
   useEffect(() => {
     if (spec) window.dispatchEvent(new Event(OPEN_BAR))
   }, [spec])

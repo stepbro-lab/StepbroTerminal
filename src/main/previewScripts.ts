@@ -1,23 +1,12 @@
-/**
- * JavaScript run inside the page in the preview pane, on an agent's behalf. Kept as strings: the
- * main process ships as bytecode, so a function's source is not there to stringify at run time.
- * Each script is an expression that evaluates (through a promise) to a JSON-friendly value, or
- * throws with a message a person can read.
- */
+// Kept as strings: main ships as bytecode, so a function's source can't be read at run time.
 
 const CLIP = 40_000
 
-/** Who is at the page: the agent's name and color, for the cursor that shows the person what it does. */
 export interface Who {
   name: string
   color: string
 }
 
-/**
- * `find(target)`: a ref from the page's outline (`e12`), a CSS selector, or `text=…` for the visible
- * text of an element (the shortest match wins). A ref names one element for as long as it is on the
- * page; one from a page that has since changed matches nothing, rather than something else.
- */
 const FIND = `
 const visible = (el) => el.getClientRects().length > 0
 const REF = /^(?:ref=)?(e\\d+)$/
@@ -48,14 +37,6 @@ const clip = (s, n) => (s.length > n ? s.slice(0, n) + '\\n…[' + (s.length - n
 const pause = (ms) => new Promise((r) => setTimeout(r, ms))
 `
 
-/**
- * The agent's presence on the page, drawn the way a person would move: a cursor in its color with
- * its name on a tag that travels in a slight arc at a pace that depends on the distance, pauses
- * over what it is about to use, presses down with a ripple when it clicks, and lights the element
- * up with a ring. It remembers where it was across page loads, fades when nothing has happened
- * for a while, and never takes pointer events: the person can keep using the page. Styles go
- * through the CSSOM so a page's Content-Security-Policy does not stop them.
- */
 const PRESENCE = `
 const presence = (who) => {
   const old = window.__stepAgent
@@ -138,12 +119,6 @@ const presence = (who) => {
 }
 `
 
-/**
- * The page as an agent needs it, in one read: in the order it reads, its headings, the text on it
- * and every element that can be used, each of those with a ref (`[e12]`) to pass back as a target.
- * Refs count on from `start` for the whole session, so one from an earlier page never names an
- * element on this one. Returns JSON: the outline, and the next ref number.
- */
 const SNAPSHOT = `
 const INTERACTIVE = 'a[href],button,input:not([type=hidden]),textarea,select,summary,[role=button],[role=link],[role=tab],[role=menuitem],[role=checkbox],[role=radio],[role=switch],[role=option],[role=combobox],[role=textbox],[contenteditable=""],[contenteditable=true]'
 const short = (s, n) => (s.length > n ? s.slice(0, n - 1) + '…' : s)
@@ -247,15 +222,10 @@ const quiet = (idle, cap) => new Promise((res) => {
 const wrap = (body: string): string => `(async () => {${FIND}${PRESENCE}${SNAPSHOT}\n${body}\n})()`
 const arg = (v: unknown): string => JSON.stringify(v ?? null)
 
-/** Puts the agent's cursor on the page, where it last was, so the person sees who is there. */
 export function arriveScript(who: Who): string {
   return wrap(`presence(${arg(who)})\nreturn true`)
 }
 
-/**
- * The page's outline (see SNAPSHOT), refs counting on from `start`: JSON of `{ text, next }`.
- * With `settle`, first waits for the page to stop changing, as it does after a click.
- */
 export function outlineScript(start: number, target?: string, max = CLIP, settle = false): string {
   return wrap(`
 const target = ${arg(target)}
@@ -302,7 +272,6 @@ el.click()
 return 'Clicked <' + el.tagName.toLowerCase() + '> "' + words(el).slice(0, 80) + '".'`)
 }
 
-/** Brings the cursor to the field, clicks into it and selects what is in it, so what is typed next replaces it. */
 export function focusScript(target: string, who: Who): string {
   return wrap(`
 const el = must(${arg(target)})
@@ -318,16 +287,12 @@ else throw new Error('"' + ${arg(target)} + '" is a <' + el.tagName.toLowerCase(
 return '<' + el.tagName.toLowerCase() + '>' + (el.name ? ' name=' + el.name : '') + (el.id ? ' #' + el.id : '')`)
 }
 
-/** Once the typing is over: the ring lets go. */
 export const typedScript = `(() => { const a = window.__stepAgent; if (a && document.activeElement) a.ring(document.activeElement, 600); return true })()`
 
-/** Hides the cursor and ring for a picture of the page alone; `show` brings them back with a flash, the way a camera would. */
 export const hidePresenceScript = `(() => { const a = window.__stepAgent; if (a) a.hide(); return true })()`
 export const showPresenceScript = `(() => { const a = window.__stepAgent; if (a) { a.show(); a.flash() } return true })()`
-/** Whether the agent's cursor is on the page right now (it goes with the page on navigation). */
 export const hasPresenceScript = `(() => !!(window.__stepAgent && window.__stepAgent.root && window.__stepAgent.root.isConnected))()`
 
-/** The value of the agent's own expression, made printable. */
 export function evalScript(js: string): string {
   return `(async () => {
   const v = await (async () => { return eval(${arg(js)}) })()

@@ -32,7 +32,6 @@ describe('the strip\'s size', () => {
     expect(chipsThatFit(240)).toBe(7)
     expect(chipsThatFit(360)).toBe(12)
     expect(chipsThatFit(60)).toBe(2)
-    // The open strip stays inside the row.
     for (const w of [200, 206, 240, 300, 360]) expect(stripWidth(chipsThatFit(w))).toBeLessThanOrEqual(w - 58)
   })
 })

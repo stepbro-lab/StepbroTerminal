@@ -39,7 +39,6 @@ export default function App() {
   const booted = useUi((s) => s.booted)
   const model = useSidebarModel()
 
-  // ---- boot: prefs, data, event wiring ----
   useEffect(() => {
     void usePrefs.getState().load()
     void useData
@@ -47,7 +46,6 @@ export default function App() {
       .load()
       .then(() => window.step.invoke('workspace:get'))
       .then((saved) => {
-        // Bring back the pane arrangements, dropping sessions that no longer exist.
         const sessions = useData.getState().sessions
         const views = (saved?.views ?? []).map((v) => pruneLayout(v, (id) => !!sessions[id])).filter((v): v is LayoutNode => v !== null)
         useUi.getState().restore(views, saved?.activeView ?? 0, saved?.activeId ?? null)
@@ -73,7 +71,6 @@ export default function App() {
         useUi.getState().setActive(id)
       }),
       s.on('ui:command', (name) => runCommand(name as Command)),
-      // An agent asked, through the stepbro MCP server, for a page beside its session.
       s.on('ui:openPreview', (sessionId, url) => useUi.getState().openSide({ kind: 'preview', url, sessionId })),
       s.on('ui:closePreview', (sessionId) => {
         if (useUi.getState().sides[sessionId]?.kind === 'preview') useUi.getState().closeSide(sessionId)
@@ -99,7 +96,6 @@ export default function App() {
       }
     }
     window.addEventListener('keydown', onKey, true)
-    // A file or folder dropped where nothing handles it must never navigate the window to it.
     const swallowFileDrop = (ev: DragEvent): void => {
       if (ev.dataTransfer && Array.from(ev.dataTransfer.types).includes('Files')) ev.preventDefault()
     }
@@ -126,9 +122,6 @@ export default function App() {
     }
   }, [])
 
-  // ---- bring back the sessions that were still running when the app last closed ----
-  // The host restarts on a version change and a machine restart ends it too, so agents can come
-  // back exited; restarting them resumes the conversation, which is what /resume did by hand.
   const resumedRef = useRef(false)
   useEffect(() => {
     if (resumedRef.current || hostState.kind !== 'connected' || !prefs || !booted) return
@@ -139,7 +132,6 @@ export default function App() {
     }
   }, [hostState.kind, prefs, booted])
 
-  // ---- folders dropped on the app icon, or named on the command line, before the window was ready ----
   const pulledRef = useRef(false)
   useEffect(() => {
     if (pulledRef.current || hostState.kind !== 'connected' || !booted) return
@@ -149,8 +141,6 @@ export default function App() {
     })
   }, [hostState.kind, booted])
 
-  // ---- workspaces asked for by a step://workspace link before the window was ready ----
-  // Needs the preferences, which is where the workspaces live.
   const pulledWsRef = useRef(false)
   useEffect(() => {
     if (pulledWsRef.current || hostState.kind !== 'connected' || !booted || !prefs) return
@@ -160,15 +150,10 @@ export default function App() {
     })
   }, [hostState.kind, booted, prefs])
 
-  // ---- terminal prefs ----
   useEffect(() => {
     if (prefs) registry.applyPrefs(prefs, dark)
   }, [prefs, dark])
 
-  // ---- spinner ticker only while something is working, and only as fast as anyone can see ----
-  // Each turn of it redraws every spinner on screen, over the window's glass. Left at full speed
-  // it kept the window drawing for as long as an agent worked, minimised or not: at the pace of an
-  // agent's own spinner in front, a few turns a second behind another window, still when out of sight.
   const anyWorking = Object.values(sessions).some((s) => s.status === 'working' || s.status === 'starting')
   const pace = usePace()
   useEffect(() => {
@@ -177,7 +162,6 @@ export default function App() {
     return () => window.clearInterval(t)
   }, [anyWorking, pace])
 
-  // ---- keep the session model available to keyboard jumps, pick a sensible active session ----
   useEffect(() => {
     setSidebarModelRef(model)
   }, [model])
@@ -195,16 +179,13 @@ export default function App() {
     if (!ui.activeProject && model[0]) ui.setActiveProject(model[0].path)
   }, [sessions, activeId, hostState, model])
 
-  // ---- window title ----
   useEffect(() => {
     const s = activeId ? sessions[activeId] : undefined
     window.step.send('win:setTitle', s ? s.title || defaultTitle(s) : '')
   }, [activeId, sessions])
 
   return (
-    // The window is a thin, even frame with the terminal inside it; the top edge grows into the bar.
     <div className="app-frame relative flex h-full w-full flex-col overflow-hidden" data-frame>
-      {/* The workspace stays mounted behind Settings so terminals keep their state and size. */}
       <div className="relative flex min-h-0 flex-1" style={{ display: settingsOpen ? 'none' : undefined }}>
         <Sidebar />
         <SidebarPeek />

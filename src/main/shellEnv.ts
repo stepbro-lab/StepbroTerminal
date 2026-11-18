@@ -4,10 +4,7 @@ import path from 'node:path'
 
 const EXTRA_UNIX = ['/opt/homebrew/bin', '/usr/local/bin', path.join(os.homedir(), '.local/bin'), path.join(os.homedir(), '.npm-global/bin')]
 
-/**
- * GUI apps on macOS and Linux start with a minimal PATH. Ask the login shell for its
- * environment once and merge PATH so agent CLIs installed via brew, npm or ~/.local are found.
- */
+// GUI apps on macOS and Linux start with a minimal PATH.
 export async function shellEnv(): Promise<NodeJS.ProcessEnv> {
   const base: NodeJS.ProcessEnv = { ...process.env }
   if (process.platform === 'win32') {

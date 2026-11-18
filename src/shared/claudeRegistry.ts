@@ -2,7 +2,6 @@ import fs from 'node:fs'
 import path from 'node:path'
 import type { LiveClaude } from './types'
 
-/** Parses one `~/.claude/sessions/<pid>.json` file written by a running Claude Code process. */
 export function parseRegistryEntry(text: string): LiveClaude | null {
   try {
     const j = JSON.parse(text)
@@ -31,7 +30,6 @@ export function pidAlive(pid: number): boolean {
   }
 }
 
-/** Reads every live entry in the registry directory, dropping stale files whose process is gone. */
 export function readRegistry(dir: string): LiveClaude[] {
   let names: string[]
   try {

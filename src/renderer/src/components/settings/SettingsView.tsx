@@ -16,7 +16,6 @@ const pages = (): Array<{ id: SettingsPage; label: string; icon: React.ReactNode
   { id: 'advanced', label: t('Advanced'), icon: <Wrench size={14} />, title: t('Advanced'), blurb: t('The session host, data on disk and paths.') }
 ]
 
-/** Full-window settings, in place of the workspace: a page list on the left, one page on the right. */
 export function SettingsView() {
   const PAGES = pages()
   const page = useUi((s) => s.settingsPage)

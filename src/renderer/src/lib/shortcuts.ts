@@ -83,12 +83,9 @@ export function runCommand(cmd: Command): void {
   }
 }
 
-// ---- bindings ----
-
 let cachedFor: unknown = undefined
 let cached: Bindings | null = null
 
-/** The shortcuts in force: defaults with the user's changes from prefs applied. */
 export function currentBindings(): Bindings {
   const kb = usePrefs.getState().prefs?.keybindings
   if (!cached || cachedFor !== kb) {
@@ -98,24 +95,20 @@ export function currentBindings(): Bindings {
   return cached
 }
 
-/** Maps a keydown to a shortcut, or null. Shared by the window listener and xterm's key handler. */
 export function commandFor(ev: KeyboardEvent): ShortcutMatch | null {
   return matchShortcut(ev, currentBindings(), isMac)
 }
 
-/** The chord for a shortcut as people read it ("Ctrl ⇧ N"), or "" when it has no key. */
 export function shortcutLabel(id: ShortcutId): string {
   const c = currentBindings()[id]
   return c ? displayChord(c, isMac) : ''
 }
 
-/** "Find (Ctrl F)", or just "Find" when the shortcut has no key. */
 export function titled(text: string, id: ShortcutId): string {
   const l = shortcutLabel(id)
   return l ? `${text} (${l})` : text
 }
 
-/** Hooks that follow the user's changes. */
 export function useBinding(id: ShortcutId): string | null {
   usePrefs((s) => s.prefs?.keybindings)
   return currentBindings()[id]
@@ -125,7 +118,6 @@ export function useShortcutLabel(id: ShortcutId): string {
   return shortcutLabel(id)
 }
 
-/** While Settings records a new shortcut every key goes there, so the app does not act on it. */
 let capture: ((ev: KeyboardEvent) => void) | null = null
 export function setShortcutCapture(fn: ((ev: KeyboardEvent) => void) | null): void {
   capture = fn
@@ -139,7 +131,6 @@ export function jumpTo(n: number): void {
   ui.setActive(row.id)
 }
 
-/** Window-level handler. Returns true when the event was consumed. */
 export function handleKeydown(ev: KeyboardEvent): boolean {
   if (capture) {
     capture(ev)
@@ -168,7 +159,6 @@ export function handleKeydown(ev: KeyboardEvent): boolean {
   }
   const m = commandFor(ev)
   if (!m) return false
-  // A key held down repeats, dozens of times a second; a shortcut acts once.
   if (ev.repeat) return false
   if (m.id === 'jump') {
     if (m.digit) jumpTo(m.digit)

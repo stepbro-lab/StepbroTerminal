@@ -13,7 +13,6 @@ function screen(): { term: HeadlessTerminal; serializer: SerializeAddon } {
 const write = (term: HeadlessTerminal, data: string) => new Promise<void>((resolve) => term.write(data, resolve))
 const encoding = (term: HeadlessTerminal) => (term as any)._core.coreMouseService.activeEncoding as string
 
-/** The screen as a window that opens or reconnects gets it, written into a fresh terminal. */
 async function broughtBack(term: HeadlessTerminal, serializer: SerializeAddon): Promise<HeadlessTerminal> {
   const fresh = screen().term
   await write(fresh, serializer.serialize({ scrollback: 1000 }) + modesSerializeMisses(term))
@@ -23,7 +22,6 @@ async function broughtBack(term: HeadlessTerminal, serializer: SerializeAddon): 
 describe('a screen brought back for a window', () => {
   it('keeps the SGR mouse reports Codex asked for once, when it started', async () => {
     const { term, serializer } = screen()
-    // What Codex 0.160 sends as it starts, and never again.
     await write(term, '\x1b[?1049h\x1b[?1000h\x1b[?1002h\x1b[?1003h\x1b[?1006h› Ask Codex to do anything')
     const back = await broughtBack(term, serializer)
     expect(back.modes.mouseTrackingMode).toBe('any')

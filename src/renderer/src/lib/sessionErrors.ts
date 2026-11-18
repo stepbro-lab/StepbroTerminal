@@ -1,16 +1,10 @@
 import { t } from './i18n'
 
 export interface ErrorWords {
-  /** What happened, in the app's language. */
   title: string
-  /** What to do about it, or the raw message when nothing better is known. */
   hint?: string
 }
 
-/**
- * The host reports why a session could not start in one English line, written for the log.
- * The pane says it in words a person can act on, and keeps the original a click away.
- */
 export function describeSessionError(error: string | undefined): ErrorWords {
   const raw = (error ?? '').trim()
   const missing = /^Command not found: (.+)$/i.exec(raw)

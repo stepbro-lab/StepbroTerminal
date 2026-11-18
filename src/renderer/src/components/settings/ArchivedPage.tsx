@@ -12,10 +12,6 @@ import { t } from '@/lib/i18n'
 
 const archivedAt = (s: Session): number => s.archivedAt ?? s.updatedAt
 
-/**
- * Every session put away, from every folder, in one place: newest first, found by title, folder or
- * agent, and brought back or deleted from here. The sidebar shows a folder's few most recent.
- */
 export function ArchivedPage() {
   const sessions = useData((s) => s.sessions)
   const presets = useData((s) => s.presets)

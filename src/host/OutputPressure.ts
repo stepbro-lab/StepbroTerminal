@@ -3,7 +3,6 @@ interface Pausable {
   resume(): void
 }
 
-/** Every consumer must catch up before the PTY can resume. */
 export class OutputPressure {
   private reasons = new Set<'client' | 'screen' | 'log' | 'rotate' | 'shutdown'>()
   private target?: Pausable
@@ -28,8 +27,6 @@ export class OutputPressure {
       if (paused) this.target.pause()
       else this.target.resume()
       this.paused = paused
-    } catch {
-      /* The PTY may have exited while a consumer was draining. */
-    }
+    } catch {}
   }
 }

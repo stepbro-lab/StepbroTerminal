@@ -12,7 +12,6 @@ describe('what agents are told about the stepbro server', () => {
   })
 
   it('fits in what Claude Code keeps of it, Topito included, so nothing at the end is cut', () => {
-    // Claude Code 2.1 cuts server instructions at 4096 characters.
     expect(instructions(true).length).toBeLessThan(4096)
     expect(instructions(true)).toContain('preview_console')
   })

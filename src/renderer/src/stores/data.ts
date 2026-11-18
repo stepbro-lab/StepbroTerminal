@@ -48,7 +48,6 @@ export const useData = create<DataState>((set) => ({
     })
 }))
 
-/** Wires every main -> renderer event into the store. Returns an unsubscribe function. */
 export function subscribeData(): () => void {
   const s = window.step
   const offs = [
@@ -60,7 +59,6 @@ export function subscribeData(): () => void {
     s.on('live:update', (live) => useData.setState({ live })),
     s.on('presets:update', (presets) => useData.setState({ presets })),
     s.on('projects:update', (projects) => useData.setState({ projects })),
-    // Real host/app diagnostics, printed so they can be read straight from DevTools.
     s.on('diag', (line: string) => console.info('%c[step-host]', 'color:#6e9cff;font-weight:600', line))
   ]
   return () => offs.forEach((off) => off())

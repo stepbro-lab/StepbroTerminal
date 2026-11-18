@@ -7,7 +7,6 @@ on:
 permissions:
   contents: read
 
-# A new push to a pull request replaces the run still going for the one before.
 concurrency:
   group: backend-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true

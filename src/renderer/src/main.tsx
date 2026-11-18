@@ -12,11 +12,9 @@ import * as actions from '@/lib/actions'
 import { useHandoff } from '@/stores/handoff'
 
 if (import.meta.env.DEV) {
-  // Handy for poking at state from DevTools while developing.
   ;(window as any).__step = { useUi, useData, usePrefs, useUpdates, useNotes, useHandoff, registry, actions }
 }
 
-/** The whole tree remounts when the language changes, so every string is read again. */
 function Root() {
   const language = usePrefs((s) => s.prefs?.language) ?? 'en'
   return <App key={language} />

@@ -21,7 +21,6 @@ describe('inOrder', () => {
     expect(inOrder(list, ['/home/me/two']).map((x) => x.name)).toEqual(['two', 'one'])
   })
 
-  // Windows paths are the same folder whatever their case or slashes; other systems tell them apart.
   it.runIf(process.platform === 'win32')('matches a Windows path whatever its case or slashes', () => {
     const list = [p('C:\\Users\\me\\one'), p('C:\\Users\\me\\two')]
     expect(inOrder(list, ['c:/users/me/two']).map((x) => x.name)).toEqual(['two', 'one'])

@@ -12,7 +12,6 @@ describe('orderRows', () => {
   })
 
   it('keeps the sessions of a split view together where the first of them sits', () => {
-    // b and d share view 0; d moves up next to b, c follows them.
     expect(ids(orderRows([row('a', 0), row('b', 1, 0), row('c', 2), row('d', 3, 0)]))).toEqual(['a', 'b', 'd', 'c'])
   })
 

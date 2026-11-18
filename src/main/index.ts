@@ -34,24 +34,16 @@ import type { Ctx } from './context'
 const VERSION = app.getVersion()
 process.env['STEP_VERSION'] = VERSION
 
-// Another data folder lets a second copy (a dev build, a test install) run next to the installed app.
-// Otherwise the folder keeps the name the app had before it was called "stepbro terminal", so an
-// update finds everyone's preferences where they were.
 if (process.env['STEP_USER_DATA']) app.setPath('userData', resolve(process.env['STEP_USER_DATA']))
 else app.setPath('userData', join(app.getPath('appData'), 'StepbroTerminal'))
 
-// step:// links come back from notification buttons (Windows) and open-url (macOS). The
-// registration is system-wide, so a development build must not take it from the installed app
-// unless asked to: it used to, and the installed app's notifications then launched the dev
-// Electron, or opened the dev project as a folder.
+// The step:// registration is system-wide; a dev build must not take it from the installed app.
 if (app.isPackaged) app.setAsDefaultProtocolClient('step')
 else if (process.env['STEP_DEV_PROTOCOL'] && process.argv[1]) app.setAsDefaultProtocolClient('step', process.execPath, [resolve(process.argv[1])])
 
 if (!app.requestSingleInstanceLock()) {
   app.quit()
 } else {
-  // Dev only: a random DevTools port, published in <userData>/DevToolsActivePort (see scripts/cdp.mjs).
-  // Set after winning the lock so a second instance launched by a step:// link never overwrites it.
   if (!app.isPackaged) app.commandLine.appendSwitch('remote-debugging-port', '0')
   void boot()
 }
@@ -65,7 +57,6 @@ function hostEntry(): string {
   return join(__dirname, 'host.js')
 }
 
-// A folder dropped on the Dock icon arrives as open-file, sometimes before the app is ready.
 let ctxRef: Ctx | null = null
 const earlyFolders: string[] = []
 app.on('open-file', (e, p) => {
@@ -74,7 +65,6 @@ app.on('open-file', (e, p) => {
   else earlyFolders.push(p)
 })
 
-/** Hands folders to the renderer, or holds them until it says it is ready. */
 function openFolders(ctx: Ctx, paths: string[]): void {
   if (paths.length === 0) return
   if (ctx.rendererReady && ctx.win && !ctx.win.isDestroyed()) {
@@ -84,16 +74,11 @@ function openFolders(ctx: Ctx, paths: string[]): void {
   }
 }
 
-/** Asks the renderer to open a workspace, or holds the request until it is ready. */
 function openWorkspace(ctx: Ctx, key: string): void {
   if (ctx.rendererReady && ctx.win && !ctx.win.isDestroyed()) ctx.emit('ui:openWorkspace', key)
   else ctx.pendingWorkspaces.push(key)
 }
 
-/**
- * What an agent asked of the saved workspaces through the stepbro MCP server. Changes go into the
- * preferences like any made in Settings, which shows them at once; opening one is the Open button.
- */
 function runWorkspaceOp(ctx: Ctx, op: WorkspaceOp): WorkspaceResult {
   const env: WorkspaceEnv = {
     presets: ctx.presets,
@@ -125,7 +110,6 @@ function runWorkspaceOp(ctx: Ctx, op: WorkspaceOp): WorkspaceResult {
   }
 }
 
-/** A step:// link from a script, a shortcut or a notification button. Workspace links come first. */
 function handleStepUrl(ctx: Ctx, url: string): boolean {
   const key = workspaceKeyFromUrl(url)
   if (key) {
@@ -136,7 +120,6 @@ function handleStepUrl(ctx: Ctx, url: string): boolean {
   return ctx.notifier.handleUrl(url)
 }
 
-// On macOS a link can arrive through open-url before the app is ready; keep it until then.
 const earlyUrls: string[] = []
 app.on('open-url', (e, url) => {
   e.preventDefault()
@@ -145,20 +128,15 @@ app.on('open-url', (e, url) => {
 })
 
 async function boot(): Promise<void> {
-  // Every host/app log line also goes to the renderer's DevTools console, so a real failure can be
-  // read there instead of guessed at. `forward` is wired once the window exists.
   let forward: ((line: string) => void) | null = null
   const log = (...a: unknown[]): void => {
     const line = a.map((x) => (typeof x === 'string' ? x : JSON.stringify(x))).join(' ')
     console.log('[step]', line)
     try {
       forward?.(line)
-    } catch {
-      /* window gone */
-    }
+    } catch {}
   }
-  // The login shell's environment takes a moment (a slow .zshrc, seconds): asked for now, while
-  // Electron itself starts, and never waited on to show the window.
+
   const shellEnvironment = shellEnv()
   await app.whenReady()
   app.setAppUserModelId(APP_ID)
@@ -166,7 +144,6 @@ async function boot(): Promise<void> {
   migrateUserData()
 
   const prefs = loadPrefs()
-  // Until the shell's arrives: the app's own, which on a Mac misses what Homebrew and npm install.
   const env: NodeJS.ProcessEnv = { ...process.env }
   const history = new HistoryIndex(join(claudeDir(), 'history.jsonl'))
   const live = new LiveClaudeWatcher(join(claudeDir(), 'sessions'))
@@ -201,8 +178,6 @@ async function boot(): Promise<void> {
     },
     setPrefs: (partial: Partial<Prefs>): Prefs => {
       const themeChanged = partial.theme !== undefined && partial.theme !== ctx.prefs.theme
-      // Anything that decides which agents count as installed. DeepSeek is one as soon as it has a
-      // key and stops being one when the key goes; the key's characters in between change nothing.
       const deepseekToggled = 'deepseekApiKey' in partial && !!partial.deepseekApiKey !== !!ctx.prefs.deepseekApiKey
       const shellChanged = partial.shell !== undefined || partial.claudePath !== undefined || partial.customPresets !== undefined || deepseekToggled
       ctx.prefs = { ...ctx.prefs, ...partial }
@@ -214,8 +189,6 @@ async function boot(): Promise<void> {
       if (partial.keybindings) buildAppMenu(ctx)
       if (partial.topito !== undefined) sendTopito(ctx)
       if (partial.logo !== undefined) {
-        // The other logo, everywhere the app can change it while it runs: window or Dock, the tray,
-        // and on Windows the shortcuts, so it holds when the app is closed or pinned.
         if (ctx.win) applyAppIcon(ctx.win, ctx.prefs)
         ctx.tray.refresh()
         applyShortcutIcons(ctx.prefs.logo ?? 'light')
@@ -244,7 +217,6 @@ async function boot(): Promise<void> {
     }
   }
 
-  // The agent running in a session ("Claude Code", "Codex"), or null for a plain shell.
   const agentName = (s: Session): string | null => {
     const id = s.agent.detectedPreset ?? s.presetId
     return id === 'shell' ? null : (ctx.presets.find((p) => p.id === id)?.name ?? null)
@@ -256,7 +228,6 @@ async function boot(): Promise<void> {
     log: (...parts) => ctx.log(...parts),
     agentName,
     focusSession: (id) => {
-      // A click on a notification while the app was closed: the window is still loading, so hold the request.
       if (ctx.rendererReady && ctx.win && !ctx.win.isDestroyed()) ctx.emit('ui:focusSession', id)
       else ctx.pendingFocus = id
     },
@@ -294,8 +265,6 @@ async function boot(): Promise<void> {
   registerIpc(ctx)
   setLanguage(ctx.prefs.language)
   buildAppMenu(ctx)
-  // Set once the app is really going (from the tray, for an update, or with the system): the
-  // window then closes for good instead of going to the tray.
   let quitting = false
   const openWindow = (): BrowserWindow => {
     const w = createWindow(ctx.prefs)
@@ -313,7 +282,7 @@ async function boot(): Promise<void> {
         }
       }
     })
-    // Windows ending the session closes every window; nothing should hold that up.
+
     w.on('session-end', () => {
       quitting = true
     })
@@ -322,8 +291,7 @@ async function boot(): Promise<void> {
     })
     return w
   }
-  // Electron says yes to whatever a page asks for unless told otherwise. A page in the preview pane
-  // gets none of the clipboard, camera, microphone, location or notifications; the app's own window may ask.
+  // Electron grants whatever a page asks for unless told otherwise.
   const own = (wc: Electron.WebContents | null): boolean => !!wc && !!ctx.win && !ctx.win.isDestroyed() && wc.id === ctx.win.webContents.id
   const PAGES = new Set(['fullscreen', 'pointerLock', 'clipboard-sanitized-write'])
   session.defaultSession.setPermissionRequestHandler((wc, permission, answer) => answer(own(wc) || PAGES.has(permission)))
@@ -333,16 +301,12 @@ async function boot(): Promise<void> {
   log(`app ${VERSION} on ${process.platform} ${process.arch}, host entry ${hostEntry()}`)
   ctx.updates.start()
   ctx.tray.create()
-  // An update rewrites the Windows shortcuts with the default icon; a chosen color logo goes back on them.
   if (ctx.prefs.logo && ctx.prefs.logo !== 'light') applyShortcutIcons(ctx.prefs.logo)
 
   ctxRef = ctx
-  // Folders given at launch: dropped on the app icon, or named on the command line.
   ctx.pendingFolders.push(...folderArgs(process.argv, process.cwd(), [app.getAppPath(), process.execPath]), ...onlyFolders(earlyFolders, process.cwd()))
   earlyFolders.length = 0
   for (const u of earlyUrls.splice(0)) handleStepUrl(ctx, u)
-  // The host starts sessions in the environment it is given, so it waits for the shell's; the
-  // agents found with it replace the ones found without.
   envLoaded = shellEnvironment.then((loaded) => {
     ctx.env = loaded
     ctx.refreshPresets()
@@ -352,9 +316,7 @@ async function boot(): Promise<void> {
   app.on('second-instance', (_e, argv, cwd) => {
     const url = stepUrlIn(argv)
     if (url) log('protocol link', url)
-    // Notification answers stay in the background; a workspace link opens and comes forward.
     if (url && handleStepUrl(ctx, url) && !url.startsWith('step://focus/') && !workspaceKeyFromUrl(url)) return
-    // A folder dropped on the icon while the app is already open: hand it over and come forward.
     openFolders(ctx, folderArgs(argv, cwd, [app.getAppPath(), process.execPath]))
     if (!ctx.win) ctx.win = openWindow()
     if (ctx.win.isMinimized()) ctx.win.restore()
@@ -372,7 +334,6 @@ async function boot(): Promise<void> {
   app.on('before-quit', () => {
     quitting = true
     flushWorkspace()
-    // Never kill the host: sessions must survive the app.
     client.disconnect()
     ctx.presence.stop()
     history.stop()
@@ -422,11 +383,9 @@ ${s.errorDetail}`)
   })
   client.on('handoff', (h: Handoff) => ctx.emit('ui:handoff', h))
   client.on('topito', (say: TopitoSay) => ctx.emit('ui:topito', say))
-  // An agent's request for the preview pane: done here, where the <webview>'s contents are reachable, and answered over the socket.
   ctx.previews = new PreviewBridge({
     show: (id, url) => ctx.emit('ui:openPreview', id, url),
     hide: (id) => ctx.emit('ui:closePreview', id),
-    // The cursor on the page wears the agent's name and color, the same ones the sidebar uses.
     whoIs: (id) => {
       const s = ctx.sessions.get(id)
       const presetId = s?.agent.detectedPreset ?? s?.presetId ?? 'agent'
@@ -460,7 +419,6 @@ ${s.errorDetail}`)
   })
 }
 
-/** Tells the host whether Topito is on, so the agents' MCP server offers him only then. */
 function sendTopito(ctx: Ctx): void {
   ctx.client.send({ t: 'topito', on: ctx.prefs.topito === true })
 }
@@ -470,16 +428,9 @@ function setHostState(ctx: Ctx, state: HostState): void {
   ctx.emit('host:state', state)
 }
 
-/** Resolves once the login shell's environment is in `ctx.env`. */
 let envLoaded: Promise<void> = Promise.resolve()
-/** The person chose to leave the previous version's host running, with its agents at work: not asked again this run. */
 let keptBusyHost = false
 
-/**
- * The app was updated while agents worked in the previous version's host. Restarting it stops them
- * mid-turn, so the person chooses: let them finish (the host is replaced the next time the app
- * opens with none at work), or restart now.
- */
 async function keepBusyHost(ctx: Ctx, working: number, version: string): Promise<boolean> {
   if (keptBusyHost) return true
   const options = {
@@ -512,9 +463,7 @@ function connectHost(ctx: Ctx): Promise<void> {
       let tail = ''
       try {
         tail = fs.readFileSync(hostLogPath(), 'utf8').split('\n').slice(-5).join('\n')
-      } catch {
-        /* no log */
-      }
+      } catch {}
       setHostState(ctx, { kind: 'error', message: tail ? `${message}\n${tail}` : message, logPath: hostLogPath() })
     } finally {
       connecting = null

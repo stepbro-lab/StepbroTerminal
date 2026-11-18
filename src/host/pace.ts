@@ -1,8 +1,3 @@
-/**
- * Splits text into pieces of at most `max` bytes of UTF-8 for typing into a program a beat apart.
- * A piece ends at a line break when one falls in its last part, otherwise between characters;
- * a character is never cut in two, and the pieces joined back are the text.
- */
 export function pacePieces(text: string, max: number): string[] {
   const pieces: string[] = []
   let cur = ''

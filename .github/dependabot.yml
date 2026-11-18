@@ -1,5 +1,3 @@
-# Security and version updates, grouped so they arrive as a few pull requests a month instead of
-# one per package. Electron is left to the maintainers: a new major needs testing on every system.
 version: 2
 updates:
   - package-ecosystem: npm

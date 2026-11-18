@@ -1,6 +1,5 @@
-// Dev helper: evaluate JavaScript inside the running Step renderer via the Chrome DevTools Protocol.
-// Usage: node scripts/cdp.mjs "<expression>"   (expression may return a promise)
-//        node scripts/cdp.mjs --shot out.png [x y w h [scale]]   (screenshot, optionally a zoomed clip)
+// Usage: node scripts/cdp.mjs "<expression>"
+//        node scripts/cdp.mjs --shot out.png [x y w h [scale]]
 import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
@@ -45,24 +44,20 @@ const send = (method, params = {}) =>
   })
 
 let [arg, extra, ...rest] = process.argv.slice(2)
-// --file <path>: read the expression from a file, for shells that mangle quotes in arguments.
 if (arg === '--file') {
   arg = fs.readFileSync(extra, 'utf8')
   extra = undefined
 }
 if (arg === '--shot') {
-  // --shot out.png [x y w h [scale]]: optional clip, enlarged by scale for a close look.
   const [x, y, width, height, scale] = rest.map(Number)
   const clip = rest.length >= 4 ? { clip: { x, y, width, height, scale: scale || 1 } } : {}
   const r = await send('Page.captureScreenshot', { format: 'png', ...clip })
   fs.writeFileSync(extra || 'shot.png', Buffer.from(r.result.data, 'base64'))
   console.log('saved', extra || 'shot.png')
 } else if (arg === '--reload') {
-  // Reloads the page through the protocol, bypassing the cache, so edited modules are fetched again.
   await send('Page.reload', { ignoreCache: true })
   console.log('reloading')
 } else if (arg === '--drag') {
-  // Real mouse drag through Chromium: --drag x1 y1 x2 y2 [shift]
   const [x1, y1, x2, y2] = [extra, ...rest].map(Number)
   const modifiers = rest.includes('shift') ? 8 : 0
   const step = (type, x, y) => send('Input.dispatchMouseEvent', { type, x, y, button: 'left', buttons: type === 'mouseReleased' ? 0 : 1, clickCount: 1, modifiers })
@@ -71,7 +66,6 @@ if (arg === '--shot') {
   await step('mouseReleased', x2, y2)
   console.log('dragged')
 } else if (arg === '--key') {
-  // A real key press through Chromium: --key <key> [ctrl] [shift] [alt] [meta]  (e.g. --key c ctrl)
   const key = extra
   const modifiers = (rest.includes('alt') ? 1 : 0) | (rest.includes('ctrl') ? 2 : 0) | (rest.includes('meta') ? 4 : 0) | (rest.includes('shift') ? 8 : 0)
   const code = key.length === 1 ? `Key${key.toUpperCase()}` : key
@@ -80,7 +74,6 @@ if (arg === '--shot') {
   await send('Input.dispatchKeyEvent', { type: 'keyUp', ...base })
   console.log('pressed', key, rest.join('+'))
 } else if (arg === '--hover') {
-  // Moves the pointer there, no button held, so hover styles show in a following --shot: --hover x y
   const [x, y] = [extra, ...rest].map(Number)
   await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x, y, buttons: 0 })
   console.log('hovering')

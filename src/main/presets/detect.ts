@@ -3,11 +3,6 @@ import { findOnPath } from '@shared/resolveCommand'
 import type { Preset, Prefs } from '@shared/types'
 import { builtinPresets } from './registry'
 
-/**
- * Where an agent's own installer leaves its binary. PATH is read once, when the app starts, so a
- * CLI installed after that (or one whose installer never touched PATH) would look missing; these
- * folders are searched when PATH comes up empty, and the absolute path is what gets launched.
- */
 const INSTALL_DIRS: Record<string, (env: NodeJS.ProcessEnv, platform: NodeJS.Platform) => string[]> = {
   clyra: (env, platform) => {
     const home = env['HOME'] || env['USERPROFILE'] || ''
@@ -19,7 +14,6 @@ const INSTALL_DIRS: Record<string, (env: NodeJS.ProcessEnv, platform: NodeJS.Pla
   }
 }
 
-/** The binary on PATH, or where its installer is known to put it; undefined when it is neither. */
 function findInstalled(name: string, env: NodeJS.ProcessEnv, platform: NodeJS.Platform): string | undefined {
   const onPath = findOnPath(name, env, platform)
   if (onPath) return onPath
@@ -52,7 +46,6 @@ export function defaultShell(env: NodeJS.ProcessEnv, platform: NodeJS.Platform =
   return { command: sh, args: ['-l'] }
 }
 
-/** Scans PATH for every builtin agent CLI and appends custom presets. Installed first, sorted by usage. */
 export function detectPresets(env: NodeJS.ProcessEnv, prefs: Prefs, platform: NodeJS.Platform = process.platform): Preset[] {
   const out: Preset[] = []
   for (const b of builtinPresets) {
@@ -68,7 +61,6 @@ export function detectPresets(env: NodeJS.ProcessEnv, prefs: Prefs, platform: No
       continue
     }
     if (b.id === 'deepseek') {
-      // Claude Code again, pointed at DeepSeek: it counts as installed once there is a key to point it with.
       const binary = prefs.claudePath || b.binary
       const resolved = findOnPath(binary, env, platform)
       out.push({ ...rest, binary, installed: !!resolved && !!prefs.deepseekApiKey, resolvedPath: resolved })
@@ -79,7 +71,6 @@ export function detectPresets(env: NodeJS.ProcessEnv, prefs: Prefs, platform: No
     for (const name of binaries) {
       resolved = findInstalled(name, env, platform)
       if (resolved) {
-        // Found off PATH: the full path is what the session has to spawn.
         binary = findOnPath(name, env, platform) ? name : resolved
         break
       }

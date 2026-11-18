@@ -33,7 +33,6 @@ describe('chordFromEvent', () => {
   })
 
   it('keeps AltGr characters apart from Ctrl chords', () => {
-    // AltGr arrives as Ctrl+Alt on Windows; "@" on a Spanish layout must not look like Ctrl+2.
     expect(chordFromEvent(ev({ key: '@', code: 'Digit2', ctrlKey: true, altKey: true }), false)).toBe('Mod+Alt+2')
   })
 })

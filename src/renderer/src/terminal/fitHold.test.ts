@@ -10,8 +10,6 @@ describe('FitHold', () => {
   })
 
   it('holds until the last of several overlapping holds lets go', () => {
-    // The sidebar sliding shut and a pane travelling are two animations at once; the first one
-    // to finish must not start reflowing terminals while the other is still moving.
     const released = vi.fn()
     const hold = new FitHold(released)
     hold.hold()
@@ -25,8 +23,6 @@ describe('FitHold', () => {
   })
 
   it('lets go by itself when a release never comes', () => {
-    // An animation interrupted halfway leaves its hold behind; without this, terminals would
-    // never match their cards again until something else was dragged.
     const released = vi.fn()
     const hold = new FitHold(released, 1500)
     hold.hold()
@@ -83,7 +79,6 @@ describe('FitHold', () => {
     vi.advanceTimersByTime(5000)
     hold.hold()
     hold.release()
-    // The drag still holds: only its own release, or its own limit, lets the terminals fit.
     vi.advanceTimersByTime(10_000)
     expect(hold.isHeld).toBe(true)
     expect(released).not.toHaveBeenCalled()

@@ -22,8 +22,6 @@ function computeDark(prefs: Prefs | null, systemDark: boolean): boolean {
 function applyThemeAttr(dark: boolean, prefs?: Prefs | null): void {
   document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light')
   document.documentElement.setAttribute('data-platform', window.step.platform)
-  // The main process puts the blurred desktop behind the window; the page lays the frame and the
-  // terminal over it at their opacity (see global.css).
   const root = document.documentElement
   root.toggleAttribute('data-translucent', !!prefs && isTranslucent(prefs, window.step.platform, window.step.osVersion))
   root.style.setProperty('--frame-opacity', String(prefs?.frameOpacity ?? 1))

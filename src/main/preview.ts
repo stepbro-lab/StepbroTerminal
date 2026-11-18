@@ -6,17 +6,13 @@ interface Pane {
   wcId: number
   console: Array<{ at: number; level: string; text: string }>
   off: () => void
-  /** The next ref an outline hands out: counted for the whole session, across pages. */
   nextRef: number
 }
 
 export interface PreviewDeps {
-  /** Opens the pane beside the session on the given address, and closes it. */
   show: (sessionId: string, url: string) => void
   hide: (sessionId: string) => void
-  /** The agent in the session, as its cursor on the page should present it. */
   whoIs: (sessionId: string) => Who
-  /** The agent is doing something with the pane right now; the window shows it. */
   activity: (sessionId: string) => void
 }
 
@@ -24,23 +20,14 @@ const CONSOLE_KEEP = 200
 const ATTACH_MS = 15_000
 const LOAD_MS = 20_000
 const SHOT_WIDTH = 1200
-/** How much of the page comes back with a click or a typed field: enough to act on next without reading again. */
 const AFTER_MAX = 9000
 
-/**
- * The preview pane, driven from the main process on an agent's behalf. The renderer owns the
- * <webview> and tells us its webContents when it is up; from there the page is ours to load,
- * read, scroll, click, type into, run script in and photograph. One pane per session. Whatever
- * the agent does, the person sees: its cursor moves to the spot first, and the pane says who is
- * at work.
- */
 export class PreviewBridge {
   private panes = new Map<string, Pane>()
   private waiting = new Map<string, Array<(p: Pane) => void>>()
 
   constructor(private readonly deps: PreviewDeps) {}
 
-  /** The renderer's <webview> for a session is up. */
   attached(sessionId: string, wcId: number): void {
     const wc = webContents.fromId(wcId)
     if (!wc || wc.isDestroyed()) return
@@ -48,7 +35,7 @@ export class PreviewBridge {
     if (old?.wcId === wcId) return
     old?.off()
     const pane: Pane = { wcId, console: old?.console ?? [], off: () => {}, nextRef: old?.nextRef ?? 1 }
-    // Electron 32+ hands console messages as one details object; older builds as separate arguments.
+    // Electron 32+ passes one details object; older builds pass separate arguments.
     const onConsole = (...args: unknown[]): void => {
       const d = args[0] as { message?: string; level?: string | number }
       const fromDetails = typeof d?.message === 'string'
@@ -65,7 +52,6 @@ export class PreviewBridge {
     for (const fn of w) fn(pane)
   }
 
-  /** The <webview> went away (the pane closed, or another page took its place). */
   detached(sessionId: string): void {
     const pane = this.panes.get(sessionId)
     if (!pane) return
@@ -85,7 +71,6 @@ export class PreviewBridge {
     const at = (): BrowserResult => ({ url: wc.getURL(), title: wc.getTitle() })
     switch (op.kind) {
       case 'screenshot': {
-        // The picture is of the page alone; the cursor and ring come back with a flash, the way a camera would.
         await wc.executeJavaScript(hidePresenceScript, true).catch(() => undefined)
         const image = await wc.capturePage()
         await wc.executeJavaScript(showPresenceScript, true).catch(() => undefined)
@@ -127,7 +112,6 @@ export class PreviewBridge {
     }
   }
 
-  /** The page's outline, with refs that carry on from the last ones this session was given. */
   private async outline(sessionId: string, wc: WebContents, target?: string, max?: number, settle = false): Promise<string> {
     const pane = this.panes.get(sessionId)
     const raw = String(await wc.executeJavaScript(outlineScript(pane?.nextRef ?? 1, target, max, settle), true))
@@ -136,12 +120,6 @@ export class PreviewBridge {
     return text
   }
 
-  /**
-   * What the page is once an action has had its effect, so the agent can go on without reading it
-   * again: after a navigation, once the new page has loaded; otherwise once the page has stopped
-   * changing. A link starts its navigation within a moment of the click, and only then is there a
-   * load to wait for.
-   */
   private async after(sessionId: string, wc: WebContents, who: Who): Promise<string> {
     await sleep(40)
     if (wc.isLoading()) await settled(wc, 8000)
@@ -149,7 +127,6 @@ export class PreviewBridge {
     return this.outline(sessionId, wc, undefined, AFTER_MAX, true).catch(() => '')
   }
 
-  /** After a click or a submit the page may be a new one; the cursor comes back where it was. */
   private async stay(wc: WebContents, who: Who): Promise<void> {
     const there = await wc.executeJavaScript(hasPresenceScript, true).catch(() => true)
     if (!there) await wc.executeJavaScript(arriveScript(who), true).catch(() => undefined)
@@ -171,7 +148,6 @@ export class PreviewBridge {
       try {
         await wc.loadURL(url)
       } catch (e) {
-        // A redirect aborts the first load and finishes the second; anything else is a real failure.
         if (!/ERR_ABORTED/.test(String((e as Error)?.message ?? e))) throw new Error(`Could not load ${url}: ${String((e as Error)?.message ?? e)}`)
       }
     } else {
@@ -181,7 +157,6 @@ export class PreviewBridge {
     }
     await settled(wc, LOAD_MS)
     await wc.executeJavaScript(arriveScript(who), true).catch(() => undefined)
-    // The page comes back with the opening, so the agent can act on it straight away.
     const after = await this.outline(sessionId, wc, undefined, AFTER_MAX, true).catch(() => '')
     return { url: wc.getURL(), title: wc.getTitle(), after }
   }
@@ -208,11 +183,6 @@ const LEVELS: Record<number, string> = { 0: 'debug', 1: 'log', 2: 'warning', 3: 
 const clip = (s: string, n: number): string => (s.length > n ? `${s.slice(0, n)}\n…[${s.length - n} more characters not shown]` : s)
 const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms))
 
-/**
- * Text goes in a character at a time, quickly, so the person sees it being written without the
- * agent waiting on it: the first stretch letter by letter, in about a third of a second, and the rest
- * of a long text in one go.
- */
 async function typeLikeAPerson(wc: WebContents, text: string): Promise<void> {
   const chars = Array.from(text)
   const oneByOne = chars.slice(0, 40)
@@ -224,7 +194,6 @@ async function typeLikeAPerson(wc: WebContents, text: string): Promise<void> {
   if (chars.length > oneByOne.length) await wc.insertText(chars.slice(oneByOne.length).join(''))
 }
 
-/** Resolves once the page stops loading, or after `ms` if it never does. */
 function settled(wc: WebContents, ms: number): Promise<void> {
   if (!wc.isLoading()) return Promise.resolve()
   return new Promise((resolve) => {

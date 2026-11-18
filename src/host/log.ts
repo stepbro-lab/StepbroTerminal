@@ -18,7 +18,6 @@ export function initLog(file: string): void {
   }
 }
 
-/** The log begins again, empty: a host lives for weeks, and its log must not grow all that time. */
 function startOver(): void {
   stream?.end()
   written = 0

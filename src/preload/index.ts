@@ -20,7 +20,6 @@ const api = {
   invoke,
   send,
   on,
-  /** Absolute path of a File dropped into the window. */
   pathForFile: (file: File): string => webUtils.getPathForFile(file)
 }
 

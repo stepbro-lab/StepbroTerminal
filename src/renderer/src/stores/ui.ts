@@ -16,26 +16,13 @@ export type PaletteMode = 'all' | 'resume' | 'prompts'
 export type SettingsPage = 'appearance' | 'terminal' | 'agents' | 'workspaces' | 'notifications' | 'shortcuts' | 'archived' | 'advanced'
 
 interface UiState {
-  /** The focused session; always a leaf of the active view. */
   activeId: string | null
-  /**
-   * Every arrangement of panes the user has built is a view; one is shown at a time.
-   * A session lives in at most one view. New sessions get a view of their own.
-   */
   views: LayoutNode[]
   activeView: number
-  /** True once the saved workspace has been applied; auto-selection waits for it. */
   booted: boolean
-  /** Session being dragged from the sidebar or a card header, for drop zones. */
   dragging: string | null
-  /** The folded sidebar out over the terminal for a look (SidebarPeek). */
   sidebarPeek: boolean
-  /** Per session, the error whose bar was closed: it stays closed until a different error comes. */
   dismissedErrors: Record<string, string>
-  /**
-   * Side panels next to the terminals, at most one per session: a dev-server preview or the
-   * session's changes. Each belongs to its session and only shows while that session is on screen.
-   */
   sides: Record<string, SidePanel>
   activeProject: string | null
   paletteOpen: boolean
@@ -49,17 +36,14 @@ interface UiState {
   toasts: Toast[]
   spinnerFrame: number
   maximized: boolean
-  /** macOS: full screen, where the traffic lights leave the title bar. */
   fullscreen: boolean
   setActive: (id: string | null) => void
   restore: (views: LayoutNode[], activeView: number, activeId: string | null) => void
   closeView: (index: number) => void
   cycleView: (delta: number) => void
   split: (dir: SplitDir, id: string) => void
-  /** Shows a prebuilt arrangement as a new view; its sessions leave whatever views held them. */
   openView: (layout: LayoutNode, focus: string) => void
   unsplit: () => void
-  /** Takes a pane out of its group and shows it on its own; the others stay together. */
   detach: (id: string) => void
   dropPane: (id: string) => void
   dropSession: (id: string, target: string, zone: DropZone) => void
@@ -67,7 +51,6 @@ interface UiState {
   setSidebarPeek: (peek: boolean) => void
   dismissError: (id: string, error: string) => void
   setRatio: (path: Array<'a' | 'b'>, ratio: number) => void
-  /** Opens a panel beside its session, in place of whatever panel that session had. */
   openSide: (side: SidePanel) => void
   closeSide: (sessionId: string) => void
   setActiveProject: (path: string | null) => void
@@ -92,7 +75,6 @@ function announce(id: string | null): void {
   if (id) window.step.send('host:viewed', id)
 }
 
-/** Takes `id` out of whichever view holds it; views left empty disappear. */
 function withoutSession(views: LayoutNode[], id: string): LayoutNode[] {
   return views.map((v) => (hasLeaf(v, id) ? removeLeaf(v, id) : v)).filter((v): v is LayoutNode => v !== null)
 }
@@ -120,7 +102,6 @@ export const useUi = create<UiState>((set, get) => ({
   maximized: false,
   fullscreen: false,
 
-  // Showing a session brings its view forward; a session with no view gets one of its own.
   setActive: (id) => {
     const { views, activeId } = get()
     if (id === null) {
@@ -144,7 +125,7 @@ export const useUi = create<UiState>((set, get) => ({
     set({ views, activeView: view, activeId: focus, booted: true })
     announce(focus)
   },
-  // Drops a whole arrangement; its sessions stay in the sidebar.
+
   closeView: (index) => {
     const { views, activeView, activeId } = get()
     if (!views[index]) return
@@ -168,7 +149,7 @@ export const useUi = create<UiState>((set, get) => ({
     set({ activeId: focus, views: [...views, layout], activeView: views.length, searchOpen: false })
     announce(focus)
   },
-  // Puts `id` beside the focused pane of the current view.
+
   split: (dir, id) => {
     const { activeId } = get()
     const views = withoutSession(get().views, id)
@@ -182,7 +163,7 @@ export const useUi = create<UiState>((set, get) => ({
     }
     announce(id)
   },
-  // Keeps only the focused pane in the current view; the others are left to the sidebar.
+
   unsplit: () => {
     const { views, activeView, activeId } = get()
     if (!activeId || !views[activeView]) return
@@ -206,7 +187,7 @@ export const useUi = create<UiState>((set, get) => ({
     set({ views: next, activeView: view, activeId: nextActive })
     if (nextActive !== activeId) announce(nextActive)
   },
-  // Drops `id` onto `target`'s pane edge (or center) inside whatever view holds the target.
+
   dropSession: (id, target, zone) => {
     const { views } = get()
     const targetIdx = views.findIndex((v) => hasLeaf(v, target))
@@ -264,20 +245,16 @@ export const useUi = create<UiState>((set, get) => ({
   setFullscreen: (fullscreen) => set({ fullscreen })
 }))
 
-/** The view on screen. */
 export const activeLayout = (s: { views: LayoutNode[]; activeView: number }): LayoutNode | null => s.views[s.activeView] ?? null
 
-/** Sessions shown in the current view. */
 export function paneIds(): string[] {
   return leaves(activeLayout(useUi.getState()))
 }
 
-/** Sessions placed in any view. */
 export function allPaneIds(): string[] {
   return useUi.getState().views.flatMap((v) => leaves(v))
 }
 
-/** Give focus back to the active terminal after an overlay closes, once React has unmounted it. */
 function refocusTerminal(id: string | null): void {
   if (!id) return
   window.setTimeout(() => registry.focus(id), 0)

@@ -1,16 +1,3 @@
-/**
- * Keyboard shortcuts: what the app can do from the keyboard, the chord each one uses by default,
- * and the pure functions that read a chord off a key event, print it, and turn it into a menu
- * accelerator. Shared by the renderer (matching keys, the Settings page) and main (the menu).
- *
- * A chord is a string such as "Mod+Shift+H", "F2" or "Mod+\". Tokens are joined with "+" in the
- * order Mod, Ctrl, Alt, Shift, then one key. "Mod" is Cmd on macOS and Ctrl elsewhere; "Ctrl" as
- * a token of its own exists only on macOS. The key is a capital letter, a digit, "F1".."F24", a
- * named key (Enter, Space, Escape, Tab, Backspace, Delete, Insert, Home, End, PageUp, PageDown,
- * Up, Down, Left, Right) or a single printable symbol. "Digit" stands for any of 1..9 and is used
- * by the jump-to-session shortcut alone.
- */
-
 export type ShortcutId =
   | 'new-shell'
   | 'new-session'
@@ -39,7 +26,6 @@ export interface ShortcutDef {
   id: ShortcutId
   label: string
   group: ShortcutGroup
-  /** One chord for every platform, or one for the Mac and one for the rest. */
   default: string | { mac: string; other: string }
 }
 
@@ -55,8 +41,7 @@ export const SHORTCUTS: ShortcutDef[] = [
   { id: 'rename-session', label: 'Rename session', group: 'Sessions', default: 'F2' },
   { id: 'jump', label: 'Jump to session 1 to 9', group: 'Sessions', default: 'Mod+Digit' },
   { id: 'next-attention', label: 'Next session that needs you', group: 'Sessions', default: 'Mod+J' },
-  // Letters and Tab only: on many Windows and Linux layouts (Spanish above all) the backslash and
-  // the brackets need AltGr, so chords built on them cannot be pressed. Cmd+Tab belongs to macOS.
+  // Letters and Tab only: brackets and backslash need AltGr on many layouts.
   { id: 'split-right', label: 'Split right with a new shell', group: 'Panes and views', default: 'Mod+Shift+D' },
   { id: 'split-down', label: 'Split down with a new shell', group: 'Panes and views', default: 'Mod+Shift+E' },
   { id: 'next-view', label: 'Next view', group: 'Panes and views', default: { mac: 'Ctrl+Tab', other: 'Mod+Tab' } },
@@ -74,7 +59,6 @@ export const SHORTCUTS: ShortcutDef[] = [
 
 export const shortcutDef = (id: ShortcutId): ShortcutDef => SHORTCUTS.find((s) => s.id === id)!
 
-/** Per-shortcut overrides kept in prefs: a chord, or null for "no key". Missing means the default. */
 export type Keybindings = Partial<Record<ShortcutId, string | null>>
 
 export type Bindings = Record<ShortcutId, string | null>
@@ -107,7 +91,6 @@ export function formatChord(c: Chord): string {
   return [...MODIFIER_ORDER.filter((m) => c.mods.includes(m)), c.key].join('+')
 }
 
-/** The part of a key event this module reads; a DOM KeyboardEvent satisfies it. */
 export interface KeyLike {
   key: string
   code: string
@@ -137,7 +120,6 @@ const NAMED: Record<string, string> = {
   ArrowRight: 'Right'
 }
 
-/** US-layout punctuation by physical key: what it prints plain and with Shift. */
 const US_PUNCTUATION: Record<string, [string, string]> = {
   BracketLeft: ['[', '{'],
   BracketRight: [']', '}'],
@@ -152,12 +134,6 @@ const US_PUNCTUATION: Record<string, [string, string]> = {
   Backquote: ['`', '~']
 }
 
-/**
- * The key token for an event, or null when only a modifier was pressed. Letters and digits come
- * from the physical key, so Shift and Caps Lock do not change them. Punctuation is what the key
- * prints; with Shift held on a US-style layout the plain symbol is used ("]" for Shift+]), so a
- * chord reads the way it is written.
- */
 export function keyToken(e: KeyLike): string | null {
   if (MODIFIER_KEYS.has(e.key)) return null
   let m = /^Key([A-Z])$/.exec(e.code)
@@ -189,11 +165,9 @@ export function chordFromEvent(e: KeyLike, mac: boolean): string | null {
 
 export interface ShortcutMatch {
   id: ShortcutId
-  /** For the jump shortcut: which of 1..9 was pressed. */
   digit?: number
 }
 
-/** The shortcut a key event triggers under these bindings, or null. */
 export function matchShortcut(e: KeyLike, bindings: Bindings, mac: boolean): ShortcutMatch | null {
   const chord = chordFromEvent(e, mac)
   if (!chord) return null
@@ -208,15 +182,10 @@ export function matchShortcut(e: KeyLike, bindings: Bindings, mac: boolean): Sho
   return null
 }
 
-/** Chords the terminal keeps for itself. */
 export function reservedChords(mac: boolean): string[] {
   return mac ? ['Mod+C', 'Mod+V', 'Mod+Q'] : ['Mod+C', 'Mod+V', 'Mod+Shift+C', 'Mod+Shift+V']
 }
 
-/**
- * Why a chord cannot be bound, or null when it can. Shortcuts are tapped, so a key on its own
- * would be swallowed every time it was typed: one needs a modifier, an F key aside.
- */
 export function validateChord(chord: string, mac: boolean): string | null {
   const { mods, key } = parseChord(chord)
   const alone = !mods.some((m) => m !== 'Shift')
@@ -235,7 +204,6 @@ const KEY_LABELS: Record<string, string> = {
   Escape: 'Esc'
 }
 
-/** Key caps in the order people read them on each platform: ⌃ ⌥ ⇧ ⌘ on a Mac, Ctrl Alt ⇧ elsewhere. */
 export function displayParts(chord: string, mac: boolean): string[] {
   const { mods, key } = parseChord(chord)
   const order: Modifier[] = mac ? ['Ctrl', 'Alt', 'Shift', 'Mod'] : ['Mod', 'Ctrl', 'Alt', 'Shift']
@@ -265,7 +233,6 @@ const ACCELERATOR_KEYS: Record<string, string> = {
   PageDown: 'PageDown'
 }
 
-/** An Electron menu accelerator for a chord, or undefined when it has none (unbound, or the digit range). */
 export function toAccelerator(chord: string | null | undefined): string | undefined {
   if (!chord) return undefined
   const { mods, key } = parseChord(chord)

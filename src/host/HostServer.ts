@@ -23,16 +23,12 @@ const FLUSH_MS = 8
 const PAUSE_ABOVE = 1024 * 1024
 const RESUME_BELOW = 256 * 1024
 
-/** Local socket server: fans out session events and output to attached clients with flow control. */
 export class HostServer {
   private server: net.Server
   private clients = new Set<Client>()
   private owners = new SizeOwners<Client>()
-  /** Preview requests out to the app, waiting for its answer. */
   private browserPending = new Map<string, { resolve: (r: BrowserResult) => void; reject: (e: Error) => void; timer: NodeJS.Timeout; client: Client }>()
-  /** Workspace requests out to the app, which keeps the preferences they live in. */
   private workspacePending = new Map<string, { resolve: (r: WorkspaceResult) => void; reject: (e: Error) => void; timer: NodeJS.Timeout; client: Client }>()
-  /** Whether the app has Topito turned on. He starts off, and agents are only offered him while he is on. */
   topitoOn = false
   onClientsChange: () => void = () => {}
   onShutdown: () => void = () => {}
@@ -67,7 +63,6 @@ export class HostServer {
     return this.clients.size
   }
 
-  /** Whether any window has this session attached, and so answers what its program asks the terminal. */
   isViewed(id: string): boolean {
     for (const c of this.clients) if (c.attached.has(id)) return true
     return false
@@ -75,13 +70,10 @@ export class HostServer {
 
   async listen(): Promise<void> {
     if (process.platform !== 'win32') {
-      // Remove a stale socket file if nobody answers on it.
       if (fs.existsSync(this.socketPath) && !(await probe(this.socketPath))) {
         try {
           fs.unlinkSync(this.socketPath)
-        } catch {
-          /* ignore */
-        }
+        } catch {}
       }
     }
     await new Promise<void>((resolve, reject) => {
@@ -128,7 +120,7 @@ export class HostServer {
         this.recheckFlow(id)
         this.letGo(c, id)
       }
-      // What was asked of this window will never be answered: the agent hears so now, not when its time runs out.
+
       for (const pending of [this.browserPending, this.workspacePending]) {
         for (const [reqId, p] of pending) {
           if (p.client !== c) continue
@@ -185,7 +177,6 @@ export class HostServer {
         this.sm.input(msg.id, bin)
         break
       case 'resize':
-        // Only the client that got to the session first sizes it; see SizeOwners.
         this.owners.note(msg.id, c, { cols: msg.cols, rows: msg.rows })
         if (this.owners.owns(msg.id, c)) this.sm.resize(msg.id, msg.cols, msg.rows)
         break
@@ -267,15 +258,10 @@ export class HostServer {
     }
   }
 
-  /** Passes on to every connected app what an agent asked Topito to say. */
   topito(say: TopitoSay): void {
     this.broadcast({ t: 'topito', say })
   }
 
-  /**
-   * Asks the app to do something with the preview pane beside a session and waits for what came
-   * of it. The app is the client that owns the window; with none connected there is no pane.
-   */
   browser(sessionId: string, op: BrowserOp, timeoutMs = 30_000): Promise<BrowserResult> {
     const c = [...this.clients][0]
     if (!c) return Promise.reject(new Error('The terminal window is not connected.'))
@@ -290,10 +276,6 @@ export class HostServer {
     })
   }
 
-  /**
-   * Asks the app to read or change the saved workspaces, or to open one, and waits for what came of
-   * it. They live in the app's preferences, so with the app closed there is nothing to reach.
-   */
   workspaces(op: WorkspaceOp, timeoutMs = 15_000): Promise<WorkspaceResult> {
     const c = [...this.clients][0]
     if (!c) return Promise.reject(new Error('The stepbro terminal window is closed, and workspaces live in the app. Open it and try again.'))
@@ -308,7 +290,6 @@ export class HostServer {
     })
   }
 
-  /** `c` stopped looking at `id`; whoever inherits the session gets the size they asked for. */
   private letGo(c: Client, id: string): void {
     const others = [...this.clients].filter((o) => o !== c && o.attached.has(id))
     const size = this.owners.release(id, c, others)
@@ -316,7 +297,6 @@ export class HostServer {
   }
 
   private queueOutput(id: string, bytes: Uint8Array): void {
-    // The host owns this immutable buffer; clients can share it until frame encoding.
     const data = Buffer.isBuffer(bytes) ? bytes : Buffer.from(bytes)
     for (const c of this.clients) {
       if (!c.attached.has(id)) continue
@@ -344,7 +324,6 @@ export class HostServer {
     c.pending.clear()
   }
 
-  /** Pause the PTY when any attached client is far behind; resume when everyone caught up. */
   private recheckFlow(id: string): void {
     let max = 0
     for (const c of this.clients) {

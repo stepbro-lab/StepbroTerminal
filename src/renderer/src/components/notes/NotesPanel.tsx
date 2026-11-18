@@ -11,7 +11,6 @@ import { t } from '@/lib/i18n'
 
 gsap.registerPlugin(useGSAP)
 
-/** The floating notes pad. Mounted only while open so the terminal pays nothing for it otherwise. */
 export function NotesPanel() {
   const open = useNotes((s) => s.open)
   return open ? <Panel /> : null
@@ -32,7 +31,6 @@ function Panel() {
     gsap.from(root.current, { y: 10, scale: 0.985, opacity: 0, duration: 0.2, ease: 'power2.out' })
   }, { scope: root })
 
-  // Notes that arrived while the panel is open slide in and flash.
   useGSAP(
     () => {
       const fresh = notes.filter((n) => !seen.current.has(n.id))

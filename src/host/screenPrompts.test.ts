@@ -54,7 +54,6 @@ describe('busyOnScreen', () => {
     expect(busyMarkerFor('codex')).toBeDefined()
     expect(busyMarkerFor('claude')).toBeUndefined()
     expect(busyMarkerFor(undefined)).toBeUndefined()
-    // Clyra shows "esc to interrupt" in its footer all the time, so it could not go by that.
     expect(busyOnScreen('clyra', ['! for bash mode · / for commands · esc to interrupt'])).toBe(false)
   })
 })

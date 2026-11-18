@@ -9,13 +9,11 @@ import { t } from '@/lib/i18n'
 
 const STATUS_COLOR: Record<ChangedFile['status'], string> = { added: 'var(--success)', deleted: 'var(--danger)', modified: 'var(--attention)', renamed: 'var(--accent)' }
 const statusWord = (s: ChangedFile['status']): string => t(s === 'added' ? 'Added' : s === 'deleted' ? 'Deleted' : s === 'renamed' ? 'Renamed' : 'Modified')
-/** "name" and "folder/" of a repository-relative path. */
 const split = (rel: string): { name: string; dir: string } => {
   const i = rel.lastIndexOf('/')
   return i < 0 ? { name: rel, dir: '' } : { name: rel.slice(i + 1), dir: rel.slice(0, i + 1) }
 }
 
-/** What changed in the session's repository, with the agent's own edits first, a readable diff and a way back. */
 export function ChangesPane({ sessionId }: { sessionId: string }) {
   const session = useData((s) => s.sessions[sessionId])
   const closeSide = useUi((s) => s.closeSide)
@@ -90,7 +88,6 @@ export function ChangesPane({ sessionId }: { sessionId: string }) {
         <Empty>{t('No changes in this folder.')}</Empty>
       ) : (
         <div className="flex min-h-0 flex-1 flex-col">
-          {/* The panel is narrow, so the list sits above the diff and leaves it the whole width. */}
           <div className="scroll-thin max-h-[42%] shrink-0 overflow-auto border-b border-line pb-1">
             <Summary files={files} />
             {mine.length > 0 && <Group title={t('By this session')} files={mine} selected={selected} onSelect={setSelected} />}
@@ -114,7 +111,6 @@ function Hint({ children }: { children: React.ReactNode }) {
   return <div className="p-4 text-[12.5px] text-muted">{children}</div>
 }
 
-/** How many files, and how many lines in and out, over the whole list. */
 function Summary({ files }: { files: ChangedFile[] }) {
   let added = 0
   let removed = 0
@@ -130,7 +126,6 @@ function Summary({ files }: { files: ChangedFile[] }) {
   )
 }
 
-/** "+12 −4", each in its own color; nothing when the file is binary or nothing was counted. */
 function Counts({ added, removed, binary }: { added?: number; removed?: number; binary?: boolean }) {
   if (binary) return <span className="shrink-0 text-[11px] text-muted">{t('binary')}</span>
   if (added === undefined && removed === undefined) return null
@@ -171,7 +166,6 @@ function Group({ title, files, selected, onSelect }: { title: string; files: Cha
   )
 }
 
-/** The chosen file above its diff: what happened to it, in words, and the button that undoes it. */
 function FileHeader({ file, onRevert }: { file: ChangedFile; onRevert: (f: ChangedFile) => void }) {
   const { name, dir } = split(file.rel)
   return (
@@ -192,7 +186,6 @@ function FileHeader({ file, onRevert }: { file: ChangedFile; onRevert: (f: Chang
 
 type Row = { kind: 'hunk'; line: number; text: string } | { kind: 'note'; text: string } | { kind: 'ctx' | 'add' | 'del'; old?: number; new?: number; text: string }
 
-/** Git's unified diff as rows to draw: the file headers go, hunks become a line marker, every line gets its numbers. */
 function parseDiff(text: string): Row[] {
   const rows: Row[] = []
   const lines = text.split('\n')
@@ -211,7 +204,6 @@ function parseDiff(text: string): Row[] {
     }
     if (!inHunk) {
       if (/^(diff --git|index |--- |\+\+\+ |new file mode|deleted file mode|old mode|new mode|similarity index|rename from|rename to)/.test(line)) continue
-      // A new file arrives without headers: it starts at line 1.
       inHunk = true
       oldNo = 1
       newNo = 1

@@ -7,10 +7,6 @@ import { writeFileAtomic } from '@shared/atomic'
 const MAX_TEXT = 4000
 const MAX_NOTES = 1000
 
-/**
- * Notes the user and their agents keep. One list for everyone, kept on disk so it survives
- * the window, the host and the agents that wrote it. Emits `change(notes, added?)`.
- */
 export class NoteStore extends EventEmitter {
   private notes: Note[] = []
 
@@ -27,7 +23,6 @@ export class NoteStore extends EventEmitter {
     }
   }
 
-  /** Newest first. */
   list(): Note[] {
     return this.notes.slice()
   }
@@ -66,9 +61,7 @@ export class NoteStore extends EventEmitter {
   private commit(added?: Note): void {
     try {
       writeFileAtomic(this.file, JSON.stringify(this.notes, null, 2))
-    } catch {
-      /* the list still lives in memory; the next change tries again */
-    }
+    } catch {}
     this.emit('change', this.list(), added)
   }
 }

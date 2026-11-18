@@ -4,11 +4,6 @@ import { useTopitoElsewhere } from '../topito/Topito'
 import { Toggle } from './controls'
 import { t } from '@/lib/i18n'
 
-/**
- * Topito first thing in Appearance, where he cannot be missed: himself, asleep while he is off
- * and waving once he is on, what he does, and the switch. The sidebar's ducks into his hole while
- * this one is out, so there is only ever one of him.
- */
 export function TopitoCard() {
   useTopitoElsewhere()
   const on = usePrefs((s) => s.prefs?.topito === true)

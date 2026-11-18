@@ -6,7 +6,6 @@ import { writeFileAtomic } from '@shared/atomic'
 
 const MAX = 2000
 
-/** Append-only log of prompts sent to agents, newest last, capped and deduplicated for the palette. */
 export class PromptLog {
   private items: PromptRecord[] = []
   private file = path.join(app.getPath('userData'), 'prompts.jsonl')
@@ -19,17 +18,12 @@ export class PromptLog {
         try {
           const r = JSON.parse(line) as PromptRecord
           if (typeof r?.text === 'string' && typeof r?.ts === 'number') this.items.push(r)
-        } catch {
-          /* skip bad line */
-        }
+        } catch {}
       }
       const read = this.items.length
       if (this.items.length > MAX) this.items = this.items.slice(-MAX)
-      // The file only ever grows; once it holds twice what is kept, it is cut back to that.
       if (read > MAX * 2) writeFileAtomic(this.file, this.items.map((r) => JSON.stringify(r)).join('\n') + '\n')
-    } catch {
-      /* first run */
-    }
+    } catch {}
   }
 
   add(r: PromptRecord): void {
@@ -37,12 +31,9 @@ export class PromptLog {
     if (this.items.length > MAX) this.items = this.items.slice(-MAX)
     try {
       fs.appendFileSync(this.file, JSON.stringify(r) + '\n')
-    } catch {
-      /* non-fatal */
-    }
+    } catch {}
   }
 
-  /** Newest first, one entry per distinct text. */
   list(): PromptRecord[] {
     const seen = new Set<string>()
     const out: PromptRecord[] = []

@@ -13,44 +13,24 @@ import { t } from '@/lib/i18n'
 
 const platform = window.step.platform
 const mac = platform === 'darwin'
-/** The open bar's height, and the frame's depth at rest, in pixels: the same as --chrome-h and --frame. */
 const BAR_H = 36
 const FRAME = 8
-/** How far the bar has opened when a Mac's traffic lights show: by then the terminal's edge is below them. */
 const LIGHTS_AT = 0.55
-/** How long the pointer may be off the bar before it closes, so brushing past the edge does not close it. */
 const LINGER_MS = 220
-/**
- * The session rail sits just under the top edge, so a trip to it that overshoots lands on the
- * edge, and the bar opening then pushes the rail away from the pointer. So for a moment after
- * the pointer was on the rail, and on a Mac anywhere above the rail's corner, the edge waits for
- * the pointer to rest on it before opening. On Windows and Linux that corner holds the window's
- * own buttons, which people go for on purpose, so there only the moment after the rail counts.
- */
 const RAIL_GRACE_MS = 600
 const RAIL_REACH = 48
 const EDGE_REST_MS = 400
 
-/** How long the pointer must rest on the top edge, at `x` (null when unknown), before the bar opens. */
 function edgeRest(x: number | null): number {
   if (sincePointerOnRail() < RAIL_GRACE_MS) return EDGE_REST_MS
   const rail = mac && x !== null ? document.querySelector('.rail')?.getBoundingClientRect() : undefined
   return rail && x! >= rail.left - RAIL_REACH ? EDGE_REST_MS : 0
 }
 
-/** A window event that opens the bar from elsewhere in the page; it closes as usual once nothing holds it. */
 export const OPEN_BAR = 'step:open-bar'
-/** Opens quickly and settles without bouncing: the terminal's edge must not wobble under the buttons. */
 const OPEN: SpringConfig = { stiffness: 520, damping: 44 }
 const CLOSE: SpringConfig = { stiffness: 420, damping: 42 }
 
-/**
- * The window's own corners, in DIP, and their shape: the card inside the frame rounds by the
- * window's radius less the frame, so the two curves run parallel. A Mac since macOS 26 draws
- * continuous corners, a squircle about 30 DIP across (measured on macOS 27); before that, a
- * 10 DIP circle. Windows 11 rounds by 8 DIP, Windows 10 not at all; a frameless window on Linux
- * is square. Maximized on Windows and Linux, and in full screen anywhere, the corners are square.
- */
 function windowCorner(maximized: boolean, fullscreen: boolean): { radius: number; squircle: boolean } {
   if (fullscreen) return { radius: 0, squircle: false }
   const version = window.step.osVersion.split('.').map(Number)
@@ -59,11 +39,6 @@ function windowCorner(maximized: boolean, fullscreen: boolean): { radius: number
   return { radius: 0, squircle: false }
 }
 
-/**
- * Keeps --window-radius and --zoom on the root in step with the window, for the card's corners
- * (see --radius-card in tokens.css). The page's zoom counts: the frame is in CSS pixels and the
- * window's corners are not, and in a frameless window the outer width is the window's in DIP.
- */
 export function useWindowCorners(): void {
   const maximized = useUi((s) => s.maximized)
   const fullscreen = useUi((s) => s.fullscreen)
@@ -79,7 +54,6 @@ export function useWindowCorners(): void {
   }, [maximized, fullscreen])
 }
 
-/** Shows or hides the sidebar. */
 function SidebarToggle() {
   const collapsed = usePrefs((s) => s.prefs?.sidebarCollapsed ?? false)
   const setPrefs = usePrefs((s) => s.set)
@@ -90,11 +64,6 @@ function SidebarToggle() {
   )
 }
 
-/**
- * The buttons that belong to the window rather than to a pane: activity, updates, notes,
- * and settings while the sidebar is folded away. With the sidebar out, its own settings button
- * sits at its foot, and a second one up here would only repeat it.
- */
 function ChromeButtons() {
   const folded = usePrefs((s) => s.prefs?.sidebarCollapsed ?? false)
   const settingsOpen = useUi((s) => s.settingsOpen)
@@ -113,10 +82,6 @@ function ChromeButtons() {
   )
 }
 
-/**
- * Windows and Linux: minimize, maximize and close, drawn the way each system draws its own. On
- * Windows that is its icon font, the same glyphs its title bars use; close turns red.
- */
 function CaptionButtons() {
   const maximized = useUi((s) => s.maximized)
   const win = platform === 'win32'
@@ -135,26 +100,8 @@ function CaptionButtons() {
   )
 }
 
-/**
- * The window's top edge, which grows into a bar while the pointer is on it, the way Helium does
- * it. At rest the terminal fills the window inside a thin, even frame and no button shows. Bring
- * the pointer to the top edge and the frame's top grows, pushing the terminal down to make room
- * for a bar with the window's buttons in it: a Mac's traffic lights appear once there is room for
- * them (they cannot move, so the bar opens around where they are), and on Windows and Linux ours
- * sit at the right. The terminals fit their new size once, when the bar has settled, not on
- * every frame of the way.
- *
- * The bar's progress lives in --bar on the frame, and how far it pushes the terminal down in
- * --bar-push, which the frame's top padding follows (see global.css). The push moves in whole
- * device pixels: a terminal drawn with WebGL watches its canvas's size in device pixels, and a
- * canvas nudged by a fraction of one can round to a pixel more or less, which clears it until
- * the next frame and makes the text blink.
- * The main process watches the pointer while the bar is open, since the bar is a drag region and
- * the page cannot see the pointer over it.
- */
 export function TopBar() {
   const fullscreen = useUi((s) => s.fullscreen)
-  // Kept open for good when the bar is set not to tuck itself away.
   const hides = usePrefs((s) => s.prefs?.barHides !== false)
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -206,7 +153,6 @@ export function TopBar() {
       window.clearTimeout(linger)
       linger = window.setTimeout(() => {
         if (inside) return
-        // A list opened from one of the bar's buttons hangs below it; the bar waits for it to go.
         if (document.querySelector('[data-bar-keep]')) return closeSoon()
         close()
       }, LINGER_MS)
@@ -228,8 +174,7 @@ export function TopBar() {
         if (now) window.clearTimeout(linger)
         else if (isOpen) closeSoon()
       }),
-      // Windows reports the pointer on its resize border over and over while it moves, without
-      // saying where; held off, it is simply ignored until the moment has passed.
+
       window.step.on('win:topEdge', () => {
         if (edgeRest(null) === 0) openBar.current()
       })
@@ -267,8 +212,6 @@ export function TopBar() {
       releaseFits()
       if (isOpen) window.step.send('win:bar', 0)
       showLights(false)
-      // Back to a bare edge: the next run opens it again if it is meant to stay open, and without
-      // this an open bar would still be drawn while the spring behind it started from nothing.
       setOpen(false)
       frame.style.setProperty('--bar', '0')
       frame.style.setProperty('--bar-push', '0px')
@@ -287,8 +230,6 @@ export function TopBar() {
         />
       )}
       <div ref={ref} className={open ? 'topbar drag' : 'topbar'} data-open={open}>
-        {/* The sidebar's button stays at the left, over the sidebar, after a Mac's traffic lights. The
-            rest take the end the system's own buttons leave free: the right on a Mac, the left elsewhere. */}
         {mac ? (
           <>
             <div className="topbar-buttons no-drag" style={{ paddingLeft: fullscreen ? 12 : 84 }}>

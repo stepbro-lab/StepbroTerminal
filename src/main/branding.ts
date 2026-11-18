@@ -7,27 +7,18 @@ import type { LogoId } from '@shared/types'
 export const APP_NAME = 'stepbro terminal'
 export const APP_ID = 'com.stepbro.terminal'
 
-/** The folder with the rendered icons, next to the app when packaged and in the repo in development. */
 export function iconsDir(): string {
   return app.isPackaged ? path.join(process.resourcesPath, 'icons') : path.join(app.getAppPath(), 'resources', 'icons')
 }
 
-/** Path of the logo PNG in the chosen look: shown inside notifications and on the window. */
 export function appLogoPath(logo: LogoId = 'light'): string {
   return path.join(iconsDir(), `app-256-${logo}.png`)
 }
 
-/** The Dock copy, with the room around it macOS expects; the window's would sit too large there. */
 export function dockLogoPath(logo: LogoId = 'light'): string {
   return path.join(iconsDir(), `dock-${logo}.png`)
 }
 
-/**
- * Windows shortcuts carry their own icon: the Start Menu entry the installer made, the one on the
- * desktop, and any pinned to the taskbar. They are pointed at the chosen look, so the app wears
- * it closed and pinned as well; the default look is the executable's own icon. Only shortcuts
- * that launch this executable are touched.
- */
 export function applyShortcutIcons(logo: LogoId): void {
   if (process.platform !== 'win32') return
   const appData = app.getPath('appData')
@@ -37,7 +28,6 @@ export function applyShortcutIcons(logo: LogoId): void {
     path.join(appData, 'Microsoft', 'Internet Explorer', 'Quick Launch', 'User Pinned', 'TaskBar')
   ]
   const exe = process.execPath.toLowerCase()
-  // The packaged executable carries the default look itself; in development Electron's own binary does not.
   const icon = logo === 'light' && app.isPackaged ? process.execPath : path.join(iconsDir(), `app-${logo}.ico`)
   let changed = 0
   for (const dir of dirs) {
@@ -55,28 +45,20 @@ export function applyShortcutIcons(logo: LogoId): void {
         if ((info.icon ?? '').toLowerCase() === icon.toLowerCase()) continue
         shell.writeShortcutLink(lnk, 'update', { ...info, icon, iconIndex: 0 })
         changed++
-      } catch {
-        /* not a shortcut of ours, or not writable */
-      }
+      } catch {}
     }
   }
   if (changed) refreshIconCache()
 }
 
-/** Explorer keeps icons in a cache; this asks it to look again (a stock tool since Windows 10). */
 function refreshIconCache(): void {
   try {
     const tool = path.join(process.env['SystemRoot'] ?? 'C:\\Windows', 'System32', 'ie4uinit.exe')
     spawn(tool, ['-show'], { detached: true, stdio: 'ignore', windowsHide: true }).unref()
-  } catch {
-    /* the icons catch up on the next sign-in */
-  }
+  } catch {}
 }
 
-/**
- * Windows only shows an app's name and icon in toasts when a Start Menu shortcut carries its
- * AppUserModelId. The installer creates one; in development we write it ourselves.
- */
+// Windows only shows an app's name and icon in toasts if a Start Menu shortcut has its AppUserModelId.
 export function ensureWindowsShortcut(): void {
   if (process.platform !== 'win32' || app.isPackaged) return
   try {
@@ -92,12 +74,9 @@ export function ensureWindowsShortcut(): void {
       iconIndex: 0,
       description: `${APP_NAME} (development)`
     })
-  } catch {
-    /* shortcut is a nicety; notifications still work without it */
-  }
+  } catch {}
 }
 
-/** Carries preferences over from the folder the app used before it was renamed. */
 export function migrateUserData(): void {
   const current = app.getPath('userData')
   const previous = path.join(path.dirname(current), 'Step')
@@ -109,9 +88,7 @@ export function migrateUserData(): void {
       try {
         fs.mkdirSync(current, { recursive: true })
         fs.copyFileSync(from, to)
-      } catch {
-        /* start fresh */
-      }
+      } catch {}
     }
   }
 }

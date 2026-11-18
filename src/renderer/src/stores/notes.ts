@@ -4,7 +4,6 @@ import type { Note } from '@shared/types'
 interface NotesStore {
   notes: Note[]
   open: boolean
-  /** The note an agent just saved, until its flight to the Notes button has played. */
   arrived: Note | null
   receive: (notes: Note[], added?: Note) => void
   setOpen: (open: boolean) => void
@@ -30,7 +29,6 @@ export const useNotes = create<NotesStore>((set, get) => ({
 
 export const openCount = (notes: Note[]): number => notes.filter((n) => !n.done).length
 
-/** Open notes first, newest first; done ones trail behind. */
 export function sortNotes(notes: Note[]): Note[] {
   return notes.slice().sort((a, b) => Number(a.done) - Number(b.done) || b.createdAt - a.createdAt)
 }

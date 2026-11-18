@@ -33,7 +33,6 @@ describe('where Discord listens', () => {
     expect(p).toContain('/run/user/1000/app/com.discordapp.Discord/discord-ipc-0')
     expect(p).toContain('/run/user/1000/snap.discord/discord-ipc-0')
     expect(p.indexOf('/run/user/1000/discord-ipc-0')).toBeLessThan(p.indexOf('/run/user/1000/discord-ipc-1'))
-    // The same folder written two ways is looked in once.
     const q = socketPaths('darwin', { TMPDIR: '/var/folders/x/T/', TMP: '/var/folders/x/T' })
     expect(q.filter((x) => x === '/var/folders/x/T/discord-ipc-0')).toHaveLength(1)
   })
@@ -41,12 +40,10 @@ describe('where Discord listens', () => {
 
 describe('connecting to Discord', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'step-discord-'))
-  // Discord listens on a named pipe on Windows and on a socket file elsewhere; so does the stand-in.
   const at = (name: string) => (process.platform === 'win32' ? `\\\\?\\pipe\\step-test-${process.pid}-${name}` : path.join(dir, name))
   let server: net.Server | null = null
   afterEach(() => server?.close())
 
-  /** A stand-in for the Discord app: answers the handshake, records what it is sent. */
   function fakeDiscord(file: string, knownId: string, got: Array<{ op: number; data: any }>): Promise<void> {
     server = net.createServer((sock) => {
       const r = new FrameReader()
@@ -74,7 +71,6 @@ describe('connecting to Discord', () => {
     await new Promise((r) => setTimeout(r, 50))
     expect(got[0]).toEqual({ op: OP.handshake, data: { v: 1, client_id: '123' } })
     expect(got[1].data).toMatchObject({ cmd: 'SET_ACTIVITY', args: { pid: process.pid, activity: { details: 'Coding with Codex' } } })
-    // An activity Discord turns down is reported, not dropped in silence.
     const refused: string[] = []
     link.onError((m) => refused.push(m))
     link.setActivity({ details: '' })

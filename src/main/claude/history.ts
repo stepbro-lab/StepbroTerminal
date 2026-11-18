@@ -2,7 +2,6 @@ import { EventEmitter } from 'node:events'
 import fs from 'node:fs'
 import type { HistorySession } from '@shared/types'
 
-/** Parses lines of ~/.claude/history.jsonl into the session map (mutates `into`). */
 export function parseHistoryLines(text: string, into: Map<string, HistorySession>): void {
   for (const line of text.split('\n')) {
     if (!line.trim()) continue
@@ -32,7 +31,6 @@ export function parseHistoryLines(text: string, into: Map<string, HistorySession
     cur.prompts += 1
     if (ts > cur.lastAt) cur.lastAt = ts
     if (ts && (!cur.firstAt || ts < cur.firstAt)) cur.firstAt = ts
-    // Prefer a real prompt over a slash command captured first.
     if ((!cur.title || cur.title.startsWith('/')) && display && !display.startsWith('/')) cur.title = cleanTitle(display)
   }
 }
@@ -42,7 +40,6 @@ function cleanTitle(s: string): string {
   return t.length > 120 ? t.slice(0, 119) + '…' : t
 }
 
-/** Incremental reader of history.jsonl. Emits 'update' with the full session list. */
 export class HistoryIndex extends EventEmitter {
   private map = new Map<string, HistorySession>()
   private offset = 0
@@ -59,15 +56,12 @@ export class HistoryIndex extends EventEmitter {
     try {
       this.watcher = fs.watch(this.file, { persistent: false }, () => this.schedule())
     } catch {
-      // File may not exist yet; watch the directory instead.
       try {
         const dir = this.file.replace(/[\\/][^\\/]+$/, '')
         this.watcher = fs.watch(dir, { persistent: false }, (_e, name) => {
           if (name === 'history.jsonl') this.schedule()
         })
-      } catch {
-        /* no watching available */
-      }
+      } catch {}
     }
   }
 
@@ -101,7 +95,6 @@ export class HistoryIndex extends EventEmitter {
       return
     }
     if (st.size < this.offset) {
-      // Truncated or rewritten: start over.
       this.map.clear()
       this.offset = 0
       this.partial = ''

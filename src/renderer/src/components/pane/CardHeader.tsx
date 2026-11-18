@@ -13,9 +13,8 @@ import { titled } from '@/lib/shortcuts'
 import { usePrefs } from '@/stores/prefs'
 import { t } from '@/lib/i18n'
 
-/** `inset`: room kept clear at the right end, for whatever hangs over this corner of the pane. */
 export function CardHeader({ session, split = false, dim = false, inset = 0 }: { session: Session; split?: boolean; dim?: boolean; inset?: number }) {
-  usePrefs((s) => s.prefs?.keybindings) // tooltips follow the user's shortcut choices
+  usePrefs((s) => s.prefs?.keybindings)
   const presets = useData((s) => s.presets)
   const searchOpen = useUi((s) => s.searchOpen)
   const setSearchOpen = useUi((s) => s.setSearchOpen)
@@ -129,7 +128,6 @@ export function CardHeader({ session, split = false, dim = false, inset = 0 }: {
         </span>
       )}
       {session.pinned && <Pin size={12} className="text-muted" />}
-      {/* What the session has to show sits in pills that read as words; the few actions worth a button follow after a gap, the rest live under More. */}
       <div className="ml-auto flex items-center gap-2.5">
         {(session.previewUrl || changedCount > 0) && (
           <div className="flex items-center gap-1">
@@ -183,7 +181,6 @@ export function CardHeader({ session, split = false, dim = false, inset = 0 }: {
   )
 }
 
-/** A small word-shaped button: an icon and a label, tinted while its panel is open. */
 function HeaderPill({ icon, label, on, title, onClick }: { icon: React.ReactNode; label: string; on: boolean; title: string; onClick: () => void }) {
   return (
     <button

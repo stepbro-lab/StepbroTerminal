@@ -1,15 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type React from 'react'
 
-/** True while the drag carries files or folders from the desktop rather than one of our rows. */
 export function hasFiles(dt: DataTransfer | null): boolean {
   return !!dt && Array.from(dt.types).includes('Files')
 }
 
-/**
- * Absolute paths of the folders in a drop; plain files are ignored. Chromium only exposes the
- * directory flag on drop, never during dragover, so the highlight lights up for any file drag.
- */
+// Chromium only exposes the directory flag on drop, never during dragover.
 export function droppedFolders(dt: DataTransfer | null): string[] {
   if (!dt) return []
   const out: string[] = []
@@ -31,13 +27,8 @@ export interface FolderDropProps {
   onDrop: React.DragEventHandler
 }
 
-/**
- * Lets an element take folders dragged in from the desktop. `over` is true while a file drag
- * hovers it or any of its children, for a highlight; `onFolders` gets the folder paths on drop.
- */
 export function useFolderDrop(onFolders: (paths: string[]) => void): { over: boolean; props: FolderDropProps } {
   const [over, setOver] = useState(false)
-  // dragenter/dragleave fire for every child crossed; only the outermost leave ends the hover.
   const depth = useRef(0)
   const reset = useCallback(() => {
     depth.current = 0
@@ -45,7 +36,6 @@ export function useFolderDrop(onFolders: (paths: string[]) => void): { over: boo
   }, [])
 
   useEffect(() => {
-    // Leaving the window skips our dragleave, and a drop elsewhere ends the drag for everyone.
     const onLeaveWindow = (e: DragEvent): void => {
       if (e.relatedTarget === null) reset()
     }

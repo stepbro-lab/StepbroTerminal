@@ -7,7 +7,6 @@ import { currentLanguage, t } from '@/lib/i18n'
 import { TopitoCanvas } from './topito/TopitoCanvas'
 import { useTopitoElsewhere } from './topito/Topito'
 
-/** A moment after launch, so the page opens over a window that has finished settling. */
 const SHOW_AFTER_MS = 900
 
 const GROUPS: Array<{ kind: ChangeKind; title: string }> = [
@@ -16,12 +15,10 @@ const GROUPS: Array<{ kind: ChangeKind; title: string }> = [
   { kind: 'fixed', title: 'Fixed' }
 ]
 
-/** Every release so far, newest first, for when someone asks to see them again. */
 export function showAllChanges(): void {
   useWhatsNew.getState().show(CHANGELOG)
 }
 
-/** Topito introducing himself, waving, with room on the right for the close button. */
 function Greeting() {
   useTopitoElsewhere()
   return (
@@ -62,10 +59,6 @@ function Entry({ entry }: { entry: ChangelogEntry }) {
   )
 }
 
-/**
- * What changed, shown once after an update and on request from Settings. The release that
- * brought Topito opens with him saying hello, and with a way to turn him on right there.
- */
 export function WhatsNew() {
   const entries = useWhatsNew((s) => s.entries)
   const show = useWhatsNew((s) => s.show)
@@ -74,7 +67,6 @@ export function WhatsNew() {
   const setPrefs = usePrefs((s) => s.set)
   const checked = useRef(false)
 
-  // Once, when the preferences arrive: anything released since the version last seen.
   useEffect(() => {
     if (!prefs || checked.current) return
     checked.current = true

@@ -1,7 +1,6 @@
 import { useUpdates } from '@/stores/updates'
 import { t } from '@/lib/i18n'
 
-/** Title-bar pill that appears once a newer release is known about. */
 export function UpdatePill() {
   const state = useUpdates((s) => s.state)
   const install = useUpdates((s) => s.install)
