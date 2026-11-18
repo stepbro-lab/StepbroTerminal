@@ -13,7 +13,6 @@ import { t } from '@/lib/i18n'
 
 interface Props {
   row: SidebarSession
-  /** A drop here would put the dragged session above or below this row. */
   insert?: 'before' | 'after'
   onDragOver?: (row: SidebarSession, e: React.DragEvent) => void
   onDrop?: (row: SidebarSession, e: React.DragEvent) => void
@@ -34,7 +33,6 @@ export function SessionRow({ row, insert, onDragOver, onDrop }: Props) {
   const busy = row.status === 'working' || row.status === 'starting' || row.status === 'attention' || row.status === 'done'
   const exited = row.status === 'exited'
 
-  // Text: active is bright, busy is one step down, idle is muted, exited and archived are faint.
   const titleColor = active ? 'var(--text)' : busy ? 'var(--text-secondary)' : exited || archived ? 'var(--text-faint)' : 'var(--text-muted)'
   const logoColor = active ? 'var(--text)' : busy ? 'var(--text-secondary)' : 'var(--text-faint)'
   const canResume = sessionCanResume(row.session)
@@ -42,7 +40,6 @@ export function SessionRow({ row, insert, onDragOver, onDrop }: Props) {
   return (
     <div
       data-session-row={row.id}
-      // The pin gets a column only when it is there; otherwise the logo would slide into its place and leave the edge empty.
       className={`group row gap-2 pl-[22px] ${row.pinned ? 'grid-cols-[16px_minmax(0,1fr)_auto_16px]' : 'grid-cols-[16px_minmax(0,1fr)_16px]'}`}
       data-active={active}
       data-archived={archived || undefined}
@@ -83,7 +80,6 @@ export function SessionRow({ row, insert, onDragOver, onDrop }: Props) {
         />
       )}
       {row.pinned && <Pin size={11} strokeWidth={1.8} style={{ color: 'var(--text-muted)' }} />}
-      {/* The agent's mark keeps the edge; under the pointer the row's actions slide in beside it, fading over the end of a long title. */}
       <span className="relative flex items-center justify-center" style={{ color: logoColor }}>
         <AgentLogo presetId={row.presetId} size={13} />
         <span
@@ -111,11 +107,6 @@ export function SessionRow({ row, insert, onDragOver, onDrop }: Props) {
 
 const measure = document.createElement('canvas').getContext('2d')
 
-/**
- * A session's name in its row. One the session took by itself (from Claude, the agent's window
- * title or the first prompt) is told in the words that fit the row (see shortTitle), whole, and
- * in full under the pointer; one the person gave is shown as they wrote it.
- */
 function RowTitle({ text, auto, fromPrompt, weight }: { text: string; auto: boolean; fromPrompt: boolean; weight: boolean }) {
   const ref = useRef<HTMLSpanElement>(null)
   const [width, setWidth] = useState(0)
@@ -128,7 +119,6 @@ function RowTitle({ text, auto, fromPrompt, weight }: { text: string; auto: bool
     setWidth(el.clientWidth)
     return () => ro.disconnect()
   }, [])
-  // Measured before the row's font has loaded, the fallback's widths would decide.
   useEffect(() => {
     void document.fonts.ready.then(() => setFonts((n) => n + 1))
   }, [])

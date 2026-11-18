@@ -1,11 +1,6 @@
 import type { Session, TopitoMood } from '@shared/types'
 import type { TopitoClipName } from './frames'
 
-/**
- * What Topito is doing, worked out from what the app is doing. Pure, so every rule can be read and
- * checked on its own: the director (director.ts) feeds it the stores and plays what it returns.
- */
-
 export interface TopitoWorld {
   hostConnecting: boolean
   sessions: Session[]
@@ -18,10 +13,8 @@ const NOTING = /(save_note|update_note|todowrite)/i
 const WRITING_TO = /(report|send_to_session)/i
 const WAITING = /(^|__)wait$/i
 
-/** What an agent's current tool looks like Topito doing. */
 export function clipForTool(tool: string | undefined, agent: string): TopitoClipName {
   if (!tool) return agent === 'claude' ? 'think' : 'dig'
-  // MCP tools arrive as mcp__server__name; the name is what says what it does.
   const name = tool.includes('__') ? tool.slice(tool.lastIndexOf('__') + 2) : tool
   if (NOTING.test(name)) return 'note'
   if (WRITING_TO.test(name)) return 'letter'
@@ -36,28 +29,18 @@ export function clipForTool(tool: string | undefined, agent: string): TopitoClip
 const live = (s: Session): boolean => s.alive && !s.archived
 const agentOf = (s: Session): string => s.agent.detectedPreset ?? s.presetId
 
-/**
- * The look Topito keeps while nothing in particular is happening, most pressing first: the
- * connection to the host, then anyone waiting on the person, then work under way, and asleep when
- * there is none.
- */
 export function ambientClip(w: TopitoWorld): TopitoClipName {
   if (w.hostConnecting) return 'search'
   const open = w.sessions.filter(live)
   if (open.some((s) => s.status === 'attention' || s.status === 'error')) return 'peek'
   const working = open.filter((s) => s.status === 'working' || s.status === 'starting')
   if (working.length) {
-    // The one that moved most recently is the one worth showing.
     const latest = working.reduce((a, b) => (b.statusAt > a.statusAt ? b : a))
     return clipForTool(latest.agent.tool, agentOf(latest))
   }
   return 'sleep'
 }
 
-/**
- * The one-off moments between two looks at the sessions: one finishing, one failing, one opening
- * or going away. Nothing on the very first look, when every session arrives at once.
- */
 export function moments(prev: Record<string, Session>, next: Record<string, Session>): TopitoClipName[] {
   const before = Object.keys(prev)
   if (!before.length) return []
@@ -80,13 +63,11 @@ export function moments(prev: Record<string, Session>, next: Record<string, Sess
   return out
 }
 
-/** Sessions that have just started waiting on the person. */
 export function newlyWaiting(prev: Record<string, Session>, next: Record<string, Session>): Session[] {
   if (!Object.keys(prev).length) return []
   return Object.values(next).filter((s) => live(s) && s.status === 'attention' && prev[s.id] && prev[s.id].status !== 'attention')
 }
 
-/** The clip for the mood an agent asked for. */
 export function clipForMood(mood: TopitoMood): TopitoClipName {
   const clips: Record<TopitoMood, TopitoClipName> = {
     done: 'done',

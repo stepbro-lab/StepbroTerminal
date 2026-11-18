@@ -42,8 +42,6 @@ select {
   letter-spacing: inherit;
 }
 
-/* Windows and Linux draw a list's choices and every scrollbar themselves: without this the choices
-   come out light on white, and the scrollbars wide and grey. */
 option,
 optgroup {
   background: var(--bg-elevated);
@@ -54,7 +52,6 @@ optgroup {
   scrollbar-color: var(--border-strong) transparent;
 }
 
-/* Anything that can be pressed says so: the hand, the way Windows and the web have always shown it. */
 button {
   background: none;
   border: 0;
@@ -69,7 +66,6 @@ button:disabled {
   background: var(--accent-soft);
 }
 
-/* ---- window chrome ---- */
 .drag {
   -webkit-app-region: drag;
 }
@@ -77,7 +73,6 @@ button:disabled {
   -webkit-app-region: no-drag;
 }
 
-/* ---- icon buttons ---- */
 .icon-btn {
   display: inline-flex;
   align-items: center;
@@ -101,15 +96,6 @@ button:disabled {
   color: var(--text);
 }
 
-/* ---- the sidebar: folders and their sessions, straight on the frame ---- */
-/* It sits on the frame, which may be the blurred desktop, so its fills are the theme's text or
-   card colour laid thinly over whatever is behind (--side-hover, --side-active in tokens.css)
-   rather than solid colours of their own. */
-
-/* Folded away and out for a look (SidebarPeek): a card over the terminals, the way Arc and Helium
-   bring their tabs out, sliding in from the edge. Frosted glass: the terminal under it shows
-   through only as a blur, too soft to read, and nothing under it moves or resizes. Its corners
-   are the cards' (see .card). Above the panes, below the top bar. */
 aside[data-peek] {
   position: absolute;
   top: 0;
@@ -129,7 +115,6 @@ aside[data-peek] {
 :root[data-squircle] aside[data-peek] {
   corner-shape: squircle;
 }
-/* With Reduce transparency on in the system's settings, a solid card. */
 @media (prefers-reduced-transparency: reduce) {
   aside[data-peek] {
     background: var(--bg-sidebar);
@@ -165,8 +150,6 @@ aside[data-peek='out'] {
   border-radius: 999px;
   background: var(--side-hover);
   color: var(--text-secondary);
-  /* A hairline rim and a thread of light along the top: the button sits on the frame rather
-     than being painted on it, over the blurred desktop as much as over a plain colour. */
   box-shadow:
     inset 0 0 0 0.5px color-mix(in srgb, var(--text) 7%, transparent),
     inset 0 0.5px 0 color-mix(in srgb, #fff 8%, transparent);
@@ -190,7 +173,6 @@ aside[data-peek='out'] {
   outline: 2px solid color-mix(in srgb, var(--accent) 70%, transparent);
   outline-offset: 2px;
 }
-/* The gear turns a sixth of the way round on hover, which leaves it looking as it was. */
 .fab-turn svg {
   transition: transform 480ms cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -207,8 +189,6 @@ aside[data-peek='out'] {
   }
 }
 
-/* A folder row's "+": with the pointer on it, it opens out to the left into a button per agent.
-   Right to left, so the "+" holds still at the end while the rest slide out of the row's name. */
 .quick-strip {
   position: absolute;
   top: 50%;
@@ -232,7 +212,6 @@ aside[data-peek='out'] {
   width: var(--strip-w);
   background: var(--side-hover);
 }
-/* The name fades out under the open strip rather than being cut down to its first letter. */
 .row:has(.quick-strip) .row-title {
   transition: opacity 140ms var(--ease);
 }
@@ -303,14 +282,12 @@ aside[data-peek='out'] {
   background: var(--side-active);
   color: var(--text);
 }
-/* A session's actions come in over the end of its title; the title fades out under them. */
 [data-session-row]:hover .row-title {
   mask-image: linear-gradient(to left, transparent 30px, #000 46px);
 }
 [data-session-row][data-archived]:hover .row-title {
   mask-image: linear-gradient(to left, transparent 52px, #000 68px);
 }
-/* Sessions that share a split view sit inside one box; the box of the view on screen is a touch stronger. */
 .view-box {
   position: relative;
   margin: 2px -3px;
@@ -322,7 +299,6 @@ aside[data-peek='out'] {
 .view-box[data-on='true'] {
   border-color: color-mix(in srgb, var(--text) 16%, transparent);
 }
-/* Pulls the group apart; shows while the pointer is over the box. */
 .view-box-ungroup {
   position: absolute;
   top: 3px;
@@ -336,7 +312,6 @@ aside[data-peek='out'] {
   opacity: 1;
 }
 
-/* Where a dragged session would land: a line with a dot, above or below the row (or the box). */
 :is(.row, .view-box)[data-insert]::before,
 :is(.row, .view-box)[data-insert]::after {
   content: '';
@@ -375,14 +350,11 @@ aside[data-peek='out'] {
   min-width: 0;
 }
 
-/* ---- terminal card ---- */
-/* Flat on the frame: no border, no shadow; the change of surface is the edge. */
 .card {
   background: var(--card-fill, var(--bg-card));
   border-radius: var(--radius-card);
   overflow: hidden;
 }
-/* A Mac's window corners are continuous, not circular; the card's follow them. */
 :root[data-squircle] .card {
   corner-shape: squircle;
 }
@@ -406,7 +378,6 @@ aside[data-peek='out'] {
   background: transparent;
 }
 
-/* ---- buttons ---- */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -437,7 +408,6 @@ aside[data-peek='out'] {
   background: var(--bg-hover);
 }
 
-/* ---- inputs ---- */
 .field {
   height: 30px;
   padding: 0 10px;
@@ -452,7 +422,6 @@ aside[data-peek='out'] {
 .field::placeholder {
   color: var(--text-muted);
 }
-/* The rename field in a pane's header: sized to the header's row, which is shorter than a field. */
 .field.header-rename {
   height: 22px;
   padding: 0 8px;
@@ -505,7 +474,6 @@ input[type='range']::-webkit-slider-thumb {
     0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
-/* Key caps you can click to rebind (Settings > Shortcuts). */
 .key-cap-btn {
   display: inline-flex;
   align-items: center;
@@ -534,7 +502,6 @@ kbd {
   color: var(--text-muted);
 }
 
-/* ---- settings ---- */
 .nav-row {
   display: flex;
   align-items: center;
@@ -573,19 +540,16 @@ kbd {
   border-top: 1px solid var(--border);
 }
 
-/* A section's rows on one rounded surface, inset from its edge (System Settings, Codex). */
 .settings-group {
   padding: 2px 14px;
   border-radius: 12px;
   background: color-mix(in srgb, var(--text) 2.5%, transparent);
   box-shadow: 0 0 0 1px var(--border) inset;
 }
-/* What is not a row (the colour swatches, the logos, a note) gets room of its own. */
 .settings-group > :not(.setting-row):not(:has(> .setting-row)) {
   padding-block: 10px;
 }
 
-/* Topito at the top of Appearance: him, what he does, and the switch that lets him out. */
 .topito-card {
   display: flex;
   align-items: center;
@@ -660,7 +624,6 @@ kbd {
     0 1px 3px rgba(0, 0, 0, 0.35);
 }
 
-/* ---- liquid cluster: shapes that melt together as they meet and stretch apart as they leave ---- */
 .liquid-blob,
 .liquid-face {
   transition:
@@ -686,7 +649,6 @@ kbd {
   }
 }
 
-/* ---- the two logos to pick from: a tile with the picture and its name under it ---- */
 .logo-pick {
   display: inline-flex;
   flex-direction: column;
@@ -730,7 +692,6 @@ kbd {
     0 0 0 3.5px var(--text);
 }
 
-/* ---- scrollbars in ui ---- */
 .scroll-thin {
   overflow-y: auto;
   scrollbar-width: thin;
@@ -746,7 +707,6 @@ kbd {
   background-clip: padding-box;
 }
 
-/* ---- animations ---- */
 @keyframes pulse-once {
   0% {
     transform: scale(0.6);
@@ -793,7 +753,6 @@ kbd {
   animation: toast-in 180ms var(--ease);
 }
 
-/* Ghost text after the cursor: the flag stepbro terminal suggests when an agent is typed. */
 .xterm .step-ghost {
   color: var(--text-faint);
   white-space: pre;
@@ -801,7 +760,6 @@ kbd {
   pointer-events: none;
 }
 
-/* ---- notes ---- */
 .note-row:hover {
   background: var(--bg-hover);
 }
@@ -816,7 +774,6 @@ kbd {
     background: transparent;
   }
 }
-/* ---- flights: a chip carried from one place of the window to another ---- */
 .flight-chip {
   position: fixed;
   left: 0;
@@ -867,12 +824,10 @@ kbd {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-/* The trail: the same chip, fainter, a few frames behind. */
 .flight-ghost {
   opacity: 0;
   box-shadow: none;
 }
-/* The ring that spreads where the chip lands. */
 .flight-ripple {
   position: fixed;
   left: 0;
@@ -885,7 +840,6 @@ kbd {
   pointer-events: none;
   will-change: transform, opacity;
 }
-/* The pane or row that just received a hand-off. */
 .handoff-landed {
   animation: handoff-flash 1.3s ease-out;
 }
@@ -898,7 +852,6 @@ kbd {
   }
 }
 
-/* Stacked agent logos in a view tab: one small ringed circle per agent, overlapping. */
 .logo-stack {
   display: inline-flex;
   align-items: center;
@@ -918,17 +871,10 @@ kbd {
   margin-left: -5px;
 }
 
-/* ---- the frame around the terminal, and the bar its top edge grows into ---- */
-/* The window is a thin, even frame with the terminal inside. --bar goes from 0 to 1 as the top
-   edge opens into a bar (see TopBar in Chrome.tsx), and the frame's top grows by --bar-push, up
-   to the difference between the two, pushing everything inside down. */
 .app-frame {
   padding: calc(var(--frame) + var(--bar-push, 0px)) var(--frame) var(--frame);
   background: var(--bg-sidebar);
 }
-/* A translucent window: the system blurs the desktop behind it (applyWindowTheme in
-   main/window.ts), and the page lays the frame and the cards over the blur, each washed with its
-   own colour at the opacity set for it in Settings. The terminal paints the card's fill too. */
 :root[data-translucent],
 :root[data-translucent] body,
 :root[data-translucent] #root {
@@ -940,8 +886,6 @@ kbd {
 :root[data-translucent] .app-frame {
   background: color-mix(in srgb, var(--bg-sidebar) calc(var(--frame-opacity) * 100%), transparent);
 }
-/* Dimmed text a step further from the surface on glass, where the blur behind it lifts or darkens
-   the tint: the solid window's greys sat on the blurred desktop's own grey and vanished into it. */
 :root[data-translucent][data-theme='dark'] {
   --text-muted: #b4b7b8;
   --text-faint: #9fa2a3;
@@ -950,7 +894,6 @@ kbd {
   --text-muted: #3f4346;
   --text-faint: #5d6164;
 }
-/* The strip the pointer touches to open the bar: the frame's top edge and a little of the card under it. */
 .bar-edge {
   position: absolute;
   top: 0;
@@ -973,7 +916,6 @@ kbd {
 .topbar[data-open='true'] {
   pointer-events: auto;
 }
-/* The buttons come in once the edge has made most of the room for them, dropping into place. */
 .topbar-buttons,
 .caption {
   opacity: clamp(0, calc((var(--bar, 0) - 0.45) / 0.55), 1);
@@ -984,7 +926,6 @@ kbd {
   align-items: center;
   height: 100%;
 }
-/* Windows and Linux: minimize, maximize and close at the right end. */
 .caption {
   display: flex;
   align-items: center;
@@ -997,7 +938,6 @@ kbd {
   justify-content: center;
   color: var(--text);
 }
-/* Windows: flush with the corner, 46 wide, the glyphs of its own icon font; close turns red. */
 .caption[data-os='win'] .caption-btn {
   width: 46px;
   height: 100%;
@@ -1019,7 +959,6 @@ kbd {
   background: #b22a1c;
   color: #fff;
 }
-/* Linux: round buttons with a soft fill, the way GNOME draws them. */
 .caption[data-os='linux'] {
   gap: 10px;
   padding-right: 12px;
@@ -1034,8 +973,6 @@ kbd {
   background: color-mix(in srgb, var(--text) 14%, transparent);
 }
 
-/* The dot on the title bar's bell: something finished that you have not seen, or amber, someone
-   waiting on you. It sits on the bell's shoulder, the way a badge does. */
 .bell-dot {
   position: absolute;
   top: 5px;
@@ -1046,11 +983,6 @@ kbd {
   pointer-events: none;
 }
 
-/* ---- the session rail: the folder's sessions, floating in the top-right corner ---- */
-/* The motion lives in SessionRail.tsx, which writes the springs out as variables: --q (0 at rest,
-   1 open) and --y for each row, --m for the well, --fq for the footer, --span for the height of
-   what is in the well. At rest a row is a 44 by 6 tally mark with its agent's mark to its left; open,
-   a 208 by 34 pill with the mark and the title inside. */
 .rail {
   --m: 0;
   --span: 0px;
@@ -1059,7 +991,6 @@ kbd {
   top: 0;
   right: 0;
   z-index: 30;
-  /* Its box is where the pointer keeps it open: the marks at rest, the well once open. */
   width: calc(88px + 148px * var(--m));
   height: calc(28px + var(--span) + 6px * var(--m));
 }
@@ -1069,7 +1000,6 @@ kbd {
   right: calc(14px - 8px * var(--m));
   width: calc(62px + 162px * var(--m));
   height: calc(var(--span) + 16px * var(--m));
-  /* Open, the pills' radius (17) plus the well's padding (8), so the curves run parallel. */
   border-radius: calc(4px + 21px * var(--m));
   background: var(--rail-well);
   opacity: clamp(0, calc(var(--m) * 3), 1);
@@ -1091,7 +1021,6 @@ kbd {
   font-size: 13px;
   font-weight: 500;
 }
-/* The fill is its own layer, so a waiting session can breathe without its title fading with it. */
 .rail-row::before {
   content: '';
   position: absolute;
@@ -1099,7 +1028,6 @@ kbd {
   border-radius: inherit;
   background: color-mix(in srgb, var(--open) clamp(0%, calc(var(--q) * 100%), 100%), var(--rest));
 }
-/* Hovered, a pill keeps its fill, so it stays as clear of the well as the rest; its title and mark darken. */
 .rail-row:hover,
 .rail-row:hover .rail-mark {
   color: var(--text);
@@ -1124,7 +1052,6 @@ kbd {
   --rest: var(--danger);
   --open: color-mix(in srgb, var(--danger) 14%, var(--rail-pill));
 }
-/* The agent's mark: 8 px to the left of the bar at rest, 14 px inside the pill open. */
 .rail-mark {
   position: absolute;
   top: calc(50% - 7px);
@@ -1152,7 +1079,6 @@ kbd {
   opacity: clamp(0, calc((var(--q) - 0.5) * 2), 1);
   pointer-events: none;
 }
-/* Light sweeps along the bar while its agent works: the shimmer. */
 .rail-row[data-status='working']::after {
   content: '';
   position: absolute;
@@ -1231,7 +1157,6 @@ kbd {
   }
 }
 
-/* A folder dragged in from the desktop: the target lights up and says what a drop does. */
 .drop-hint {
   position: absolute;
   inset: 6px;
@@ -1249,9 +1174,6 @@ kbd {
   pointer-events: none;
 }
 
-/* ---- Topito, the mole at the foot of the sidebar ---- */
-
-/* Between the two buttons at the foot of the sidebar, standing on their row rather than taking room above it. */
 .topito-dock {
   position: absolute;
   left: 50%;
@@ -1266,7 +1188,6 @@ kbd {
   display: block;
 }
 
-/* What he says when clicked: a small card above him, its lines links to the sessions they name. */
 .topito-bubble {
   position: absolute;
   bottom: calc(100% + 6px);
@@ -1299,8 +1220,6 @@ kbd {
   color: var(--accent);
 }
 
-/* A session's preview while that session is out of view: still loaded, so the page keeps its place
-   and an agent there can keep working it, only out of sight. */
 .side-panel-parked {
   position: fixed;
   top: 0;
@@ -1311,7 +1230,6 @@ kbd {
   pointer-events: none;
 }
 
-/* What is new scrolls without a bar of its own: the last lines fade out while there is more below. */
 .whats-new-scroll {
   scrollbar-width: none;
   mask-image: linear-gradient(to bottom, black calc(100% - 28px), transparent);
@@ -1321,7 +1239,6 @@ kbd {
   display: none;
 }
 
-/* Topito saying hello at the top of what is new. */
 .whats-new-bubble {
   position: relative;
   padding: 9px 12px;
@@ -1332,7 +1249,6 @@ kbd {
   line-height: 1.45;
 }
 
-/* Popping out at the corner of the terminal with something to say. */
 .topito-corner {
   position: absolute;
   right: calc(var(--frame) + 10px);

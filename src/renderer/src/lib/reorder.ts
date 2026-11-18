@@ -1,8 +1,3 @@
-/**
- * The ids of `rows` with `from` moved next to `target`: before it, or after it when `after`.
- * Null when the move would change nothing, or when it would cross between pinned and
- * unpinned rows, which the sidebar keeps apart.
- */
 export function movedIds(rows: Array<{ id: string; pinned: boolean }>, from: string, target: string, after: boolean): string[] | null {
   const a = rows.find((r) => r.id === from)
   const b = rows.find((r) => r.id === target)

@@ -1,6 +1,5 @@
 import { useUi } from '@/stores/ui'
 
-/** Short notices in the bottom-right corner: a quiet pill with a dot in the tone's colour. Click to dismiss. */
 export function Toasts() {
   const toasts = useUi((s) => s.toasts)
   const dismiss = useUi((s) => s.dismissToast)

@@ -9,11 +9,9 @@ export interface SessionLogOptions {
   lowWater?: number
   pressure?: (paused: boolean) => void
   error?: (error: unknown) => void
-  /** What is on screen, written as escape sequences, to keep in place of the bytes being cut. */
   screen?: () => Promise<string | undefined>
 }
 
-/** Ordered, batched disk writes. The PTY must honor pressure to bound queued output. */
 export class SessionLog {
   private queue: (Buffer | null)[] = []
   private bytes = 0
@@ -42,7 +40,6 @@ export class SessionLog {
     else if (!this.running && !this.timer) this.timer = setTimeout(() => void this.flush(), this.opts.delayMs ?? 25)
   }
 
-  /** A restart is ordered after old output and before the new shell's output. */
   clear(): void {
     if (this.ended || this.failed) return
     this.queue.push(null)
@@ -55,7 +52,6 @@ export class SessionLog {
     if (this.running) return this.running
     if (!this.queue.length) return Promise.resolve()
     this.running = this.drain().catch((e) => {
-      // A disk failure must release the PTY rather than leaving it permanently paused.
       this.failed = true
       this.queue = []
       this.bytes = 0
@@ -68,7 +64,6 @@ export class SessionLog {
     return this.running
   }
 
-  /** Stop accepting output and wait for disk work; delete only after all handles are closed. */
   finish(remove = false): Promise<void> {
     if (this.finishing) return this.finishing
     this.ended = true
@@ -98,9 +93,6 @@ export class SessionLog {
         await fs.appendFile(this.file, data)
         this.size! += length
         if (this.size! > this.max) {
-          // What the session has on screen beats the last bytes it printed: a full-screen program
-          // asks for its own screen once, when it starts, and cutting that away leaves its frames
-          // to pile up on the ordinary screen when they are read back.
           const screen = await this.opts.screen?.()
           const kept = screen === undefined ? await readLogTail(this.file, this.keep) : Buffer.from(screen, 'utf8')
           await fs.writeFile(this.file, kept)
@@ -133,11 +125,6 @@ export class SessionLog {
   }
 }
 
-/**
- * Whether the part of the log before `before` left the session on the alternate screen: the one a
- * full-screen program draws on, which it asks for once, when it starts. A tail that begins after
- * that is a stack of half-drawn frames unless the screen is put back where they were drawn.
- */
 export async function altScreenBefore(file: string, before: number): Promise<boolean> {
   if (before <= 0) return false
   const fh = await fs.open(file, 'r')
@@ -146,7 +133,6 @@ export async function altScreenBefore(file: string, before: number): Promise<boo
     const buffer = Buffer.allocUnsafe(Math.min(size, 64 * 1024))
     let at = 0
     let alt = false
-    // The last few bytes of a chunk again with the next, so a sequence split across two is still seen.
     let carry = ''
     while (at < size) {
       const { bytesRead } = await fh.read(buffer, 0, Math.min(buffer.length, size - at), at)

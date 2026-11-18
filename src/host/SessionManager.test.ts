@@ -16,7 +16,6 @@ vi.mock('node-pty', () => ({ spawn: (_file: string, args: string[], opts: { cwd?
 
 let dir: string
 let sm: SessionManager
-/** Whether a window has the sessions attached; most tests are of a session someone is looking at. */
 let watched = true
 beforeEach(async () => {
   ptys.length = 0
@@ -92,10 +91,8 @@ describe('an ended session nobody looks at', () => {
     ptys[0].data('hello from before\r\n')
     ptys[0].exit({ exitCode: 0 })
     watched = false
-    // Still fresh: it stays in memory.
     expect(await sm.rest(Date.now() + 60_000)).toBe(0)
     expect(await sm.rest(Date.now() + 11 * 60_000)).toBe(1)
-    // Nothing left to put away the second time.
     expect(await sm.rest(Date.now() + 30 * 60_000)).toBe(0)
     expect(Buffer.from(await sm.snapshot(s.id)).toString()).toContain('hello from before')
     expect((await sm.screenLines(s.id, 5)).join('\n')).toContain('hello from before')
@@ -114,7 +111,6 @@ describe('an ended session nobody looks at', () => {
 })
 
 describe('full-screen programs through a host restart', () => {
-  /** A second host over the same files, the way an update starts one. */
   const restarted = (): SessionManager =>
     new SessionManager({ stateFile: path.join(dir, 'state.json'), logDir: path.join(dir, 'logs'), hooksDir: path.join(dir, 'hooks'),
       binDir: path.join(dir, 'bin'), hookUrl: () => 'http://127.0.0.1:1/hooks', mcpUrl: () => 'http://127.0.0.1:1/mcp',
@@ -122,7 +118,6 @@ describe('full-screen programs through a host restart', () => {
 
   it('brings back the screen a program was drawing on, not the log behind it', async () => {
     const s = create()
-    // A full-screen program: its own screen, then frames drawn over each other in place.
     ptys[0].data('\x1b[?1049h\x1b[2J')
     for (let frame = 1; frame <= 40; frame++) ptys[0].data(`\x1b[H\x1b[2Jframe ${frame} of the drawing`)
     sm.persistNow()
@@ -142,8 +137,6 @@ describe('full-screen programs through a host restart', () => {
       order: 0, createdAt: 0, updatedAt: 0, status: 'exited', statusAt: 0, alive: false,
       cols: 80, rows: 24, agent: {}, launch: { command: process.execPath, args: [], hooks: false } }
     await fs.writeFile(path.join(dir, 'state.json'), JSON.stringify({ sessions: [saved] }))
-    // The switch to its own screen, and then more frames than the host keeps: the tail read back
-    // starts long after that switch.
     const frame = (n: number): string => `\x1b[H\x1b[2Jframe ${n} ` + 'filler '.repeat(140)
     let written = '\x1b[?1049h\x1b[2J'
     for (let n = 1; written.length < 3 * 1024 * 1024; n++) written += frame(n)
@@ -154,7 +147,6 @@ describe('full-screen programs through a host restart', () => {
     next.load()
     const screen = Buffer.from(await next.snapshot('cut')).toString()
     expect(screen).toContain('frame 999999')
-    // On its own screen, so the frames are not stacked one under another as scrollback.
     expect(screen).toContain('?1049h')
     expect(screen.split('frame ').length - 1).toBe(1)
     await next.finishLogs()
@@ -163,11 +155,9 @@ describe('full-screen programs through a host restart', () => {
   it('survives a log so long that it had to be cut while the program was drawing', async () => {
     const s = create()
     ptys[0].data('\x1b[?1049h\x1b[2J')
-    // Past the eight megabytes a log holds, so it is cut with the program still on its own screen.
     const filler = 'filler '.repeat(150)
     for (let frame = 1; frame <= 1400; frame++) ptys[0].data(`\x1b[H\x1b[2Jframe ${frame} ${filler}`)
     await vi.waitFor(async () => expect((await fs.stat(path.join(dir, 'logs', `${s.id}.log`))).size).toBeLessThan(8 * 1024 * 1024), { timeout: 10000 })
-    // The host is lost without a word: only what the log holds is left to go on.
     sm.persistNow()
 
     const next = restarted()
@@ -200,13 +190,11 @@ describe("answers a program asks the terminal for as it starts", () => {
     Object.defineProperty(process, 'platform', { value, configurable: true })
   }
   afterEach(() => onPlatform(platform))
-  /** What the program was sent, beyond the host's own answer to ConPTY. */
   const sentToProgram = (p: any): string => p.write.mock.calls.map((c: any[]) => Buffer.from(c[0]).toString()).filter((t: string) => t !== '\x1b[?1;2c').join('')
 
   it('passes on where the cursor is, away from Windows, even before anything was printed', () => {
     onPlatform('darwin')
     const s = create()
-    // A full-screen program measuring its text: a question, and nothing printable yet.
     ptys[0].data('\x1b[?1049h\x1b[3;7H\x1b[6n')
     sm.input(s.id, Buffer.from('\x1b[3;7R'))
     expect(sentToProgram(ptys[0])).toBe('\x1b[3;7R')
@@ -219,7 +207,6 @@ describe("answers a program asks the terminal for as it starts", () => {
     ptys[0].data('\x1b[?1049h\x1b[3;7H\x1b[6n')
     await sm.snapshot(s.id)
     expect(sentToProgram(ptys[0])).toBe('\x1b[3;7R')
-    // Once a window watches, it answers and the host stays quiet.
     ptys[0].write.mockClear()
     watched = true
     ptys[0].data('\x1b[5;9H\x1b[6n')
@@ -230,12 +217,10 @@ describe("answers a program asks the terminal for as it starts", () => {
   it('on Windows, drops a watching window\'s answers to ConPTY\'s probe and passes the program\'s', () => {
     onPlatform('win32')
     const s = create()
-    // ConPTY's probe: the host answers it, and the window watching answers it again.
     ptys[0].data('\x1b[6n\x1b[c')
     expect(ptys[0].write).toHaveBeenCalledWith('\x1b[?1;2c')
     sm.input(s.id, Buffer.from('\x1b[1;1R\x1b[?1;2c'))
     expect(sentToProgram(ptys[0])).toBe('')
-    // ConPTY has let the program go; it asks before printing anything, and gets its answer.
     ptys[0].data('\x1b[?1049h\x1b[3;7H\x1b[6n')
     sm.input(s.id, Buffer.from('\x1b[3;7R'))
     expect(sentToProgram(ptys[0])).toBe('\x1b[3;7R')
@@ -247,7 +232,6 @@ describe("answers a program asks the terminal for as it starts", () => {
     const s = create()
     ptys[0].data('\x1b[6n\x1b[c')
     await sm.snapshot(s.id)
-    // Only the host's own answer to ConPTY: its question about the cursor stays unanswered.
     expect(sentToProgram(ptys[0])).toBe('')
     ptys[0].data('\x1b[?1049h\x1b[3;7H\x1b[6n')
     await sm.snapshot(s.id)
@@ -366,7 +350,6 @@ describe('the folder a shell is in', () => {
     const s = sm.create({ projectPath: dir, presetId: 'shell', cols: 80, rows: 24, startDir: deeper, launch: { command: process.execPath, args: [], hooks: false } })
     expect(ptys.at(-1).cwd).toBe(deeper)
     expect(s.projectPath).toBe(dir)
-    // Gone since: the project's folder instead of a shell that cannot start.
     await fs.rm(deeper, { recursive: true })
     sm.restart(s.id)
     expect(ptys.at(-1).cwd).toBe(dir)
@@ -436,7 +419,6 @@ describe('keeps up with the Claude Code conversation a session is in', () => {
   it('resumes the conversation last written in its folder when the id it kept has nothing saved', async () => {
     const config = path.join(dir, 'claude')
     const s = claudeSession(config)
-    // Claude was sent back to an older conversation with /resume, and wrote there; the session kept its own id.
     const folder = path.join(config, 'projects', dir.replace(/[^a-zA-Z0-9]/g, '-'))
     await fs.mkdir(folder, { recursive: true })
     await fs.writeFile(path.join(folder, `${A}.jsonl`), '{}\n')
@@ -481,7 +463,6 @@ describe('names a Claude session after its conversation', () => {
     await until(() => now(s.id).title === 'Status line mejora')
     expect(now(s.id)).toMatchObject({ title: 'Status line mejora', titleSource: 'agent' })
 
-    // A window title does not replace it.
     sm.rename(s.id, 'Mi status')
     await fs.appendFile(transcript, record({ type: 'ai-title', aiTitle: 'Otra cosa' }))
     sm.applyHook(A, 'Stop', { session_id: A, transcript_path: transcript }, s.id)

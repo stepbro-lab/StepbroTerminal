@@ -2,7 +2,6 @@ import { create } from 'zustand'
 import type { Handoff } from '@shared/types'
 
 interface HandoffStore {
-  /** Text one agent just sent to another session, until its flight has played. */
   pending: Handoff | null
   arrive: (h: Handoff) => void
   landed: () => void

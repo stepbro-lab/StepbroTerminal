@@ -3,11 +3,6 @@ import os from 'node:os'
 import path from 'node:path'
 import { randomUUID } from 'node:crypto'
 
-/**
- * The Discord app's local RPC socket, as much of it as a presence needs: say hello as an
- * application, set the activity, answer pings. Each message is an 8-byte header, the opcode and
- * the length as little-endian 32-bit integers, then that many bytes of JSON.
- */
 export const OP = { handshake: 0, frame: 1, close: 2, ping: 3, pong: 4 } as const
 
 export function encode(op: number, payload: unknown): Buffer {
@@ -18,7 +13,6 @@ export function encode(op: number, payload: unknown): Buffer {
   return Buffer.concat([head, json])
 }
 
-/** Takes the socket's bytes as they come and hands back each whole message. */
 export class FrameReader {
   private buf: Buffer = Buffer.alloc(0)
 
@@ -43,15 +37,9 @@ export class FrameReader {
   }
 }
 
-/**
- * Where Discord listens, in the order it is looked for: a named pipe on Windows; elsewhere a socket
- * in the runtime or temporary folder, or inside the Flatpak or Snap sandbox's own folder there.
- * The first Discord running takes 0, a second one (Canary, PTB) the next number.
- */
 export function socketPaths(platform: NodeJS.Platform = process.platform, env: NodeJS.ProcessEnv = process.env): string[] {
   const ids = Array.from({ length: 10 }, (_, i) => i)
   if (platform === 'win32') return ids.map((i) => `\\\\?\\pipe\\discord-ipc-${i}`)
-  // Sockets live only on macOS and Linux, so their paths are POSIX ones wherever this runs.
   const p = path.posix
   const bases = [env['XDG_RUNTIME_DIR'], env['TMPDIR'], env['TMP'], env['TEMP'], os.tmpdir(), '/tmp'].filter((b): b is string => !!b).map((b) => p.resolve(b))
   const dirs: string[] = []
@@ -61,12 +49,10 @@ export function socketPaths(platform: NodeJS.Platform = process.platform, env: N
   return ids.flatMap((i) => dirs.map((d) => p.join(d, `discord-ipc-${i}`)))
 }
 
-/** An open link to Discord, ready for activities once it said it was. */
 export interface DiscordLink {
   setActivity(activity: Record<string, unknown> | null): void
   close(): void
   onClose(fn: (reason: string) => void): void
-  /** What Discord said when it turned an activity down. */
   onError(fn: (message: string) => void): void
 }
 
@@ -81,19 +67,13 @@ function open(file: string): Promise<net.Socket> {
   })
 }
 
-/**
- * Connects to the Discord app as `clientId`, trying each place it may listen. Fails when Discord is
- * not running or does not know the application, which is the usual case and not an error.
- */
 export async function connectDiscord(clientId: string, paths = socketPaths(), timeoutMs = 5000): Promise<DiscordLink> {
   let sock: net.Socket | null = null
   for (const p of paths) {
     try {
       sock = await open(p)
       break
-    } catch {
-      /* not this one */
-    }
+    } catch {}
   }
   if (!sock) throw new Error('Discord is not running')
   const s = sock
@@ -150,7 +130,6 @@ export async function connectDiscord(clientId: string, paths = socketPaths(), ti
     },
     close() {
       if (closed) return
-      // Leaving clears the activity on Discord's side too.
       s.end()
       finish('closed here')
     },

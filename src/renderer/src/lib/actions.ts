@@ -38,18 +38,12 @@ export async function createSession(
   }
 }
 
-/** A new session always opens on its own; whatever arrangement was on screen stays intact behind it. */
 function showNewSession(id: string): void {
   useUi.getState().setActive(id)
 }
 
 export const newShell = (projectPath: string): Promise<Session | null> => createSession(projectPath, 'shell')
 
-/**
- * Opens a new shell beside (or under) a pane (the focused one by default), in the folder that
- * pane's shell is in now, which may be deeper than the project's after a cd; it stays under the
- * same project.
- */
 export async function splitWithNewShell(dir: SplitDir, besideId?: string): Promise<void> {
   const ui = useUi.getState()
   if (besideId && besideId !== ui.activeId) ui.setActive(besideId)
@@ -92,7 +86,6 @@ function nextSessionId(closing: string): string | null {
   return list[0]?.id ?? null
 }
 
-/** Nudges the program to repaint: a one-column resize and back makes TUI apps redraw everything. */
 export function redrawSession(id: string): void {
   const e = registry.get(id)
   if (!e) return
@@ -115,10 +108,6 @@ export function killSession(id: string): void {
   window.step.send('host:kill', id)
 }
 
-/**
- * Puts a session away: its pane closes and its process ends, but the session, its screen and
- * its conversation stay, dimmed under the folder, to be restored later or deleted.
- */
 export async function archiveSession(id: string): Promise<void> {
   const s = useData.getState().sessions[id]
   if (!s) return
@@ -126,16 +115,10 @@ export async function archiveSession(id: string): Promise<void> {
     const pick = await popup([{ id: 'archive', label: t('Archive anyway (something is still running)') }, { id: 'cancel', label: t('Keep it running') }])
     if (pick !== 'archive') return
   }
-  // The pane stays where it is and shows the session put away, with the way back; nothing else
-  // is brought in front. Its terminal is kept too, so bringing it back fills the same pane.
+
   window.step.send('host:archive', id, true)
 }
 
-/**
- * Claude Code typed into a shell, brought back: not the shell with the command typed into it
- * again, but a Claude Code session of its own that picks the conversation up straight away, the
- * way one started from the menu does. The shell it lived in goes.
- */
 async function reviveAsClaude(s: Session): Promise<void> {
   const created = await createSession(s.projectPath, 'claude', { resumeId: s.agent.sessionId, title: s.title || undefined })
   if (created) await closeSession(s.id)
@@ -143,7 +126,6 @@ async function reviveAsClaude(s: Session): Promise<void> {
 
 const claudeInShell = (s: Session): boolean => s.presetId === 'shell' && sessionCanResume(s)
 
-/** Brings an archived session back and starts it again, resuming its conversation when it can. */
 export function restoreSession(id: string): void {
   const s = useData.getState().sessions[id]
   if (!s) return
@@ -166,7 +148,6 @@ export function pinSession(id: string, pinned: boolean): void {
   window.step.send('host:pin', id, pinned)
 }
 
-/** Puts a project's sessions in this order, on screen right away and in the host after. */
 export function reorderSessions(ids: string[]): void {
   const { sessions, patchSession } = useData.getState()
   ids.forEach((id, order) => {
@@ -176,7 +157,6 @@ export function reorderSessions(ids: string[]): void {
   window.step.send('host:reorder', ids)
 }
 
-/** Folders in a new order: shown at once, then kept by the main process with the preferences. */
 export async function reorderProjects(paths: string[]): Promise<void> {
   const { projects } = useData.getState()
   const rank = new Map(paths.map((p, i) => [p.toLowerCase(), i]))
@@ -194,7 +174,6 @@ export function copyText(text: string, what = 'Copied'): void {
   useUi.getState().toast(what, 'success')
 }
 
-/** Picks a folder, adds it and opens a shell inside it right away, like a terminal should. */
 export async function addProject(): Promise<string | null> {
   const p = await window.step.invoke('projects:pickFolder')
   if (!p) return null
@@ -202,26 +181,19 @@ export async function addProject(): Promise<string | null> {
   return p
 }
 
-/** Puts a folder in the sidebar, makes it current and opens a shell in it. */
 export async function addProjectPath(p: string): Promise<void> {
   const projects = await window.step.invoke('projects:add', p)
   useData.setState({ projects })
-  // Main normalizes the path (case, trailing slash); use its spelling so the session lines up.
   const trim = (x: string): string => x.replace(/[\\/]+$/, '').toLowerCase()
   const path = projects.find((x) => trim(x.path) === trim(p))?.path ?? p
   useUi.getState().setActiveProject(path)
   await newShell(path)
 }
 
-/** Folders dragged in from the desktop: each one is added and gets a shell, like "Add folder". */
 export async function addDroppedFolders(paths: string[]): Promise<void> {
   for (const p of paths) await addProjectPath(p)
 }
 
-/**
- * Opens a saved workspace: one session per pane, arranged as configured, each typing its start
- * text once its prompt is ready. Panes without a folder are skipped.
- */
 export async function launchWorkspace(config: LaunchConfig): Promise<void> {
   const ui = useUi.getState()
   const name = config.name.trim() || 'Workspace'
@@ -251,7 +223,6 @@ export async function launchWorkspace(config: LaunchConfig): Promise<void> {
   ui.openView(layoutFor(ids, config.split), ids[0])
 }
 
-/** Opens the workspace a step://workspace/<name> link named, and says so when there is none. */
 export async function openWorkspaceByKey(key: string): Promise<void> {
   const config = findWorkspace(usePrefs.getState().prefs?.launchConfigs ?? [], key)
   if (!config) {
@@ -282,7 +253,6 @@ export async function resumeHistory(h: HistorySession): Promise<void> {
   await createSession(h.projectPath, 'claude', { resumeId: h.sessionId, title: h.title })
 }
 
-/** The "+" menu: shell first, then installed agents, then resuming a past Claude conversation. */
 export async function newSessionMenu(projectPath: string): Promise<void> {
   const presets = useData.getState().presets.filter((p) => p.installed)
   const agents = presets.filter((p) => p.id !== 'shell')
@@ -292,7 +262,6 @@ export async function newSessionMenu(projectPath: string): Promise<void> {
     items.push(sep, ...agents.map((p) => ({ id: `new:${p.id}`, label: p.name })))
   }
   if (hasHistory) items.push(sep, { id: 'resume', label: t('Resume a Claude Code conversation…') })
-  // With a pane in front, a new shell can also go beside it rather than in a view of its own.
   const beside = useUi.getState().activeId
   if (beside) items.push(sep, { id: 'split-right', label: t('Split right with a new shell') }, { id: 'split-down', label: t('Split down with a new shell') })
   const pick = await popup(items)
@@ -308,7 +277,6 @@ export async function sessionMenu(row: SidebarSession, pos: MenuPosition = {}): 
   const s = row.session
   const canResume = sessionCanResume(s)
   const grouped = ui.views.some((v) => hasLeaf(v, s.id) && leaves(v).length > 1)
-  // Another session can be put beside the pane in front, unless it is that pane or already shares its view.
   const front = ui.activeId
   const beside = !!front && front !== s.id && !s.archived && !ui.views.some((v) => hasLeaf(v, front) && hasLeaf(v, s.id))
   const pick = await popup([
@@ -415,10 +383,6 @@ export async function projectMenu(project: SidebarProject, pos: MenuPosition = {
   }
 }
 
-/**
- * Right-click on empty sidebar space. Starts something in the folder in use (the one last
- * clicked, else the active session's, else the first), or offers to add a folder.
- */
 export async function sidebarMenu(pos: MenuPosition = {}): Promise<void> {
   const data = useData.getState()
   const ui = useUi.getState()

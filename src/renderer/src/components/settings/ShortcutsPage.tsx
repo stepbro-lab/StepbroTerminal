@@ -14,11 +14,6 @@ interface Note {
   tone: 'error' | 'info'
 }
 
-/**
- * Every shortcut with its keys, each one a click away from being changed: click the keys, press
- * the new chord, done. A chord already used elsewhere moves here and leaves the other shortcut
- * without a key, which the page says. Backspace clears a shortcut; Esc keeps what was there.
- */
 export function ShortcutsPage() {
   const overrides = usePrefs((s) => s.prefs?.keybindings) ?? {}
   const set = usePrefs((s) => s.set)
@@ -51,7 +46,7 @@ export function ShortcutsPage() {
         return
       }
       let chord = chordFromEvent(ev, isMac)
-      if (!chord) return // a modifier on its own: keep waiting for the key
+      if (!chord) return
       if (id === 'jump') {
         const c = parseChord(chord)
         if (!/^[1-9]$/.test(c.key)) {

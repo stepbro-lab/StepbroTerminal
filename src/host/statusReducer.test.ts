@@ -145,7 +145,6 @@ describe('agents started by hand inside a shell', () => {
 })
 
 describe('an agent that has just started or come back', () => {
-  // Claude Code never sends SessionStart to HTTP hooks, so nothing says it is ready but its screen.
   it('stops showing as starting once its screen settles, hooks or not', () => {
     expect(reduceStatus(base('starting', true), { kind: 'quiet' })).toEqual({ status: 'idle' })
     expect(reduceStatus(base('starting', false, { hooked: true, detectedPreset: 'claude' }), { kind: 'quiet' })).toEqual({ status: 'idle' })
@@ -161,7 +160,6 @@ describe('an agent that has just started or come back', () => {
 })
 
 describe('Claude waiting in its registry', () => {
-  // What Claude Code 2.1 writes to ~/.claude/sessions/<pid>.json while it waits.
   const waiting = (waitingFor?: string, needs?: string) => ({ kind: 'registry' as const, status: 'waiting', waitingFor, needs })
 
   it('calls the person over for a question: a permission, input, a sandbox request', () => {
@@ -173,7 +171,6 @@ describe('Claude waiting in its registry', () => {
   it('does not for a menu they opened themselves, like /model or /config', () => {
     expect(reduceStatus(base('idle', false, { registryPid: 7 }), waiting('dialog open'))).toBeNull()
     expect(reduceStatus(base('done', false, { registryPid: 7 }), waiting('dialog open'))).toBeNull()
-    // Closing a real question into a menu of their own clears the call.
     expect(reduceStatus(base('attention', false, { registryPid: 7 }), waiting('dialog open'))).toEqual({ status: 'idle' })
   })
 
@@ -183,7 +180,6 @@ describe('Claude waiting in its registry', () => {
 })
 
 describe('an MCP server asking the person something', () => {
-  // What Claude Code 2.1 sends its hooks when a server like Supabase asks before a destructive query.
   const asked = {
     mcp_server_name: 'supabase',
     message: 'This SQL includes destructive operations (DROP, DELETE, TRUNCATE or UPDATE without WHERE).\nIt may permanently remove data.',
@@ -208,7 +204,7 @@ describe('an MCP server asking the person something', () => {
       status: 'working',
       agent: { lastMessage: undefined }
     })
-    // Asked outside a turn, nothing is running once it is answered.
+
     expect(reduceStatus(base('attention', false, { lastMessage: 'supabase: …' }), answered)).toEqual({ status: 'idle', agent: { lastMessage: undefined } })
     expect(reduceStatus(base('working', false, { tool: 'x' }), answered)).toEqual({ agent: { lastMessage: undefined } })
   })

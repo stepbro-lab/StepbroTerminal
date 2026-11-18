@@ -7,11 +7,6 @@ interface Props {
   size?: number
 }
 
-/**
- * Left-hand status mark of a session row:
- * working → dot spinner in the agent color · attention → amber dot · done → agent-colored dot
- * error → red dot · idle/exited → nothing.
- */
 export function StatusGlyph({ status, color, size = 14 }: Props) {
   const box: React.CSSProperties = { width: size, height: size }
   const dot = (bg: string, px = 7, pulse = false): React.ReactElement => (

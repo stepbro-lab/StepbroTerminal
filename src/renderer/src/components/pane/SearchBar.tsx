@@ -4,11 +4,6 @@ import type { ISearchOptions } from '@xterm/addon-search'
 import { registry } from '@/terminal/TerminalRegistry'
 import { t } from '@/lib/i18n'
 
-/**
- * Matches are painted by the terminal itself, not by the selection: while you type here the
- * terminal has no focus, and its inactive selection is too faint to notice. Every hit gets a
- * yellow wash and the current one a stronger orange, readable over both themes.
- */
 const OPTIONS: ISearchOptions = {
   caseSensitive: false,
   regex: false,
@@ -30,7 +25,6 @@ export function SearchBar({ id, onClose }: { id: string; onClose: () => void }) 
     ref.current?.focus()
     const search = registry.get(id)?.search
     if (!search) return
-    // -1 means "too many to count"; the addon still highlights the active one.
     const sub = search.onDidChangeResults((r) => setHits({ index: r.resultIndex, count: r.resultCount }))
     return () => {
       sub.dispose()

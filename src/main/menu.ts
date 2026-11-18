@@ -3,11 +3,6 @@ import type { Ctx } from './context'
 import { resolveBindings, toAccelerator, type ShortcutId } from '@shared/keybindings'
 import { t } from './i18n'
 
-/**
- * Application menu. On macOS it is required for Cmd+C/V/Q to work; on other platforms
- * the window is frameless and the menu stays hidden, so only the accelerators matter.
- * Accelerators follow the user's shortcut choices; the menu is rebuilt when they change.
- */
 export function buildAppMenu(ctx: Ctx): void {
   const mac = process.platform === 'darwin'
   const bindings = resolveBindings(ctx.prefs.keybindings, mac)

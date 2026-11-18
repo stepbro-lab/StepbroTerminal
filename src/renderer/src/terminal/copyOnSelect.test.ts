@@ -24,7 +24,6 @@ describe('copying what is selected', () => {
     expect(choseText(press({ button: 1 }), moved, 'linux')).toBe(false)
     expect(choseText(press({ ctrlKey: true }), at, 'darwin')).toBe(false)
     expect(choseText(press({ ctrlKey: true }), moved, 'darwin')).toBe(false)
-    // Elsewhere Control-drag is still a drag.
     expect(choseText(press({ ctrlKey: true }), moved, 'win32')).toBe(true)
   })
 

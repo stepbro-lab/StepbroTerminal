@@ -4,7 +4,6 @@ import { describe, expect, it } from 'vitest'
 import { knownKeys, translate } from './i18n'
 import { SHORTCUTS, SHORTCUT_GROUPS, validateChord } from './keybindings'
 
-/** Every string literal handed to t(...) anywhere in the renderer and main, including ternaries. */
 function keysInCode(): Map<string, string> {
   const root = path.resolve(__dirname, '..')
   const keys = new Map<string, string>()
@@ -15,7 +14,6 @@ function keysInCode(): Map<string, string> {
       else if (/\.tsx?$/.test(name) && !/\.test\.tsx?$/.test(name) && name !== 'i18n.ts') {
         const src = fs.readFileSync(p, 'utf8')
         for (const call of src.matchAll(/\bt\(((?:[^()]|\([^()]*\))*)\)/g)) {
-          // Literals compared with === inside a ternary pick the key; they are not keys themselves.
           for (const lit of call[1].matchAll(/(===|!==)?\s*'((?:[^'\\]|\\.)*)'/g)) {
             if (lit[1]) continue
             const key = lit[2].replace(/\\'/g, "'")
@@ -30,7 +28,6 @@ function keysInCode(): Map<string, string> {
   return keys
 }
 
-/** Lines of prose written straight into JSX, outside t(): three or more words starting with a capital. */
 function bareProseInJsx(): string[] {
   const root = path.resolve(__dirname, '..', 'renderer', 'src')
   const found: string[] = []
@@ -43,7 +40,6 @@ function bareProseInJsx(): string[] {
         lines.forEach((line, i) => {
           const s = line.trim()
           if (s.startsWith('//') || s.startsWith('*') || s.startsWith('/*') || s.startsWith('{/*') || s.startsWith('import ')) return
-          // A line that is only words, or a tag followed by words, with no braces: text nobody translated.
           if (/^[A-Z][a-z]+(?: [a-z][a-z',.]*){2,}[.!?]?$/.test(s) || /^<\w[^>]*>[A-Z][a-z]+(?: [a-z][a-z',.]*){2,}/.test(s)) found.push(`${path.relative(root, p)}:${i + 1}  ${s.slice(0, 60)}`)
         })
       }

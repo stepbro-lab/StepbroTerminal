@@ -1,4 +1,3 @@
-/** Subsequence match score. Higher is better; -1 means no match. */
 export function score(query: string, text: string): number {
   const q = query.toLowerCase()
   const t = text.toLowerCase()

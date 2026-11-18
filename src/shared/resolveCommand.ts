@@ -16,7 +16,6 @@ function isFile(file: string): boolean {
   }
 }
 
-/** Finds an executable on PATH. Returns the resolved path or undefined. */
 export function findOnPath(
   command: string,
   env: NodeJS.ProcessEnv,
@@ -40,10 +39,7 @@ export function findOnPath(
   return undefined
 }
 
-/**
- * Resolves a command name to something a PTY can spawn. On Windows `.cmd`/`.bat`
- * shims are run through cmd.exe because ConPTY cannot start them directly.
- */
+// ConPTY can't start .cmd/.bat shims directly, so they run through cmd.exe.
 export function resolveCommand(
   command: string,
   env: NodeJS.ProcessEnv,

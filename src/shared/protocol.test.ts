@@ -88,7 +88,6 @@ describe('frame codec', () => {
     header.writeUInt32BE(0xffffffff, 4)
     p.push(Buffer.concat([header, Buffer.from('whatever follows')]))
     expect(oversize).toBe(1)
-    // Nothing is kept waiting for bytes that will never make a message.
     p.push(encodeFrame({ t: 'ok' }))
     expect(got).toEqual(['ok'])
   })

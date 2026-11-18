@@ -11,7 +11,6 @@ import type { PromptLog } from './prompts'
 import type { Updates } from './updates'
 import type { PreviewBridge } from './preview'
 
-/** Everything the main process keeps in memory, shared between index.ts and ipc.ts. */
 export interface Ctx {
   version: string
   prefs: Prefs
@@ -26,21 +25,14 @@ export interface Ctx {
   activeId: string | null
   notifier: Notifier
   tray: StepTray
-  /** What the person's Discord profile says while the app runs. */
   presence: DiscordPresence
   prompts: PromptLog
   updates: Updates
-  /** The preview pane, driven for agents through the stepbro MCP server. */
   previews: PreviewBridge
-  /** Latest list from the host, so the renderer can ask for it on boot. */
   notes: Note[]
-  /** Folders dropped on the app icon or named on the command line, waiting for the renderer. */
   pendingFolders: string[]
-  /** Workspaces named by step://workspace links, waiting for the renderer. */
   pendingWorkspaces: string[]
-  /** True once the renderer has asked for pending folders; after that they are sent live. */
   rendererReady: boolean
-  /** A session a notification asked to show before the renderer was ready to show it. */
   pendingFocus: string | null
   log: (...a: unknown[]) => void
   emit: <K extends EventName>(channel: K, ...args: Parameters<EventMap[K]>) => void

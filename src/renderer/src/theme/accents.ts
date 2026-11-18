@@ -5,12 +5,10 @@ export interface Accent {
   name: string
   light: string
   dark: string
-  /** Text drawn on top of the accent. */
   onLight: string
   onDark: string
 }
 
-/** Graphite is the palette's own neutral primary; the others are macOS-like tints. */
 export const ACCENTS: Accent[] = [
   { id: 'graphite', name: 'Graphite', light: '#5d5f5f', dark: '#dfdfde', onLight: '#ffffff', onDark: '#2f3131' },
   { id: 'orange', name: 'Orange', light: '#e8792f', dark: '#ff9f57', onLight: '#ffffff', onDark: '#2b1a0e' },
@@ -27,7 +25,6 @@ function hexToRgb(hex: string): [number, number, number] {
   return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)]
 }
 
-/** Writes the accent variables on <html>. Colored accents also wash sidebar and card very slightly. */
 export function applyAccent(id: AccentId, dark: boolean): void {
   const a = ACCENTS.find((x) => x.id === id) ?? ACCENTS[0]
   const color = dark ? a.dark : a.light

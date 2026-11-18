@@ -1,8 +1,6 @@
 appId: com.stepbro.terminal
-# The name people see: window titles, the Dock, the Start Menu, notifications, the installer.
 productName: stepbro terminal
 copyright: Copyright © 2026 Kevin
-# step:// links: notification buttons, and step://workspace/<name> to open a workspace from a script.
 protocols:
   - name: stepbro terminal
     schemes:
@@ -10,40 +8,31 @@ protocols:
 directories:
   buildResources: build
   output: release
-# Installers go to the public releases repository.
 publish:
   provider: github
   owner: kevin9038440334
   repo: StepbroTerminal-releases
   releaseType: prerelease
-# node-pty ships N-API prebuilds that work in Electron without a rebuild.
 npmRebuild: false
 files:
   - out/**
   - package.json
   - '!**/*.map'
 extraResources:
-  # The master logos only feed scripts/gen-icons.mjs; the app ships the rendered sizes.
   - from: resources/icons
     to: icons
     filter:
       - '!StepbroLogoLight.png'
       - '!StepbroLogoDark.png'
-# The host runs as a plain Node process, so it and node-pty must live outside the asar.
-# The host runs as a plain Node process outside the asar, so everything it requires must be
-# unpacked with it: the bytecode loader, its own bytecode, the chunk it shares with the main
-# process, and node-pty.
+# The host runs as a plain Node process, so it has to live outside the asar.
 asarUnpack:
   - out/main/**
   - '**/node_modules/node-pty/**'
-# Flips Electron's fuses on the packed binary: no debugger flags, no NODE_OPTIONS injection.
 afterPack: scripts/after-pack.cjs
 win:
   target:
     - nsis
   icon: build/icon.png
-  # The file names stay as they were: the installed folder, the .exe the step:// handler points
-  # at and the update feed all carry this name, and a space would only get in the way there.
   executableName: StepbroTerminal
   artifactName: StepbroTerminal-${version}-win-${arch}.${ext}
 nsis:
@@ -51,19 +40,15 @@ nsis:
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: true
 mac:
-  # Both architectures come out of one Apple Silicon runner.
   target:
     - target: dmg
       arch: [x64, arm64]
     - target: zip
       arch: [x64, arm64]
-  # Same artwork with room around it, the way Dock icons are drawn.
   icon: build/icon-mac.png
   category: public.app-category.developer-tools
-  # Apple Silicon is the Mac most people have: its installer goes by the plain name.
   defaultArch: arm64
   hardenedRuntime: false
-  # Lets Finder and the Dock accept a folder dropped on the app: it opens as a project.
   extendInfo:
     CFBundleDocumentTypes:
       - CFBundleTypeName: Folder
@@ -72,12 +57,7 @@ mac:
         LSItemContentTypes:
           - public.folder
   artifactName: StepbroTerminal-${version}-mac-${arch}.${ext}
-# The installer's window: the app on the left, Applications on the right, and the picture behind
-# them with the name, an arrow between the two and what to do (build/dmg/background.html, drawn by
-# pnpm dmg:background). The positions are where the picture leaves room for them.
 dmg:
-  # Both disk images are built at once, and one named like the other mounts over it: each needs a
-  # volume name of its own. ${arch} is empty for the default architecture, Apple Silicon.
   title: stepbro terminal${arch}
   background: build/dmg-background.png
   window:
@@ -93,28 +73,19 @@ dmg:
       y: 190
       type: link
       path: /Applications
-# Linux builds are made with productName set to stepbro-terminal (release.yml passes it): the .deb
-# installs into /opt/<productName>, and the space in "/opt/stepbro terminal" broke Chromium's
-# sandbox, which could not start the app's processes from there. The name people see stays below.
+# Linux builds go by stepbro-terminal: a space in /opt/<productName> breaks Chromium's sandbox.
 linux:
   target:
     - AppImage
     - deb
-  # One file per size the hicolor theme knows (pnpm icons renders them); a lone 1024px icon
-  # was installed at a size launchers never look at.
   icon: build/icons
   category: Development
-  # The package description. (package.json's is just the name: Windows shows it as the process name.)
   description: A terminal for people who run coding agents all day.
   executableName: StepbroTerminal
   artifactName: StepbroTerminal-${version}-linux-${arch}.${ext}
-  # The launcher shows the app's own name, and matches its windows by the class Electron gives
-  # them, which comes from package.json's productName rather than the build's.
   desktop:
     Name: stepbro terminal
     StartupWMClass: stepbro terminal
 deb:
-  # An AppArmor profile for Ubuntu 23.10 and later, and chrome-sandbox set up for systems that
-  # restrict user namespaces; see the scripts.
   afterInstall: build/linux/after-install.tpl
   afterRemove: build/linux/after-remove.tpl

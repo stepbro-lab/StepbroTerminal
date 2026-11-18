@@ -417,7 +417,6 @@ export function AdvancedPage() {
   )
 }
 
-/** Saved pane arrangements that open in one go, each pane in its own folder, running what it is told. */
 export function WorkspacesPage() {
   const [p, upd] = usePrefsPage()
   const presets = useData((s) => s.presets)

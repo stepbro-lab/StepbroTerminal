@@ -1,14 +1,3 @@
-// electron-builder afterPack hook.
-// 1. Flips Electron's fuses on the packed binary. RunAsNode stays on because the session host
-//    runs the same binary in Node mode; the debugger and NODE_OPTIONS doors close so nobody can
-//    attach to a running app to read it.
-// 2. Makes node-pty's spawn-helper executable in the unpacked app on macOS and Linux. node-pty
-//    ships it without the bit, and without it every shell fails with "posix_spawnp failed".
-// 3. Signs the macOS bundle ad hoc. There is no Developer ID, so electron-builder signs nothing,
-//    and flipping the fuses re-signed only the main binary; the bundle as a whole had no valid
-//    signature, and macOS quietly refuses notifications from such an app. An ad-hoc signature
-//    over the whole bundle is enough for Notification Center; Gatekeeper still asks for the
-//    right-click Open the first time, as before.
 const fs = require('node:fs')
 const path = require('node:path')
 const { spawnSync } = require('node:child_process')

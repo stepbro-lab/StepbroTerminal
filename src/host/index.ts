@@ -37,14 +37,14 @@ async function main(): Promise<void> {
     }
     prepareSpawnHelper(binDir)
   }
-  // OpenCode learns about the session through a plugin, on every platform.
+
   let opencodePlugin: string | undefined
   try {
     opencodePlugin = writeAgentPlugins(binDir)
   } catch (e) {
     log('agent plugin write failed', e)
   }
-  // The server, made below once the sessions are loaded, says whether a window is watching one.
+
   let viewed: (id: string) => boolean = () => false
   const sm = new SessionManager({
     stateFile: path.join(dir, 'state.json'),
@@ -63,9 +63,6 @@ async function main(): Promise<void> {
   const notes = new NoteStore(path.join(dir, 'notes.json'))
   notes.load()
 
-  // Agents talk to each other through this. A message for an agent that is free is typed into its
-  // conversation as if someone had written it there; a session's change of state wakes whoever
-  // waits on it and delivers what was held back while it was busy.
   const bus = new AgentBus({
     session: (id) => sm.get(id),
     deliver: (to, messages) => {
@@ -90,13 +87,10 @@ async function main(): Promise<void> {
         notes,
         bus,
         session: (id) => sm.get(id),
-        // Archived sessions are put away; agents neither see them nor hand them work.
         sessions: () => sm.list().filter((s) => !s.archived),
         send: (from, to, text, submit, suffix) => sm.handoff(from, to, text, submit, { suffix }),
         screen: (id, lines) => sm.screenLines(id, lines),
-        // The preview pane lives in the app; the request travels over the socket and back.
         browser: (id, op, timeoutMs) => server.browser(id, op, timeoutMs),
-        // So do the saved workspaces, kept in the app's preferences.
         workspaces: (op) => server.workspaces(op),
         topito: (say) => server.topito(say),
         topitoOn: () => server.topitoOn,
@@ -129,7 +123,6 @@ async function main(): Promise<void> {
   fs.writeFileSync(hostInfoPath(), JSON.stringify(info))
   log('listening', socketPath, 'hooks', hookUrl)
 
-  // Idle exit: no clients and no live sessions for a while.
   let idleTimer: NodeJS.Timeout | undefined
   const recheckIdle = (): void => {
     const idle = server.clientCount === 0 && !sm.hasAlive()
@@ -149,7 +142,6 @@ async function main(): Promise<void> {
   sm.on('removed', recheckIdle)
   recheckIdle()
 
-  // Claude Code live registry -> map claude typed inside our shells.
   const registryDir = path.join(claudeDir(), 'sessions')
   let regTimer: NodeJS.Timeout | undefined
   const scanRegistry = (): void => {
@@ -167,7 +159,6 @@ async function main(): Promise<void> {
     log('registry watch unavailable', e)
   }
 
-  // Ended sessions nobody looks at give their screens back to disk.
   setInterval(() => void sm.rest().then((n) => n && log(`put away ${n} screen${n === 1 ? '' : 's'}`), (e) => log('rest failed', e)), 60_000).unref()
 
   let shuttingDown = false
@@ -179,9 +170,7 @@ async function main(): Promise<void> {
     try {
       const cur = JSON.parse(fs.readFileSync(hostInfoPath(), 'utf8')) as HostInfo
       if (cur.pid === process.pid) fs.rmSync(hostInfoPath(), { force: true })
-    } catch {
-      /* ignore */
-    }
+    } catch {}
     hooks.close()
     server.close()
     void sm.finishLogs().then(() => process.exit(0), (e) => {
@@ -192,9 +181,7 @@ async function main(): Promise<void> {
   server.onShutdown = () => shutdown('client request')
   process.on('SIGTERM', () => shutdown('SIGTERM'))
   process.on('SIGINT', () => shutdown('SIGINT'))
-  process.on('SIGHUP', () => {
-    /* keep running when the launching terminal goes away */
-  })
+  process.on('SIGHUP', () => {})
   process.on('uncaughtException', (e) => log('uncaught', e))
   process.on('unhandledRejection', (e) => log('unhandled', e))
 }

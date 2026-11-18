@@ -17,7 +17,6 @@ describe('pacePieces', () => {
       for (const p of pieces) {
         expect(bytes(p)).toBeLessThanOrEqual(max)
         expect(p.length).toBeGreaterThan(0)
-        // A cut inside a character would leave a lone surrogate or a replacement on the way back.
         expect(Buffer.from(p, 'utf8').toString('utf8')).toBe(p)
       }
     }

@@ -3,7 +3,6 @@ import { arriveScript, clickScript, evalScript, focusScript, hasPresenceScript, 
 
 const who = { name: 'Codex', color: '#10a37f' }
 
-/** The scripts run in a page, not here; this checks they at least parse and carry their arguments safely. */
 const parses = (js: string): boolean => {
   new Function(`return ${js}`)
   return true

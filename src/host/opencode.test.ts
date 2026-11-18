@@ -7,8 +7,6 @@ import { applyAgentWrap, writeAgentPlugins, writeOpencodeConfig } from './launch
 
 let tmp: string
 beforeEach(() => {
-  // The real path: on a Windows runner the temp folder is spelled RUNNER~1, and the test loader
-  // turns that tilde into %7E on the way to a file URL and then cannot find the file.
   tmp = fs.mkdtempSync(path.join(fs.realpathSync.native(os.tmpdir()), 'step-opencode-'))
 })
 afterEach(() => {
@@ -51,7 +49,6 @@ describe('OpenCode config', () => {
   })
 })
 
-/** Runs the plugin the way OpenCode would and collects what it posts. */
 async function loadPlugin(url: string | undefined): Promise<{ hooks: any; posted: Array<Record<string, any>> }> {
   const file = writeAgentPlugins(path.join(tmp, 'bin'))
   const posted: Array<Record<string, any>> = []
@@ -62,7 +59,6 @@ async function loadPlugin(url: string | undefined): Promise<{ hooks: any; posted
   })
   if (url) process.env['STEP_HOOK_URL'] = url
   else delete process.env['STEP_HOOK_URL']
-  // A fresh copy each time: the module reads its environment once, when it loads.
   const mod = await import(pathToFileURL(file).href + `?t=${Date.now()}-${Math.random()}`)
   const hooks = await mod.StepbroPlugin({})
   await new Promise((r) => setTimeout(r, 0))

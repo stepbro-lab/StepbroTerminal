@@ -1,7 +1,3 @@
-// Renders build/dmg/background.html into the Mac installer's background: build/dmg-background.png,
-// 540 × 380, and build/dmg-background@2x.png for Retina screens, which electron-builder joins into
-// one image. Run with Electron, since it has the browser to draw the page with:
-//   pnpm dmg:background
 const { app, BrowserWindow } = require('electron')
 const fs = require('node:fs')
 const path = require('node:path')
@@ -14,7 +10,6 @@ const page = path.join(root, 'build', 'dmg', 'background.html')
 app.disableHardwareAcceleration()
 app.whenReady().then(async () => {
   try {
-    // Drawn once, at twice the size; the ordinary one is that picture brought down to half.
     const win = new BrowserWindow({
       width: WIDTH * 2,
       height: HEIGHT * 2,
@@ -24,7 +19,6 @@ app.whenReady().then(async () => {
     })
     await win.loadFile(page)
     await win.webContents.executeJavaScript('document.fonts.ready.then(() => true)')
-    // A frame or two for the page to settle once its font is in.
     await new Promise((r) => setTimeout(r, 500))
     const image = await win.webContents.capturePage()
     win.destroy()

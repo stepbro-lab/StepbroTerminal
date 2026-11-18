@@ -3,51 +3,36 @@ import type { LaunchConfig, LaunchPane, Preset, WorkspaceInfo, WorkspaceOp, Work
 import { newWorkspaceId, openablePanes, slugOf, workspaceUrl } from '@shared/workspaces'
 import { workspaceKeyFromUrl } from './stepUrl'
 
-/**
- * The saved workspaces as agents work them through the stepbro MCP server: what they see of them,
- * and the changes they ask for, checked first (folders that exist, programs that are installed)
- * and then made all at once or not at all. The caller saves the result into the preferences, so
- * Settings shows it at once.
- */
-
-/** Something an agent asked that cannot be done as asked. The message goes back to it as it is. */
 export class WorkspaceError extends Error {}
 
 export interface WorkspaceEnv {
   presets: Preset[]
-  /** Whether a path is a folder that exists. */
   isDir: (p: string) => boolean
   home: string
   newId?: () => string
 }
 
-/** Panes in one workspace: past this, a slip in an agent's list rather than a layout anyone reads. */
 export const MAX_PANES = 12
 const MAX_NAME = 80
 const MAX_START = 4000
-/** Words for the plain shell an agent might use instead of its id. */
 const SHELL_WORDS = new Set(['shell', 'terminal', 'term', 'bash', 'zsh', 'fish', 'sh', 'powershell', 'pwsh', 'cmd'])
 
 const squash = (s: string): string => s.toLowerCase().replace(/[^a-z0-9]+/g, '')
 
-/** A folder as given, made absolute: ~ is the home folder, and a relative path starts from `base`. */
 export function resolveFolder(input: string, base: string, home: string): string {
   let p = input.trim()
   if (!p) throw new WorkspaceError('Every pane needs a folder.')
   if (p === '~' || p.startsWith('~/') || p.startsWith('~\\')) p = path.join(home, p.slice(1))
-  // Resolving an absolute path too spells it out in full: on Windows "/" becomes the drive's root, C:\.
   else p = path.resolve(base || home, p)
   p = path.normalize(p)
   const root = path.parse(p).root
   return p.length > root.length ? p.replace(/[\\/]+$/, '') : p
 }
 
-/** The shell, or an installed agent or launcher, from its id or its name ("codex", "Claude Code"). */
 export function pickRunnable(presets: Preset[], wanted: string | undefined): Preset {
   const shell = presets.find((p) => p.id === 'shell')
   const w = squash(wanted ?? '')
   if (!w && shell) return shell
-  // A launcher of the person's own goes first; then "bash", "terminal" and the like mean the shell.
   const found =
     presets.find((p) => p.id === wanted?.trim()) ?? presets.find((p) => squash(p.id) === w || squash(p.name) === w) ?? (SHELL_WORDS.has(w) ? shell : undefined)
   const choices = presets
@@ -59,14 +44,12 @@ export function pickRunnable(presets: Preset[], wanted: string | undefined): Pre
   return found
 }
 
-/** What a pane types once it is ready: line endings made plain, nothing trailing. */
 function cleanStart(text: string | undefined): string {
   const t = (text ?? '').replace(/\r\n?/g, '\n').replace(/\s+$/, '')
   if (t.length > MAX_START) throw new WorkspaceError(`A start command can be at most ${MAX_START} characters.`)
   return t
 }
 
-/** A name that is not empty, not too long, and whose link no other workspace already answers to. */
 function cleanName(name: string, configs: LaunchConfig[], selfId?: string): string {
   const n = name.trim().replace(/\s+/g, ' ')
   if (!n) throw new WorkspaceError('A workspace needs a name.')
@@ -88,7 +71,6 @@ function checkCount(panes: LaunchPane[]): void {
   if (panes.length > MAX_PANES) throw new WorkspaceError(`A workspace can have at most ${MAX_PANES} panes.`)
 }
 
-/** The workspace a name, a link name, a step:// link or an id points to. */
 export function matchWorkspace(configs: LaunchConfig[], key: string): LaunchConfig {
   const k = (workspaceKeyFromUrl(key) ?? key).trim()
   if (!k) throw new WorkspaceError('Say which workspace: its name, its link or its id.')
@@ -104,7 +86,6 @@ export function matchWorkspace(configs: LaunchConfig[], key: string): LaunchConf
   throw new WorkspaceError(`No workspace called "${k}". There are: ${configs.map((c) => `"${c.name.trim() || c.id}"`).join(', ')}.`)
 }
 
-/** A workspace as agents are shown it, with what would keep a pane from opening. */
 export function describeWorkspace(c: LaunchConfig, env: WorkspaceEnv): WorkspaceInfo {
   return {
     id: c.id,
@@ -123,7 +104,6 @@ export function describeWorkspace(c: LaunchConfig, env: WorkspaceEnv): Workspace
   }
 }
 
-/** The workspace to open, as long as at least one of its panes can. */
 export function workspaceToOpen(configs: LaunchConfig[], key: string, env: WorkspaceEnv): LaunchConfig {
   const c = matchWorkspace(configs, key)
   const panes = openablePanes(c)
@@ -132,10 +112,6 @@ export function workspaceToOpen(configs: LaunchConfig[], key: string, env: Works
   return c
 }
 
-/**
- * A create, update or delete: the workspaces as they are afterwards, and the one it was about.
- * Everything is checked before anything changes, so a request with one bad pane changes nothing.
- */
 export function applyWorkspaceOp(
   configs: LaunchConfig[],
   op: Extract<WorkspaceOp, { kind: 'create' | 'update' | 'delete' }>,

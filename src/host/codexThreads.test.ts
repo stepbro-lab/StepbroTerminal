@@ -13,7 +13,6 @@ afterEach(() => {
 })
 
 const pad = (n: number): string => String(n).padStart(2, '0')
-/** A conversation file the way Codex writes one, last written `ago` ms back. */
 function conversation(id: string, cwd: string, ago = 0, startedAt = Date.now() - ago): string {
   const d = new Date(startedAt)
   const dir = path.join(home, 'sessions', String(d.getFullYear()), pad(d.getMonth() + 1), pad(d.getDate()))

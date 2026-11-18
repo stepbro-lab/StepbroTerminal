@@ -1,5 +1,4 @@
-// Native PTY + socket + persistence test, isolated from installed/running instances.
-// Run after npm run build: node scripts/backend-smoke.mjs
+// Run after pnpm build: node scripts/backend-smoke.mjs
 import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
@@ -94,9 +93,6 @@ try {
   await until(() => output.includes('ready-native-ok'), 'native shell command')
   console.log('native shell input/output: passed')
 
-  // A program that takes the mouse the way Codex does: once, as it starts, with SGR reports. The
-  // window must hear about the encoding through the PTY (ConPTY on Windows) and again when it
-  // reconnects, or every move of the mouse is typed into the program as "[MC…".
   const setsMode = (text, mode) => new RegExp(`\\x1b\\[\\?(?:\\d+;)*${mode}(?:;\\d+)*h`).test(text)
   const app = path.join(dir, 'mouse-app.cjs')
   await fs.writeFile(app, [
@@ -152,6 +148,6 @@ try {
     child.kill()
     await Promise.race([stopped, sleep(3000)])
   }
-  // Only the uniquely created temporary data directory is removed.
+
   await fs.rm(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 })
 }

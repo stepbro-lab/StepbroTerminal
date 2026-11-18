@@ -8,7 +8,6 @@ describe('sideShareAt', () => {
   })
 
   it('never squeezes the page or the terminals out of use', () => {
-    // Dragged to the far right: the page keeps 300px; to the far left: the terminals keep 320px.
     expect(sideShareAt(990, 0, 1000)).toBeCloseTo(0.3)
     expect(sideShareAt(10, 0, 1000)).toBeCloseTo(0.68)
   })

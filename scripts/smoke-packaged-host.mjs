@@ -1,9 +1,3 @@
-// Exercises the session host from an unpacked electron-builder output (release/*-unpacked or the
-// .app on macOS) the way the packaged app does. Two checks, both through the packaged binary in
-// Node mode: the host must report "listening", and node-pty must be able to open a real shell.
-// The host runs outside the asar as plain Node, so a missing unpacked file, or a native helper
-// without its executable bit, only shows up here.
-// Usage: node scripts/smoke-packaged-host.mjs [release-dir]
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -24,9 +18,6 @@ function findApp() {
     }
     if (!entry.endsWith('-unpacked')) continue
     const files = fs.readdirSync(dir)
-    // The binary is named after the product, or after the executableName the builder config sets
-    // for the platform (Linux may also use the package name). Match any of those, then fall back
-    // to any executable next to resources/ that is not one of Chromium's helpers.
     const pkg = JSON.parse(fs.readFileSync(path.resolve('package.json'), 'utf8'))
     const builder = fs.existsSync('electron-builder.yml') ? fs.readFileSync('electron-builder.yml', 'utf8') : ''
     const executables = [...builder.matchAll(/^\s*executableName:\s*(.+?)\s*$/gm)].map((m) => m[1])
@@ -57,12 +48,6 @@ if (!fs.existsSync(host)) {
 const home = fs.mkdtempSync(path.join(os.tmpdir(), 'step-smoke-'))
 const nodeEnv = { ...process.env, ELECTRON_RUN_AS_NODE: '1' }
 
-/**
- * Opens a shell through the packaged node-pty, the way a new session does. On macOS it first
- * makes the shipped spawn-helper look like a fresh download (no executable bit, quarantined) and
- * then stages a runnable copy exactly as the host does, so the runner proves shells still open on
- * a quarantined, read-only app and not only on the freshly built one.
- */
 function ptyCheck() {
   const script = path.join(home, 'pty-check.cjs')
   const nodePty = path.join(unpacked, 'node_modules', 'node-pty')
@@ -111,9 +96,7 @@ setTimeout(() => { console.error('shell printed nothing in 10s; output: ' + JSON
 function finish(ok) {
   try {
     fs.rmSync(home, { recursive: true, force: true })
-  } catch {
-    /* leave it to the runner */
-  }
+  } catch {}
   process.exit(ok ? 0 : 1)
 }
 
@@ -134,7 +117,6 @@ const timer = setInterval(() => {
     clearInterval(timer)
     console.log('host is listening; ok')
     const ok = ptyCheck()
-    // Tidy up only once the host is gone; a failure to remove the temp dir is not a failed test.
     child.once('exit', () => finish(ok))
     child.kill()
     setTimeout(() => finish(ok), 3000)

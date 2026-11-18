@@ -45,94 +45,53 @@ export interface SessionManagerOpts {
   logDir: string
   hooksDir: string
   hookUrl: (sessionId: string) => string
-  /** Where the posix shims live; goes first on PATH inside every session. */
   binDir: string
-  /** The per-session MCP endpoint (notes tools) for agents that take one. */
   mcpUrl: (sessionId: string) => string
-  /** The OpenCode plugin file, when it could be written; every session's OpenCode config points at it. */
   opencodePlugin?: string
   scrollback: number
   baseEnv: NodeJS.ProcessEnv
-  /** Whether a window has the session attached, and so answers what its program asks the terminal. */
   viewed?: (id: string) => boolean
 }
 
-/** How long after asking the terminal about itself an answer is still worth passing on. */
 const REPLY_WINDOW_MS = 2000
-/** How long a window's answers to ConPTY's startup probe are waited for, to be dropped. */
 const OWED_MS = 2000
 
 interface Live {
   s: Session
   pty?: nodePty.IPty
-  /** Server-side emulator: the source of truth for what is on screen while nobody is attached. */
   screen: HeadlessTerminal
   serializer: SerializeAddon
-  /** Resolves when every byte handed to the emulator has been parsed. */
   drained: Promise<void>
   lines: TitleCapture
   osc: OscTitleParser
   quietTimer?: NodeJS.Timeout
-  /** A typed agent has been seen drawing on the alternate screen; its going away means the agent quit. */
   altSeen?: boolean
-  /** When the screen was last read for whether a turn is running, and whether a read is under way. */
   busyLookAt?: number
   busyLooking?: boolean
-  /** When the current burst of output started; reset after QUIET_MS of silence. */
   burstStart: number
-  /** When the program last printed anything: a spinner still turning means it is not ready to be typed into. */
   lastOutputAt: number
   log?: SessionLog
   flow: OutputPressure
   screenBytes: number
-  /** Exited sessions restore their scrollback only when someone requests it. */
   restorePending?: boolean
-  /** When its screen was last asked for, or it ended: an ended session nobody looks at lets its screen go after a while. */
   readAt?: number
-  /** The size the pty was last told about, which is not always what the session record says. */
   ptyCols?: number
   ptyRows?: number
   restoring?: Promise<void>
   generation: number
-  /** From a launch configuration: typed into the pane once it first settles, then forgotten. */
   runOnStart?: string
-  /**
-   * ConPTY is still probing the terminal: its question about the terminal is not answered yet and
-   * nothing printable has come. It holds the program back until the host answers, so everything
-   * asked until then is ConPTY's, and everything after is the program's own.
-   */
   probing: boolean
-  /** Answers a window still owes ConPTY's probe, which the host has already given: dropped when they come. */
   owed?: Owed & { until: number }
-  /** Chunks of ConPTY's probe the host's copy of the screen has yet to read; what it answers them stays in. */
   probeParsing: number
-  /** When the program last asked the terminal about itself; an answer after that is worth passing on. */
   askedAt?: number
-  /** The transcript Claude Code is writing for the conversation in front, as its hooks name it. */
   transcript?: string
 }
 
-/**
- * After a prompt, how long until Claude Code has usually written its title for the conversation:
- * it asks a small model for one in the background, a few seconds in.
- */
 const TITLE_LOOKS_MS = [3000, 10_000, 30_000]
 
-/**
- * A held hand-off goes in once the agent is free and its screen has been still for this long: after
- * the Stop hook, Claude Code keeps a spinner turning while it runs its stop hooks, and what is
- * typed under it loses its head. Past HELD_MAX_WAIT_MS of a screen that never settles it goes in anyway.
- */
 const HELD_QUIET_MS = 1000
-// Stop hooks have been seen to take half a minute; the cap is for a screen that never settles.
 const HELD_MAX_WAIT_MS = 60000
 const HELD_POLL_MS = 250
-/**
- * An agent gets a hand-off in pieces this big, this far apart. Claude Code reads its input a
- * kilobyte at a time and keeps only the last read of a burst that comes in one write (measured:
- * a 2.4 KB hand-off arrived as its final 332 bytes); pieces under a kilobyte, a beat apart, all
- * arrive, and each still reads as a paste to the TUI.
- */
 const PIECE_BYTES = 900
 const PIECE_GAP_MS = 150
 const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms))
@@ -148,27 +107,17 @@ interface HeldHandoff {
 }
 
 const QUIET_MS = 1500
-/** How long an ended session nobody is looking at keeps its screen in memory before it goes back to disk. */
 const REST_AFTER_MS = 10 * 60 * 1000
-/** Output must keep flowing this long before a plain shell shows as working. */
 const BUSY_AFTER_MS = 400
-/** How often the screen of an agent that never stops drawing is read for whether it is working. */
 const BUSY_LOOK_MS = 700
 const LOG_KEEP = 2 * 1024 * 1024
-/** Onto the screen a full-screen program draws on, the one it asks for when it starts. */
 const ALT_SCREEN = '\x1b[?1049h'
 
-/**
- * Owns every PTY, its screen state and its status. Emits:
- * 'session' (Session) · 'removed' (id) · 'output' (id, bytes) · 'clear' (id) · 'exit' (id, code)
- */
 export class SessionManager extends EventEmitter {
   private live = new Map<string, Live>()
   private titles = new TranscriptTitles()
-  /** Hand-offs for agents that were busy when they arrived, typed once the agent is free. */
   private heldHandoffs = new Map<string, HeldHandoff[]>()
   private heldTimers = new Map<string, NodeJS.Timeout>()
-  /** Sessions a hand-off is being typed into right now, piece by piece. */
   private typing = new Set<string>()
   private persistTimer?: NodeJS.Timeout
   private registryBusy = false
@@ -180,8 +129,6 @@ export class SessionManager extends EventEmitter {
     fs.mkdirSync(opts.logDir, { recursive: true })
     fs.mkdirSync(opts.hooksDir, { recursive: true })
   }
-
-  // ---- queries ----
 
   list(): Session[] {
     return [...this.live.values()].map((l) => l.s)
@@ -196,7 +143,6 @@ export class SessionManager extends EventEmitter {
     return false
   }
 
-  /** Serialized screen plus scrollback as escape sequences; replaying it reproduces the display exactly. */
   async snapshot(id: string): Promise<Uint8Array> {
     const l = this.live.get(id)
     if (!l) return new Uint8Array(0)
@@ -211,11 +157,8 @@ export class SessionManager extends EventEmitter {
     }
   }
 
-  // ---- resource use ----
-
   private cpu = new CpuMeter()
 
-  /** What every live session and the host itself use right now; CPU is measured between two calls. */
   stats = sampled(() => this.collectStats(), 1000)
 
   private async collectStats(): Promise<HostStats> {
@@ -248,17 +191,11 @@ export class SessionManager extends EventEmitter {
       await mapLimit(await fs.promises.readdir(this.opts.logDir), 16, async (name) => {
         try {
           total += (await fs.promises.stat(path.join(this.opts.logDir, name))).size
-        } catch {
-          /* gone between readdir and stat */
-        }
+        } catch {}
       })
-    } catch {
-      /* no log dir yet */
-    }
+    } catch {}
     return total
   }
-
-  // ---- persistence ----
 
   load(): void {
     let raw: string
@@ -280,19 +217,14 @@ export class SessionManager extends EventEmitter {
       s.alive = false
       s.pid = undefined
       if (wasAlive || s.status === 'working' || s.status === 'attention' || s.status === 'starting') s.status = 'exited'
-      // A start error belonged to the previous run. Do not carry it into a fresh host, or an
-      // update would greet the user with a red banner and a Retry for a session they never touched.
       if (s.status === 'error') s.status = 'exited'
       s.error = undefined
       s.errorDetail = undefined
       s.agent = s.agent ?? {}
       s.agent.registryPid = undefined
-      // Recompute every load so it never persists stale: true only for sessions the host lost while alive.
       s.leftRunning = wasAlive
       if (typeof s.order !== 'number') s.order = s.createdAt
       if (s.previewUrl && isOwnEndpoint(s.previewUrl)) s.previewUrl = undefined
-      // A name an earlier version took that would not be taken now, such as Codex's "Action Required"
-      // or the command that launched an agent, goes; the next prompt or title names the session.
       const stale =
         (s.titleSource === 'osc' && !this.nameFromOsc(s, s.title)) ||
         (s.titleSource === 'input' && !titleFromLine(s.title, s.launch.hooks || s.presetId !== 'shell'))
@@ -323,8 +255,6 @@ export class SessionManager extends EventEmitter {
     if (this.persistTimer) return
     this.persistTimer = setTimeout(() => this.persistNow(), 200)
   }
-
-  // ---- lifecycle ----
 
   create(opts: CreateSessionOpts): Session {
     const now = Date.now()
@@ -365,7 +295,6 @@ export class SessionManager extends EventEmitter {
       this.hangUp(old)
     }
     l.flow.connect()
-    // Pending emulator writes belong to the old run. Drain/dispose that emulator separately.
     const oldScreen = l.screen
     void l.drained.then(() => oldScreen.dispose())
     const fresh = this.newScreen(l.s)
@@ -386,12 +315,9 @@ export class SessionManager extends EventEmitter {
     }
     l.generation++
     l.restorePending = false
-    // Keep one writer across restarts so old bytes cannot land after the clear.
     this.openLog(l)
     l.log!.clear()
     this.emit('clear', id)
-    // Codex tells nobody which conversation it is in. Caught as it finished a turn when it could
-    // be; otherwise the last one it wrote in this folder, if it ever wrote one.
     if (isCodex(l.s) && !l.s.agent.sessionId) {
       const s = l.s
       const found = latestSince(codexThreadsSince(this.codexHome(s), s.createdAt), startDirOf(s), s.createdAt, this.codexTaken(s))
@@ -408,27 +334,18 @@ export class SessionManager extends EventEmitter {
     this.hangUp(l.pty)
   }
 
-  /**
-   * Ends a session's program, and with it whatever it left running underneath: an agent starts
-   * servers and watchers apart from itself, which the shell's own goodbye never reaches, and they
-   * went on holding their ports after the pane was gone. Each gets the hang-up a closing terminal
-   * sends, so what was started with nohup still stays, as it would anywhere. What had already left
-   * the session (a double fork) is no longer underneath it, and is left alone.
-   */
+  // SIGHUP the subtree too: agents leave servers running that the shell's exit never reaches.
   private hangUp(p: nodePty.IPty): void {
     const end = (): void => {
       try {
         p.kill()
-      } catch {
-        /* already gone */
-      }
+      } catch {}
     }
-    // Windows ends the whole console with it.
+
     if (process.platform === 'win32') return end()
     const root = p.pid
     void readProcesses()
       .then((procs) => {
-        // Only a program this host started itself: never a stranger that happens to have its number.
         if (procs.get(root)?.ppid !== process.pid) return []
         return subtree(procs, root, processChildren(procs)).map((x) => x.pid).filter((pid) => pid !== root)
       })
@@ -438,25 +355,17 @@ export class SessionManager extends EventEmitter {
         for (const pid of under) {
           try {
             process.kill(pid, 'SIGHUP')
-          } catch {
-            /* gone already */
-          }
+          } catch {}
         }
       })
   }
 
-  /**
-   * Puts a session away without losing it: the process ends, and the row moves under the folder's
-   * archived ones with its screen and its conversation kept, so it can be restored later and pick
-   * up where it was. Unarchiving brings it back exited; the client restarts it if it wants.
-   */
   archive(id: string, archived: boolean): void {
     const l = this.live.get(id)
     if (!l || !!l.s.archived === archived) return
     l.s.archived = archived
     l.s.archivedAt = archived ? Date.now() : undefined
     if (archived && l.pty) {
-      // The exit that follows carries the flag along, so the row lands in the right place at once.
       this.kill(id)
     } else {
       this.emitSession(l)
@@ -481,9 +390,7 @@ export class SessionManager extends EventEmitter {
     void closing.finally(() => this.closingLogs.delete(closing))
     try {
       l.screen.dispose()
-    } catch {
-      /* ignore */
-    }
+    } catch {}
     this.live.delete(id)
     this.heldHandoffs.delete(id)
     this.typing.delete(id)
@@ -493,15 +400,11 @@ export class SessionManager extends EventEmitter {
     for (const f of [path.join(this.opts.hooksDir, `${id}.json`), this.screenPath(id)]) {
       try {
         fs.rmSync(f, { force: true })
-      } catch {
-        /* ignore */
-      }
+      } catch {}
     }
     this.emit('removed', id)
     this.persist()
   }
-
-  // ---- io ----
 
   input(id: string, bytes: Uint8Array): void {
     const l = this.live.get(id)
@@ -509,11 +412,6 @@ export class SessionManager extends EventEmitter {
     let text = Buffer.from(bytes).toString('utf8')
     const owed = l.owed
     if (owed && Date.now() < owed.until && owed.da + owed.cpr > 0) {
-      // A window attached while the program starts answers ConPTY's probe as well (a restored
-      // session does: its pane is on screen before the shell is respawned). The host has already
-      // answered, and a second answer reaches the shell as typed text, "[?1;2c" at the prompt. Just
-      // those answers go, counted; whatever the program asks afterwards is answered in full, and a
-      // full-screen agent such as Clyra measures its text with those answers as it starts.
       const kept = dropOwedReplies(text, owed)
       if (kept !== text) {
         if (!kept) return
@@ -521,9 +419,6 @@ export class SessionManager extends EventEmitter {
         bytes = Buffer.from(text, 'utf8')
       }
     } else if (Date.now() - (l.askedAt ?? 0) > REPLY_WINDOW_MS) {
-      // Nothing asked the terminal anything recently, so an answer arriving now is one the
-      // window worked out for output it was catching up on, long after the program gave up
-      // waiting. Passed on, the program reads it as typed text.
       const kept = stripStaleReplies(text)
       if (kept !== text) {
         if (!kept) return
@@ -535,7 +430,6 @@ export class SessionManager extends EventEmitter {
     if (line) {
       const agent = detectAgentFromCommand(line)
       const inAgent = l.s.launch.hooks || !!l.s.agent.detectedPreset || l.s.presetId !== 'shell'
-      // A fresh conversation in the same agent: the title it had came from the old one.
       if (inAgent && startsOver(line) && (l.s.titleSource === 'input' || l.s.titleSource === 'osc' || l.s.titleSource === 'agent')) {
         l.s.title = ''
         l.s.titleSource = 'none'
@@ -552,7 +446,7 @@ export class SessionManager extends EventEmitter {
         l.s.agent.lastPreset = agent
         this.emitSession(l)
       }
-      // Lines typed into an agent are prompts worth remembering; the launch command itself is not.
+
       if (inAgent && !agent && line.length >= 2) {
         this.emit('prompt', {
           ts: Date.now(),
@@ -566,12 +460,6 @@ export class SessionManager extends EventEmitter {
     l.pty.write(text)
   }
 
-  /**
-   * The window is the authority on how big a terminal is, and says so whenever it fits one. The
-   * emulator and the record are only touched when the size really changed, but the pty is told
-   * whenever what it was last told differs: the two can drift apart, and a program left drawing
-   * at a width the window no longer has stays wrong until someone drags something.
-   */
   resize(id: string, cols: number, rows: number): void {
     const l = this.live.get(id)
     if (!l) return
@@ -604,8 +492,6 @@ export class SessionManager extends EventEmitter {
     this.live.get(id)?.flow.set('client', false)
   }
 
-  // ---- metadata ----
-
   rename(id: string, title: string): void {
     const l = this.live.get(id)
     if (!l) return
@@ -627,7 +513,6 @@ export class SessionManager extends EventEmitter {
     this.emitSession(l)
   }
 
-  /** Numbers the given sessions 0, 1, 2… so the sidebar shows them in this order. */
   reorder(ids: string[]): void {
     ids.forEach((id, i) => {
       const l = this.live.get(id)
@@ -643,21 +528,10 @@ export class SessionManager extends EventEmitter {
     this.apply(l, { kind: 'viewed' })
   }
 
-  // ---- agent awareness ----
-
-  /**
-   * Types `text` into session `to` for `from`, presses Enter when asked, and tells clients so they
-   * can show it travelling. `suffix` is typed too but stays out of the title an untitled shell
-   * takes from its first line: it is the request to report back, not the task.
-   */
   handoff(from: string, to: string, text: string, submit: boolean, opts: { suffix?: string; titled?: boolean } = {}): HandoffOutcome {
     const l = this.live.get(to)
     if (!l?.pty) return 'lost'
     const item: HeldHandoff = { from, text, submit, suffix: opts.suffix, titled: opts.titled }
-    // An agent in the middle of a turn loses the head of a paste (measured with Claude Code: from
-    // two hundred to two thousand characters never reach the conversation), one asking a person
-    // something would take the Enter as the answer, and one whose screen is still moving is not
-    // at its prompt yet. Their text waits until they are free and still.
     if (agentOf(l.s) !== 'shell' && (this.typing.has(to) || !(this.freeToType(l) && this.still(l)))) {
       const list = this.heldHandoffs.get(to) ?? []
       list.push(item)
@@ -677,13 +551,11 @@ export class SessionManager extends EventEmitter {
     return Date.now() - l.lastOutputAt >= HELD_QUIET_MS
   }
 
-  /** Types hand-offs into a session, an agent's in paced pieces, then presses Enter once the burst is well over. */
   private typeHandoff(l: Live, items: HeldHandoff[]): void {
     const to = l.s.id
     if (!l.pty) return
     const body = items.map((it) => it.text.replace(/\r?\n/g, '\n') + (it.suffix ?? '')).join('\n\n')
     const pieces = agentOf(l.s) === 'shell' ? [body] : pacePieces(body, PIECE_BYTES)
-    // A task names an untitled session; a message passing through it does not.
     const titled = !items.every((it) => it.titled === false)
     this.typing.add(to)
     for (const it of items) this.emit('handoff', { from: it.from, to, text: it.text })
@@ -699,10 +571,7 @@ export class SessionManager extends EventEmitter {
         if (i === 0 && titled) this.input(to, Buffer.from(pieces[i], 'utf8'))
         else l.pty.write(pieces[i])
       }
-      // Agents' TUIs treat a burst of input as a paste and fold an Enter that arrives inside the
-      // burst into it, so the text never gets submitted (Codex showed "[Pasted Content]" and sat
-      // there). Enter comes once the burst is well over. Bracketed-paste markers are not an option:
-      // ConPTY hands them to the program as stray characters.
+      // Agent TUIs fold an Enter inside an input burst into the paste, so it goes after the burst.
       if (submit) {
         await sleep(900)
         if (this.live.get(to)?.pty) this.input(to, Buffer.from('\r'))
@@ -714,10 +583,6 @@ export class SessionManager extends EventEmitter {
     }
   }
 
-  /**
-   * Once a session with held hand-offs is free, waits for its screen to settle and types them in
-   * together. Busy again before that: stops, and starts over when the status next changes.
-   */
   private flushHeld(l: Live): void {
     const id = l.s.id
     if (!this.heldHandoffs.get(id)?.length || this.heldTimers.has(id) || !this.freeToType(l)) return
@@ -738,7 +603,6 @@ export class SessionManager extends EventEmitter {
     this.heldTimers.set(id, setTimeout(tick, HELD_POLL_MS))
   }
 
-  /** The last `max` lines on a session's screen, scrollback included, without the blank tail. */
   async screenLines(id: string, max: number): Promise<string[]> {
     const l = this.live.get(id)
     if (!l) return []
@@ -748,7 +612,6 @@ export class SessionManager extends EventEmitter {
     if (!this.live.has(id)) return []
     const buf = l.screen.buffer.active
     const row = (y: number): string => buf.getLine(y)?.translateToString(true) ?? ''
-    // A fresh screen has its text at the top and blank rows below; count from the last written row.
     let last = buf.baseY + l.screen.rows - 1
     while (last >= 0 && !row(last).trim()) last--
     const lines: string[] = []
@@ -756,18 +619,14 @@ export class SessionManager extends EventEmitter {
     return lines
   }
 
-  /** `stepSessionId` comes from the per-session hook URL; older settings files only carry the agent's own id. */
   applyHook(agentSessionId: string, name: string, payload: Record<string, unknown>, stepSessionId?: string): void {
     const l = (stepSessionId && this.live.get(stepSessionId)) || [...this.live.values()].find((x) => x.s.agent.sessionId === agentSessionId)
     if (!l) return
     if (!l.s.launch.hooks) {
-      // An agent the user started by hand inside this shell: its hooks run the status while it lives.
       l.s.agent.hooked = name !== 'SessionEnd'
     }
     if (name === 'PostToolUse') this.noteEditedFile(l, payload)
     this.apply(l, { kind: 'hook', name, payload })
-    // The conversation is the file Claude writes, which a /resume inside Claude changes without the
-    // process's own id changing with it: taken from every hook, the latest wins.
     const conversation = conversationFromTranscript(payload['transcript_path'])
     if (conversation && conversation !== l.s.agent.sessionId) {
       l.s.agent.sessionId = conversation
@@ -778,17 +637,12 @@ export class SessionManager extends EventEmitter {
       if (l.transcript && l.transcript !== transcript) this.titles.forget(l.transcript)
       l.transcript = transcript
       void this.nameFromConversation(l)
-      // Claude writes the conversation's title a few seconds after the prompt, not with it.
       if (name === 'UserPromptSubmit') {
         for (const ms of TITLE_LOOKS_MS) setTimeout(() => void this.nameFromConversation(l), ms)
       }
     }
   }
 
-  /**
-   * The session takes the name Claude Code gave the conversation: a few words that sum it up, or
-   * what the person called it with /rename inside Claude. A name given here is never replaced.
-   */
   private async nameFromConversation(l: Live): Promise<void> {
     const file = l.transcript
     if (!file) return
@@ -814,7 +668,6 @@ export class SessionManager extends EventEmitter {
     this.emitSession(l)
   }
 
-  /** Maps Claude Code registry entries (claude typed inside a Step shell) to sessions and applies their status. */
   async applyRegistry(entries: LiveClaude[]): Promise<void> {
     if (this.registryBusy) {
       this.registryDirty = entries
@@ -823,7 +676,6 @@ export class SessionManager extends EventEmitter {
     this.registryBusy = true
     try {
       const byPid = new Map(entries.map((e) => [e.pid, e]))
-      // Update or clear already-mapped sessions.
       for (const l of this.live.values()) {
         const pid = l.s.agent.registryPid
         if (!pid) continue
@@ -833,15 +685,13 @@ export class SessionManager extends EventEmitter {
           byPid.delete(pid)
         } else {
           l.s.agent.registryPid = undefined
-          // A live shell the agent has left is a shell again; a session that has ended keeps the
-          // name of the agent that ran in it, and its conversation, for when it is brought back.
           if (l.s.alive) l.s.agent.detectedPreset = undefined
           l.s.agent.tool = undefined
           if (l.s.status === 'working' || l.s.status === 'attention' || l.s.status === 'done') l.s.status = 'idle'
           this.emitSession(l)
         }
       }
-      // Map new entries through the process tree.
+
       const candidates = new Map<number, Live>()
       for (const l of this.live.values()) if (l.s.alive && l.s.pid && !l.s.launch.hooks && !l.s.agent.registryPid) candidates.set(l.s.pid, l)
       const unmapped = [...byPid.values()].filter((e) => !this.isKnownAgentSession(e.sessionId))
@@ -859,7 +709,6 @@ export class SessionManager extends EventEmitter {
           l.s.agent.detectedPreset = 'claude'
           l.s.agent.lastPreset = 'claude'
           log('mapped claude', e.pid, '->', l.s.id)
-          // A freshly mapped agent that is not busy is simply idle; "done" is reserved for finished turns.
           const busy = /busy|working|running/i.test(e.status ?? '')
           if (busy && !l.s.agent.hooked) this.apply(l, { kind: 'registry', status: e.status! })
           else {
@@ -886,17 +735,6 @@ export class SessionManager extends EventEmitter {
     return false
   }
 
-  // ---- internals ----
-
-  /**
-   * The host's copy of the screen answers what the program asks the terminal (where the cursor
-   * is, what kind of terminal this is) while no window is watching the session. A program asks the
-   * moment it starts, and a window only takes the session a moment later, once its pane has
-   * settled: nobody answered those first questions, which a full-screen agent asks to measure its
-   * text with. With a window watching, the window
-   * answers, as a terminal would, and this stays quiet; so it does for ConPTY's own probe, which
-   * the host answers by itself, and whose question about the cursor must not be answered at all.
-   */
   private answerWhenUnseen(l: Live, screen: HeadlessTerminal): void {
     screen.onData((reply) => {
       if (screen !== l.screen || !l.pty) return
@@ -905,7 +743,6 @@ export class SessionManager extends EventEmitter {
     })
   }
 
-  /** The screen and its scrollback as escape sequences, with the modes the serializer leaves out. */
   private serialize(l: Live): string {
     return l.serializer.serialize({ scrollback: this.opts.scrollback }) + modesSerializeMisses(l.screen)
   }
@@ -946,9 +783,6 @@ export class SessionManager extends EventEmitter {
   private spawn(l: Live, resume: boolean): void {
     const s = l.s
     const now = Date.now()
-    // An agent typed into the previous process went with it. Left on the session, a restored shell
-    // would wear its logo and, with its hooks still counted on, wait as 'starting' for events that
-    // never come. What the agent was (lastPreset) and its conversation stay, so it can be resumed.
     s.agent.detectedPreset = undefined
     s.agent.hooked = false
     s.agent.tool = undefined
@@ -957,11 +791,8 @@ export class SessionManager extends EventEmitter {
     s.updatedAt = now
     s.error = undefined
     s.leftRunning = false
-    // A new process starts where it is told to; the last one's directory went with it.
     s.cwd = undefined
     const env = ptyEnv(this.opts.baseEnv, { ...(s.launch.env ?? {}), STEP_SESSION_ID: s.id })
-    // Every session gets its hook and notes files. Agents started from the menu take them as
-    // arguments; agents the user types inside a shell pick them up through the shell itself.
     const tryWrite = (what: string, fn: () => string): string => {
       try {
         return fn()
@@ -977,8 +808,6 @@ export class SessionManager extends EventEmitter {
     const plugin = this.opts.opencodePlugin
     const opencodeConfig = plugin ? tryWrite('opencode config', () => writeOpencodeConfig(this.opts.hooksDir, s.id, mcpUrl, plugin, env['OPENCODE_CONFIG'])) : ''
     const saved = (id: string): boolean => claudeConversationExists(id, env['CLAUDE_CONFIG_DIR'])
-    // A kept id with nothing saved behind it (from before its conversation was followed through a
-    // /resume): the conversation last written in this folder since the session began is the one.
     if (resume && s.launch.args.includes('--session-id') && s.agent.sessionId && !saved(s.agent.sessionId)) {
       const taken = new Set([...this.live.values()].filter((o) => o.s.id !== s.id && o.s.agent.sessionId).map((o) => o.s.agent.sessionId!))
       const found = latestClaudeConversation(startDirOf(s), s.createdAt, taken, env['CLAUDE_CONFIG_DIR'])
@@ -990,10 +819,8 @@ export class SessionManager extends EventEmitter {
     const resumed = startsResumed(s.launch, s.agent.sessionId, resume, saved)
     if (resume && !resumed) log('starting over: no saved conversation to resume', s.id, s.agent.sessionId)
     const template = resumed ? s.launch.resumeArgs! : s.launch.args
-    // Worked out only now: finding the conversation to resume may have just changed the id.
     const sessionId = s.agent.sessionId ?? s.id
     const args = substituteArgs(template, { sessionId, hooksSettings, mcpConfig, mcpUrl })
-    // Resolve against the plain PATH, before the shims go in front of it.
     const resolved = resolveCommand(s.launch.command, env)
     const wrap: AgentWrap = {
       hooksSettings,
@@ -1023,7 +850,7 @@ export class SessionManager extends EventEmitter {
         cwd: startDirOf(s),
         env,
         useConpty: true,
-        // node-pty bundles a recent ConPTY (1.23+); the one in Windows misplaces the cursor with TUI apps.
+        // node-pty bundles ConPTY 1.23+; the one in Windows misplaces the cursor with TUI apps.
         useConptyDll: true,
         conptyInheritCursor: true
       })
@@ -1043,29 +870,18 @@ export class SessionManager extends EventEmitter {
     s.pid = p.pid
     s.exitCode = undefined
     this.openLog(l)
-    // Answer ConPTY's startup probes so the shell does not sit blocked for ~3s. The window closes
-    // on the first printable output; while it is open, input() also drops the replies a view sends.
-    // ConPTY is Windows' alone. Anywhere else nothing probes the terminal on the program's behalf,
-    // and a window held open for it only swallowed the answers to what the program itself asked.
     l.probing = process.platform === 'win32'
     l.owed = undefined
     l.probeParsing = 0
     l.askedAt = Date.now()
     p.onData((data) => {
       if (l.pty !== p) return
-      // Whenever the program asks the terminal about itself, an answer becomes worth passing on
-      // again: it is waiting for one, wherever it is in its life.
       if (hasQuery(data)) l.askedAt = Date.now()
       let probe = false
       if (l.probing) {
-        // Answer ConPTY's probes only while nothing printable has arrived yet: the shell is still
-        // blocked waiting, and ConPTY consumes the reply. The moment real output shows (the prompt),
-        // the shell is interactive; injecting a reply then would land it at the prompt and PSReadLine
-        // would read "[?1;2c" as typed input and ring the bell. So close the window without answering.
+        // Once the prompt is up, PSReadLine would read a late reply as typed input.
         if (isControlOnly(data)) {
           probe = true
-          // A window watching now sees these questions too and will answer them; those answers
-          // are owed and dropped, the host having given its own.
           if (this.opts.viewed?.(s.id)) {
             const q = probeQueries(data)
             l.owed = { da: (l.owed?.da ?? 0) + q.da, cpr: (l.owed?.cpr ?? 0) + q.cpr, until: Date.now() + OWED_MS }
@@ -1073,7 +889,6 @@ export class SessionManager extends EventEmitter {
           const reply = conptyReply(data)
           if (reply) {
             p.write(reply)
-            // ConPTY lets the program go on this answer; whatever is asked from here is its own.
             l.probing = false
           }
         } else {
@@ -1120,7 +935,6 @@ export class SessionManager extends EventEmitter {
     const now = Date.now()
     l.lastOutputAt = now
     if (!l.burstStart) l.burstStart = now
-    // Codex keeps drawing while it waits, so output says nothing about it; its screen does.
     const byScreen = busyMarkerFor(agentOf(l.s)) !== undefined
     if (byScreen) void this.lookForWork(l)
     else if (now - l.burstStart >= BUSY_AFTER_MS) this.apply(l, { kind: 'output' })
@@ -1136,11 +950,6 @@ export class SessionManager extends EventEmitter {
     }, QUIET_MS)
   }
 
-  /**
-   * An agent typed into a shell draws on the alternate screen (OpenCode, Codex, Gemini all do).
-   * When that screen goes away, the agent has quit and the pane is a plain shell again: the
-   * status stops following the agent's events and the shell's own output counts once more.
-   */
   private async noteAgentScreen(l: Live): Promise<void> {
     const s = l.s
     if (s.launch.hooks || s.agent.registryPid || !s.agent.detectedPreset || !s.alive) return
@@ -1160,10 +969,6 @@ export class SessionManager extends EventEmitter {
     else this.emitSession(l)
   }
 
-  /**
-   * A launch configuration's start text goes in only once the pane has settled: after its first
-   * quiet spell, and never while it is working or asking something. Each line gets its own Enter.
-   */
   private typeStartCommand(l: Live): void {
     const text = l.runOnStart
     if (!text || !l.pty || !l.s.alive) return
@@ -1178,10 +983,6 @@ export class SessionManager extends EventEmitter {
     if (burst) l.pty.write(burst)
   }
 
-  /**
-   * For an agent whose output never settles, whether its screen shows a turn running: read at most
-   * once every BUSY_LOOK_MS while it draws, and once more when it does go quiet.
-   */
   private async lookForWork(l: Live, now = false): Promise<void> {
     const at = Date.now()
     if (l.busyLooking || (!now && at - (l.busyLookAt ?? 0) < BUSY_LOOK_MS)) return
@@ -1194,7 +995,6 @@ export class SessionManager extends EventEmitter {
       const buf = l.screen.buffer.active
       const lines: string[] = []
       for (let y = buf.baseY; y < buf.baseY + l.screen.rows; y++) lines.push(buf.getLine(y)?.translateToString(true) ?? '')
-      // Its questions only show on screen too, and the look that finds them waits for quiet that never comes.
       this.apply(l, { kind: 'screen', waiting: waitingForApproval(lines) })
       this.apply(l, { kind: 'busy', busy: busyOnScreen(agentOf(s), lines) })
     } finally {
@@ -1202,14 +1002,12 @@ export class SessionManager extends EventEmitter {
     }
   }
 
-  /** Agents without hooks only show their permission questions on screen; look once output settles. */
   private async lookAtScreen(l: Live): Promise<void> {
     const s = l.s
     if (s.launch.hooks || s.agent.registryPid || !s.alive) return
     if (!s.agent.detectedPreset && s.presetId === 'shell') return
     await l.drained
     if (!this.live.has(s.id)) return
-    // The whole visible screen: the question sits wherever the program's live area is.
     const buf = l.screen.buffer.active
     const lines: string[] = []
     for (let y = buf.baseY; y < buf.baseY + l.screen.rows; y++) lines.push(buf.getLine(y)?.translateToString(true) ?? '')
@@ -1238,7 +1036,6 @@ export class SessionManager extends EventEmitter {
     })
   }
 
-  /** Dev servers print their address; keep the latest local URL so the UI can offer a preview. */
   private spotPreviewUrl(l: Live, data: string): void {
     const url = previewUrlIn(data, this.ownPort())
     if (!url || l.s.previewUrl === url) return
@@ -1246,9 +1043,7 @@ export class SessionManager extends EventEmitter {
     this.emitSession(l)
   }
 
-  /** The port of the host's own HTTP endpoints, so their URLs never pass for a dev server. */
   private ownPort(): number | undefined {
-    // Asked with every piece of output, and the same for as long as the host lives once it listens.
     if (this.ownPortKnown) return this.ownPortKnown
     try {
       return (this.ownPortKnown = Number(new URL(this.opts.hookUrl('x')).port) || undefined)
@@ -1258,7 +1053,6 @@ export class SessionManager extends EventEmitter {
   }
   private ownPortKnown?: number
 
-  /** A window title an agent sent, as a session name; null when it only says who or where it is. */
   private nameFromOsc(s: Session, title: string): string | null {
     const folder = projectName(s.projectPath)
     const t = withoutFolder(stripTitleGlyph(title), folder)
@@ -1268,7 +1062,6 @@ export class SessionManager extends EventEmitter {
 
   private onOscTitle(l: Live, title: string): void {
     const s = l.s
-    // The name Claude gave the conversation sums it up better than any window title.
     if (s.titleSource === 'user' || s.titleSource === 'agent') return
     const t = this.nameFromOsc(s, title)
     if (!t) return
@@ -1288,7 +1081,6 @@ export class SessionManager extends EventEmitter {
       s.status = patch.status
       s.statusAt = Date.now()
       changed = true
-      // Codex just finished a turn, or ended: its conversation was written a moment ago.
       if (isCodex(s) && was === 'working') this.catchCodexThread(l)
     }
     if (patch.agent) {
@@ -1310,17 +1102,12 @@ export class SessionManager extends EventEmitter {
     return codexHome({ ...this.opts.baseEnv, ...(s.launch.env ?? {}) })
   }
 
-  /** The conversations other Codex sessions already have: never two panes on one conversation. */
   private codexTaken(s: Session): Set<string> {
     const taken = new Set<string>()
     for (const o of this.live.values()) if (o.s.id !== s.id && isCodex(o.s) && o.s.agent.sessionId) taken.add(o.s.agent.sessionId)
     return taken
   }
 
-  /**
-   * Notes which conversation a Codex session is in, from the file Codex has just written. The
-   * latest one wins, so a /new inside Codex moves the session on to the new conversation.
-   */
   private catchCodexThread(l: Live): void {
     const s = l.s
     try {
@@ -1342,8 +1129,6 @@ export class SessionManager extends EventEmitter {
     if (this.heldHandoffs.has(l.s.id)) this.flushHeld(l)
   }
 
-  // ---- raw output log on disk (used to rebuild the screen after a host restart) ----
-
   private logPath(id: string): string {
     return path.join(this.opts.logDir, `${id}.log`)
   }
@@ -1356,11 +1141,6 @@ export class SessionManager extends EventEmitter {
     })
   }
 
-  /**
-   * The session's screen for a log that has grown past its limit, in place of the bytes it cuts.
-   * The program is held while it is taken, so nothing it prints lands both in the screen written
-   * here and in the log after it.
-   */
   private async screenForLog(l: Live): Promise<string | undefined> {
     const generation = l.generation
     l.flow.set('rotate', true)
@@ -1375,7 +1155,6 @@ export class SessionManager extends EventEmitter {
     }
   }
 
-  /** Called before the host exits, so batched output is not abandoned on a normal shutdown. */
   async finishLogs(): Promise<void> {
     for (const l of this.live.values()) l.flow.set('shutdown', true)
     await new Promise<void>((resolve) => setImmediate(resolve))
@@ -1398,15 +1177,6 @@ export class SessionManager extends EventEmitter {
     return l.restoring
   }
 
-  /**
-   * What a session had on screen when this host's turn ended: the screen it saved on the way out,
-   * and failing that the tail of its log.
-   *
-   * The saved screen is read once and thrown away; from there the session's own screen is what
-   * gets saved next time. Without one, a full-screen program's log is picked up mid-drawing, with
-   * the switch to the screen it draws on long cut away, so that switch is made again first — or
-   * its frames pile up on the ordinary screen, one over another, as scrollback.
-   */
   private async lastScreen(id: string): Promise<Buffer> {
     const saved = this.screenPath(id)
     try {
@@ -1422,11 +1192,6 @@ export class SessionManager extends EventEmitter {
     return cut > 0 && (await altScreenBefore(file, cut)) ? Buffer.concat([Buffer.from(ALT_SCREEN), tail]) : tail
   }
 
-  /**
-   * Ended sessions that nobody has looked at for a while put their screen away: written beside the
-   * log, as on the way out, and dropped from memory, to be read back the next time someone opens
-   * them. Thousands of lines each, they would otherwise stay for as long as the host lives.
-   */
   async rest(now = Date.now()): Promise<number> {
     let rested = 0
     for (const l of [...this.live.values()]) {
@@ -1444,7 +1209,7 @@ export class SessionManager extends EventEmitter {
         log('putting the screen away failed', id, e)
         continue
       }
-      // Opened or started again while it was written: it stays, and the file is written anew later.
+
       if (!idle() || generation !== l.generation) continue
       const old = l.screen
       const fresh = this.newScreen(l.s)
@@ -1464,20 +1229,12 @@ export class SessionManager extends EventEmitter {
     return path.join(this.opts.logDir, `${id}.screen`)
   }
 
-  /**
-   * Every session's screen, written beside its log as the escape sequences that draw it again.
-   * A host starting up replays these rather than reading back the log, which only holds what was
-   * printed and not where a program left the screen.
-   */
   private async saveScreens(): Promise<void> {
     await Promise.all(
       [...this.live.values()].map(async (l) => {
-        // One whose screen was never read back still has its log to be read: an empty screen saved
-        // over it would throw away everything that session ever printed.
         if (l.restorePending) return
         const file = this.screenPath(l.s.id)
         try {
-          // Whatever arrived last is on the screen only once the emulator has read it.
           await l.drained
           await fs.promises.writeFile(file + '.tmp', this.serialize(l))
           await fs.promises.rename(file + '.tmp', file)
@@ -1489,19 +1246,15 @@ export class SessionManager extends EventEmitter {
   }
 }
 
-/** The folder a session's process starts in: where it was split from, while that still exists. */
 function startDirOf(s: Session): string {
   if (s.startDir) {
     try {
       if (fs.statSync(s.startDir).isDirectory()) return s.startDir
-    } catch {
-      /* gone since: the project's folder instead */
-    }
+    } catch {}
   }
   return s.projectPath
 }
 
-/** A session running Codex from its preset: the one kind that resumes with `codex resume <id>`. */
 function isCodex(s: Session): boolean {
   return s.presetId === 'codex' && !!s.launch.resumeArgs?.includes('{sessionId}')
 }

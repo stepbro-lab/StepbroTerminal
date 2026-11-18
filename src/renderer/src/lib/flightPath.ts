@@ -4,19 +4,11 @@ export interface Point {
 }
 
 export interface FlightPath {
-  /** Cubic bezier: start, two control points, end. */
   points: [Point, Point, Point, Point]
-  /** Seconds the flight takes; longer trips fly a little longer, never much. */
   duration: number
-  /** How far above the straight line the arc peaks, in px. */
   lift: number
 }
 
-/**
- * A gentle toss from `from` to `to`: it rises early, sails, and settles into the target.
- * The lift grows with the distance but stays within bounds so short hops do not loop and
- * long ones do not leave the window.
- */
 export function flightPath(from: Point, to: Point): FlightPath {
   const dx = to.x - from.x
   const dy = to.y - from.y

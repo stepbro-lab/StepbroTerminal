@@ -15,12 +15,6 @@ function isAgent(s: Session): boolean {
   return s.launch.hooks || !!s.agent.detectedPreset || s.presetId !== 'shell'
 }
 
-/**
- * Types text into another session. For agents the text is followed by Enter once the paste burst
- * is well over, so the agent submits it rather than folding the Enter into the paste; shells just
- * get the text to edit or run. The text flies to the receiver on screen, which is the whole
- * confirmation; no toast.
- */
 export function sendToSession(from: string, targetId: string, text: string): void {
   const target = useData.getState().sessions[targetId]
   if (!target) return
@@ -29,11 +23,6 @@ export function sendToSession(from: string, targetId: string, text: string): voi
   useHandoff.getState().arrive({ from, to: targetId, text })
 }
 
-/**
- * Right-click menu inside a terminal: copy, paste, hand the selection to another session, split,
- * find. Splitting is here for every pane: a lone one has no header, and so no other menu to find
- * it in.
- */
 export async function terminalContextMenu(id: string, x: number, y: number): Promise<void> {
   const e = registry.get(id)
   if (!e) return

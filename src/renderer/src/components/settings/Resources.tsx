@@ -25,7 +25,6 @@ function revealLabel(): string {
   return platform === 'darwin' ? t('Show in Finder') : platform === 'win32' ? t('Show in Explorer') : t('Show in file manager')
 }
 
-/** Memory, the terminals running right now and where things live on disk. Polls while it is on screen. */
 export function ResourceSections() {
   const sessions = useData((s) => s.sessions)
   const presets = useData((s) => s.presets)
@@ -37,7 +36,6 @@ export function ResourceSections() {
     void window.step.invoke('app:paths').then(setPaths)
   }, [])
 
-  // CPU is measured between two looks, so the first answer reads 0 and the next one, a moment later, is real.
   useEffect(() => {
     let alive = true
     let timer: number | undefined
@@ -45,9 +43,7 @@ export function ResourceSections() {
       try {
         const next = await window.step.invoke('stats:get')
         if (alive) setStats(next)
-      } catch {
-        /* the host is away; the next round will tell */
-      }
+      } catch {}
       if (alive) timer = window.setTimeout(() => void poll(), POLL_MS)
     }
     void poll()

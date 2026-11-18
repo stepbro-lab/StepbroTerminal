@@ -9,7 +9,6 @@ import { workingSessions } from './launcher'
 let server: net.Server | undefined
 afterEach(() => server?.close())
 
-/** A host that answers hello with these sessions, as the real one does. */
 function hostWith(sessions: Array<{ alive: boolean; status: string }>): Promise<string> {
   const socketPath = process.platform === 'win32' ? `\\\\.\\pipe\\step-test-${process.pid}-${Date.now()}` : path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'step-l-')), 'h.sock')
   server = net.createServer((sock) => {

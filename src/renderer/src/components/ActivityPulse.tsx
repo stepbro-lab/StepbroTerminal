@@ -13,19 +13,11 @@ import { AgentLogo } from './sidebar/AgentLogo'
 import { StatusGlyph } from './sidebar/StatusGlyph'
 import { t } from '@/lib/i18n'
 
-/**
- * The bell in the title bar, and what is going on behind it. A bell while nothing runs, a spinner
- * while agents work; a dot on it when something finished that you have not looked at, and the
- * bell and its dot amber when a session needs you. Clicking it lists what needs you, what is at
- * work and what finished, each a click away.
- */
 export function ActivityPulse() {
   const sessions = useData((s) => s.sessions)
   const presets = useData((s) => s.presets)
   const setActive = useUi((s) => s.setActive)
   const setActiveProject = useUi((s) => s.setActiveProject)
-  // The inbox is drawn at the top of the page, not inside the bar, which would clip it. `at` is
-  // where it goes; while it is open the bar stays open above it (data-bar-keep).
   const [at, setAt] = useState<{ left: number; top: number } | null>(null)
   const open = at !== null
   const ref = useRef<HTMLDivElement>(null)
@@ -47,16 +39,13 @@ export function ActivityPulse() {
 
   const WIDTH = 320
   const close = (): void => setAt(null)
-  // Nothing to list: no box saying so over the terminal. Hovering the bell already says "All quiet".
   const empty = !waiting.length && !busy.length && !finished.length
   const toggle = (): void => {
     if (open || !ref.current || empty) return close()
     const r = ref.current.getBoundingClientRect()
-    // Under the button, and pulled left when the window's edge is nearer than the list is wide.
     setAt({ left: Math.max(8, Math.min(r.left, window.innerWidth - WIDTH - 8)), top: r.bottom + 4 })
   }
 
-  // Everything it listed has been dealt with: it closes, rather than coming back on its own later.
   useEffect(() => {
     if (empty) setAt(null)
   }, [empty])

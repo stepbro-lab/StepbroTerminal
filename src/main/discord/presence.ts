@@ -2,19 +2,11 @@ import type { LogoId, Session } from '@shared/types'
 import { t } from '../i18n'
 import { connectDiscord, type DiscordLink } from './ipc'
 
-/** The "stepbro terminal" application on Discord's developer portal; its name is what profiles show. */
 export const DISCORD_APP_ID = '1565029231925264516'
 const DOWNLOAD_URL = 'https://github.com/kevin9038440334/StepbroTerminal-releases'
-/** Discord takes five activity updates every 20 seconds from an app; one every 5 s stays under that. */
 const MIN_GAP_MS = 5000
-/** How often to look for Discord again while it is closed. */
 const RETRY_MS = 30_000
 
-/**
- * What a profile shows while stepbro terminal is open: which agents are running and how many are at
- * work, never a folder, a session's name or anything written in it. The picture is the logo the
- * person chose in Settings, uploaded to the application as "dock-light" and "dock-dark".
- */
 export function activityFor(sessions: Session[], agentName: (s: Session) => string | null, startedAt: number, logo: LogoId = 'light'): Record<string, unknown> {
   const live = sessions.filter((s) => s.alive && !s.archived)
   const agents: string[] = []
@@ -62,12 +54,6 @@ export interface PresenceDeps {
   connect?: (clientId: string) => Promise<DiscordLink>
 }
 
-/**
- * Keeps the Discord profile of whoever runs stepbro terminal saying so, while Discord is open and
- * Settings allow it. Discord being closed is normal: it is looked for again every so often, and the
- * activity is sent once it is there. Updates only go out when the words change, no faster than
- * Discord takes them.
- */
 export class DiscordPresence {
   private link: DiscordLink | null = null
   private connecting = false
@@ -83,7 +69,6 @@ export class DiscordPresence {
     this.clientId = deps.clientId ?? DISCORD_APP_ID
   }
 
-  /** Called whenever the sessions, the language or the setting may have changed. */
   update(): void {
     if (this.stopped) return
     if (!this.clientId || !this.deps.enabled()) {
@@ -103,7 +88,6 @@ export class DiscordPresence {
     }, wait)
   }
 
-  /** On quit: the profile stops saying so at once. */
   stop(): void {
     this.stopped = true
     if (this.retry) clearTimeout(this.retry)

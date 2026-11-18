@@ -1,12 +1,7 @@
-// node-pty 1.1.0 publishes its macOS `spawn-helper` without the executable bit. node-pty starts
-// every shell through that helper with posix_spawnp, so on a Mac each new shell died with
-// "posix_spawnp failed". This sets the bit on every spawn-helper under a node-pty directory.
-// Runs after `pnpm install` for development and from the electron-builder afterPack hook for
-// the packaged app. Usage: node scripts/pty-helper-exec.cjs [path/to/node-pty]
+// node-pty 1.1.0 publishes its macOS spawn-helper without the executable bit.
 const fs = require('node:fs')
 const path = require('node:path')
 
-/** Makes every spawn-helper under `nodePtyDir` executable; returns the files it changed. */
 function makeExecutable(nodePtyDir) {
   const candidates = [path.join(nodePtyDir, 'build', 'Release', 'spawn-helper')]
   const prebuilds = path.join(nodePtyDir, 'prebuilds')
@@ -24,7 +19,6 @@ function makeExecutable(nodePtyDir) {
   return fixed
 }
 
-/** The spawn-helper files under `nodePtyDir` that still cannot be executed. */
 function notExecutable(nodePtyDir) {
   const out = []
   const prebuilds = path.join(nodePtyDir, 'prebuilds')

@@ -5,7 +5,6 @@ import { useUi } from '@/stores/ui'
 import { buildSidebar } from './sidebarModel'
 import { leaves } from './layout'
 
-/** Folders and their sessions in the order they are listed, with the split view each session is in. */
 export function useSidebarModel() {
   const projects = useData((s) => s.projects)
   const sessions = useData((s) => s.sessions)

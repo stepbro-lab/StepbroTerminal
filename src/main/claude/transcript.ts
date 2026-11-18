@@ -9,7 +9,6 @@ export function transcriptPath(projectPath: string, sessionId: string): string {
 
 const TAIL_BYTES = 16 * 1024
 
-/** Reads only the tail of a transcript and extracts the last `cost-state` line. Never loads the whole file. */
 export async function readTranscriptDetails(file: string): Promise<TranscriptDetails> {
   let st: fs.Stats
   try {
@@ -60,9 +59,7 @@ export function parseCostState(tail: string): TranscriptDetails {
         out.outputTokens = outTok
       }
       return out
-    } catch {
-      /* partial line, keep looking */
-    }
+    } catch {}
   }
   return {}
 }

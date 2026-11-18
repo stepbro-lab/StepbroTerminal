@@ -1,7 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
 
-// Windows paths, whatever this runs on: drives, backslashes, and a working folder on another drive
-// than the agent's, as on the CI's Windows machines (the job on D:, the temp folder on C:).
 vi.mock('node:path', async () => {
   const real = await vi.importActual<typeof import('node:path')>('node:path')
   return { ...real.win32, default: real.win32 }

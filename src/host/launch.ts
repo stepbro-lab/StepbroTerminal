@@ -20,7 +20,6 @@ const HOOK_EVENTS = [
 export interface LaunchVars {
   sessionId: string
   hooksSettings: string
-  /** Path of the MCP config file for Claude Code, and the bare URL for agents that take one. */
   mcpConfig?: string
   mcpUrl?: string
 }
@@ -35,7 +34,6 @@ export function substituteArgs(args: string[], vars: LaunchVars): string[] {
   )
 }
 
-/** Writes a Claude Code settings file that only adds http hooks pointing at `url`. Returns its path. */
 export function writeHooksSettings(dir: string, sessionId: string, url: string): string {
   fs.mkdirSync(dir, { recursive: true })
   const hooks: Record<string, unknown[]> = {}
@@ -47,7 +45,6 @@ export function writeHooksSettings(dir: string, sessionId: string, url: string):
   return file
 }
 
-/** Writes the file Claude Code takes with --mcp-config: our notes server for this session. */
 export function writeMcpConfig(dir: string, sessionId: string, url: string): string {
   fs.mkdirSync(dir, { recursive: true })
   const file = path.join(dir, `${sessionId}.mcp.json`)
@@ -55,12 +52,6 @@ export function writeMcpConfig(dir: string, sessionId: string, url: string): str
   return file
 }
 
-/**
- * Writes the config OpenCode reads through OPENCODE_CONFIG: the notes server for this session and
- * the plugin that reports what it is doing. OpenCode merges it with the user's own files, arrays
- * included, so their plugins and servers stay. If they already pointed OPENCODE_CONFIG at a file
- * of their own, its contents come along, since the variable can only name one file.
- */
 export function writeOpencodeConfig(dir: string, sessionId: string, mcpUrl: string, pluginFile: string, userConfig?: string): string {
   fs.mkdirSync(dir, { recursive: true })
   let base: Record<string, unknown> = {}
@@ -68,9 +59,7 @@ export function writeOpencodeConfig(dir: string, sessionId: string, mcpUrl: stri
     try {
       const parsed = JSON.parse(fs.readFileSync(userConfig, 'utf8'))
       if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) base = parsed
-    } catch {
-      /* their file; OpenCode will tell them about it */
-    }
+    } catch {}
   }
   const plugin = pathToFileURL(pluginFile).href
   const mcp = { ...((base['mcp'] as Record<string, unknown> | undefined) ?? {}), stepbro: { type: 'remote', url: mcpUrl, enabled: true } }
@@ -80,12 +69,6 @@ export function writeOpencodeConfig(dir: string, sessionId: string, mcpUrl: stri
   return file
 }
 
-/**
- * OpenCode has no hooks of its own; it has plugins, which see everything it does. This one turns
- * that into the events Claude Code's hooks post, at the same address, so the session shows
- * working, waiting and done the same way. Sub-agent sessions have a parent and are ignored, so a
- * task running underneath does not flip the status of the conversation itself.
- */
 const OPENCODE_PLUGIN = `// stepbro terminal: reports what OpenCode is doing to the terminal it runs in.
 const url = process.env.STEP_HOOK_URL
 
@@ -182,7 +165,6 @@ export const StepbroPlugin = async () => {
 }
 `
 
-/** Writes the OpenCode plugin every platform needs and returns its path. */
 export function writeAgentPlugins(binDir: string): string {
   const file = path.join(binDir, 'opencode', 'stepbro.js')
   fs.mkdirSync(path.dirname(file), { recursive: true })
@@ -190,27 +172,21 @@ export function writeAgentPlugins(binDir: string): string {
   return file
 }
 
-/** What an agent typed inside a shell needs to find its hooks and notes. */
 export interface AgentWrap {
   hooksSettings: string
   mcpConfig: string
   mcpUrl: string
-  /** Where this session's hook events go; OpenCode's plugin posts there. */
   hookUrl?: string
-  /** OpenCode's config for this session: the notes server and the plugin that reports its status. */
   opencodeConfig?: string
-  /** The real binaries on PATH, when installed. */
   claude?: string
   codex?: string
 }
 
-/** Puts the files and real binaries in the environment; on posix the shim dir goes first on PATH. */
 export function applyAgentWrap(env: Record<string, string>, w: AgentWrap, binDir: string, platform: NodeJS.Platform = process.platform): void {
   env['STEP_HOOKS_SETTINGS'] = w.hooksSettings
   env['STEP_MCP_CONFIG'] = w.mcpConfig
   env['STEP_MCP_URL'] = w.mcpUrl
   if (w.hookUrl) env['STEP_HOOK_URL'] = w.hookUrl
-  // OpenCode reads its config from the environment, so a typed opencode needs no shim or function.
   if (w.opencodeConfig) env['OPENCODE_CONFIG'] = w.opencodeConfig
   if (w.claude) env['STEP_REAL_CLAUDE'] = w.claude
   if (w.codex) {
@@ -223,11 +199,6 @@ export function applyAgentWrap(env: Record<string, string>, w: AgentWrap, binDir
   }
 }
 
-/**
- * Arguments for a shell so that `claude` and `codex` typed inside it run with the session's
- * hooks and notes: PowerShell gets functions, cmd gets doskey macros, other shells find the
- * shims on PATH. Anything that is not a plain interactive shell is left alone.
- */
 export function shellArgsWithAgents(file: string, args: string[], w: AgentWrap, platform: NodeJS.Platform = process.platform, env?: Record<string, string>): string[] {
   const base = (file.split(/[\\/]/).pop() ?? '').toLowerCase().replace(/\.exe$/, '')
   if (base === 'powershell' || base === 'pwsh') {
@@ -239,7 +210,6 @@ export function shellArgsWithAgents(file: string, args: string[], w: AgentWrap, 
   }
   if (base === 'cmd' && platform === 'win32') {
     if (args.some((a) => /^\/[kc]$/i.test(a))) return args
-    // cmd has no prompt hook, but its prompt can carry an escape: the folder goes out as OSC 9;9.
     if (env) env['PROMPT'] = '$E]9;9;$P$E\\' + (env['PROMPT'] || '$P$G')
     const macros: string[] = []
     if (w.claude) macros.push('doskey claude="%STEP_REAL_CLAUDE%" --settings "%STEP_HOOKS_SETTINGS%" --mcp-config "%STEP_MCP_CONFIG%" $*')
@@ -249,33 +219,14 @@ export function shellArgsWithAgents(file: string, args: string[], w: AgentWrap, 
   return args
 }
 
-/**
- * PowerShell tells the terminal which folder it is in at every prompt, as OSC 9;9 (what Windows
- * Terminal reads for the same reason), so a pane split from it opens there. It wraps whatever
- * prompt the profile set up, oh-my-posh and the like, and calls that first so the prompt still
- * sees how the last command went. Single quotes and [char] only: this travels on the command line.
- */
 const POWERSHELL_CWD =
   "$global:__stepPrompt = $function:prompt; function global:prompt { $s = & $global:__stepPrompt; $l = $executionContext.SessionState.Path.CurrentLocation; if ($l.Provider.Name -eq 'FileSystem') { [Console]::Write([char]27 + ']9;9;' + $l.ProviderPath + [char]27 + [char]92) }; $s }"
 
-
-/**
- * Shell functions named like the agents, for posix shells. A function wins over anything on
- * PATH, which a shim in a directory cannot promise: macOS's login zsh runs path_helper and puts
- * /usr/local/bin ahead of everything else, and many ~/.zshrc files prepend their own
- * directories, so a `claude` from npm or Homebrew came first and ran without the session's
- * hooks and notes. The functions read the environment at call time, so one file serves every
- * session.
- */
+// Functions beat PATH: macOS's login zsh runs path_helper, which reorders it.
 const POSIX_FUNCTIONS = `if [ -n "$STEP_REAL_CLAUDE" ]; then claude() { "$STEP_REAL_CLAUDE" --settings "$STEP_HOOKS_SETTINGS" --mcp-config "$STEP_MCP_CONFIG" "$@"; }; fi
 if [ -n "$STEP_REAL_CODEX" ]; then codex() { "$STEP_REAL_CODEX" -c "mcp_servers.stepbro.url=\\"$STEP_MCP_URL\\"" "$@"; }; fi
 `
 
-/**
- * The shell tells the terminal which folder it is in at every prompt, as OSC 7, so a pane split
- * from it opens there. A % in the path is encoded; the rest goes as it is, the sequence ending
- * where the BEL is.
- */
 const ZSH_CWD =
   '_step_report_cwd() { printf \'\\e]7;file://%s%s\\a\' "$HOST" "${PWD//\\%/%25}"; }\n' +
   'autoload -Uz add-zsh-hook 2>/dev/null && add-zsh-hook precmd _step_report_cwd\n'
@@ -287,10 +238,8 @@ const FISH_CWD =
   "    printf '\\e]7;file://%s%s\\a' $hostname (string replace -a '%' '%25' -- $PWD)\n" +
   'end\n'
 
-/** The first line of each of our zsh files, by which a folder of them is known for ours. */
 const ZSH_MARK = '# stepbro terminal:'
 
-/** Whether a ZDOTDIR is one of stepbro's own folders of startup files, not the user's. */
 export function isStepZdotdir(dir: string): boolean {
   try {
     return fs.readFileSync(path.join(dir, '.zshenv'), 'utf8').startsWith(ZSH_MARK)
@@ -299,7 +248,6 @@ export function isStepZdotdir(dir: string): boolean {
   }
 }
 
-/** zsh reads its files from ZDOTDIR; each of ours runs the user's own file of the same name first. */
 function zshFile(name: string, tail = ''): string {
   return `${ZSH_MARK} your own ${name} runs first; this only adds the agent commands.
 _step_zdotdir="$ZDOTDIR"
@@ -311,7 +259,6 @@ unset _step_zdotdir
 ${tail}`
 }
 
-/** Files the posix shells load: shims on PATH as a fallback, and rc files that define the functions. */
 export function writeShims(binDir: string): void {
   fs.mkdirSync(binDir, { recursive: true })
   const write = (name: string, body: string, mode = 0o644): void => {
@@ -330,12 +277,11 @@ export function writeShims(binDir: string): void {
     '#!/bin/sh\nif [ -z "$STEP_REAL_CODEX" ]; then echo "codex: not found" >&2; exit 127; fi\nexec "$STEP_REAL_CODEX" -c "mcp_servers.stepbro.url=\\"$STEP_MCP_URL\\"" "$@"\n',
     0o755
   )
-  // zsh: the whole startup sequence, ours wrapping the user's.
+
   write('zsh/.zshenv', zshFile('.zshenv'))
   write('zsh/.zprofile', zshFile('.zprofile'))
   write('zsh/.zshrc', zshFile('.zshrc', POSIX_FUNCTIONS + ZSH_CWD))
   write('zsh/.zlogin', zshFile('.zlogin'))
-  // bash: what a login shell would read, then the functions.
   write(
     'bash/rc',
     `# stepbro terminal: what your login bash reads runs first; this only adds the agent commands.
@@ -346,7 +292,7 @@ done
 unset _step_f
 ${POSIX_FUNCTIONS}${BASH_CWD}`
   )
-  // fish: its own syntax, run after the normal startup.
+
   write(
     'fish/init.fish',
     `# stepbro terminal: the agent commands for this session.
@@ -360,20 +306,11 @@ ${FISH_CWD}`
   )
 }
 
-/**
- * Makes a posix shell define the agent functions on startup: zsh through ZDOTDIR, bash through
- * --rcfile, fish through -C. Returns the arguments to use; the environment is changed in place.
- * Shells that already run a command, and shells we do not know, are left with the shims on PATH.
- */
 export function posixShellWithAgents(file: string, args: string[], _w: AgentWrap, env: Record<string, string>, binDir: string): string[] {
-  // Always, agents or not: the files also have the shell report its folder.
   const base = (file.split(/[\\/]/).pop() ?? '').replace(/\.exe$/i, '')
   if (args.some((a) => a === '-c' || a === '--command' || a === '-C')) return args
   if (base === 'zsh') {
-    // stepbro opened from a shell of another stepbro (or of itself) inherits that one's ZDOTDIR,
-    // which is our own startup files rather than the user's. Taken for the user's, each of our
-    // files would load itself until zsh gave up, and the user's own files would never load. The
-    // user's real one is what that stepbro kept aside, or their home.
+    // Launched from another stepbro shell, ZDOTDIR points at our files instead of the user's.
     const inherited = env['ZDOTDIR']
     if (inherited && !isStepZdotdir(inherited)) env['STEP_USER_ZDOTDIR'] = inherited
     else if (env['STEP_USER_ZDOTDIR'] && isStepZdotdir(env['STEP_USER_ZDOTDIR'])) delete env['STEP_USER_ZDOTDIR']
@@ -381,7 +318,6 @@ export function posixShellWithAgents(file: string, args: string[], _w: AgentWrap
     return args
   }
   if (base === 'bash') {
-    // Our rc file plays the login files itself; bash reads it only for an interactive non-login shell.
     return ['--rcfile', path.join(binDir, 'bash', 'rc'), '-i', ...args.filter((a) => a !== '-l' && a !== '--login')]
   }
   if (base === 'fish') return [...args, '-C', `source "${path.join(binDir, 'fish', 'init.fish')}"`]
@@ -390,11 +326,7 @@ export function posixShellWithAgents(file: string, args: string[], _w: AgentWrap
 
 export { resolveCommand, findOnPath, type ResolvedCommand } from '@shared/resolveCommand'
 
-/**
- * Markers a running Claude Code session puts in the environment of its children. If Step itself
- * was launched from inside Claude Code, agents started in our shells would otherwise think they
- * are nested child sessions (no registry entry, no transcript).
- */
+// Inherited from a parent Claude Code, these make agents think they are nested sessions.
 const NESTED_AGENT_MARKERS = [
   'CLAUDECODE',
   'CLAUDE_CODE_CHILD_SESSION',

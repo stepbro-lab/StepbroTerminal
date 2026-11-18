@@ -6,10 +6,6 @@ export const RELEASES_URL = 'https://github.com/kevin9038440334/StepbroTerminal-
 const FIRST_CHECK_MS = 15_000
 const CHECK_EVERY_MS = 4 * 60 * 60 * 1000
 
-/**
- * Whether this build can replace itself. The Windows installer and the Linux AppImage can;
- * macOS would need a signed app and a .deb belongs to the package manager.
- */
 export function installsDirectly(platform = process.platform, env = process.env): boolean {
   if (platform === 'win32') return true
   if (platform === 'linux') return !!env['APPIMAGE']
@@ -21,11 +17,6 @@ interface UpdatesDeps {
   log: (...a: unknown[]) => void
 }
 
-/**
- * Keeps an eye on the releases repository. Where the package can replace itself the new
- * version is downloaded quietly and installed on the next restart; elsewhere the user is
- * pointed at the download page.
- */
 export class Updates {
   state: UpdateState = { kind: 'idle' }
   private pending: UpdateInfo | null = null
@@ -56,7 +47,6 @@ export class Updates {
     })
   }
 
-  /** Checks shortly after launch and then every few hours. Only packaged builds have somewhere to update from. */
   start(): void {
     if (!app.isPackaged) return
     setTimeout(() => void this.check(), FIRST_CHECK_MS)
@@ -69,13 +59,11 @@ export class Updates {
     try {
       await autoUpdater.checkForUpdates()
     } catch (e) {
-      // Usually no network; the 'error' event has already recorded it.
       this.deps.log('update check failed', e)
     }
     return this.state
   }
 
-  /** The natural next step: restart into the new version, fetch it, or open the download page. */
   async install(): Promise<void> {
     const s = this.state
     if (s.kind === 'ready') {

@@ -3,7 +3,6 @@ import fs from 'node:fs'
 import { readRegistry } from '@shared/claudeRegistry'
 import type { LiveClaude } from '@shared/types'
 
-/** Watches ~/.claude/sessions for running Claude Code processes. Emits 'update' (LiveClaude[]). */
 export class LiveClaudeWatcher extends EventEmitter {
   private entries: LiveClaude[] = []
   private watcher: fs.FSWatcher | null = null
@@ -18,9 +17,7 @@ export class LiveClaudeWatcher extends EventEmitter {
     try {
       fs.mkdirSync(this.dir, { recursive: true })
       this.watcher = fs.watch(this.dir, { persistent: false }, () => this.schedule())
-    } catch {
-      /* not available */
-    }
+    } catch {}
   }
 
   stop(): void {

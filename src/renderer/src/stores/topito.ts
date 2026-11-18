@@ -1,36 +1,28 @@
 import { create } from 'zustand'
 import type { TopitoClipName } from '@/lib/topito/sprite'
 
-/** Topito popping out at the corner of the terminal with something to say. */
 export interface TopitoCorner {
   key: number
   clip: TopitoClipName
   text: string
-  /** Who it comes from, when it comes from an agent: its name and its session's title. */
   from?: string
-  /** The session a click takes you to. */
   sessionId?: string
 }
 
-/** What Topito says when you click him: one line each, the ones naming a session are links to it. */
 export interface TopitoLine {
   text: string
   sessionId?: string
 }
 
 export interface TopitoStore {
-  /** The clip he keeps playing while nothing in particular happens. */
   ambient: TopitoClipName
-  /** A one-off playing over it, and the ones waiting their turn. */
   moment: { key: number; clip: TopitoClipName } | null
   queue: TopitoClipName[]
   corner: TopitoCorner | null
   bubble: { key: number; lines: TopitoLine[] } | null
-  /** How many places show a Topito of their own right now (the empty state, what is new). */
   elsewhere: number
   setAmbient: (clip: TopitoClipName) => void
   play: (clip: TopitoClipName) => void
-  /** The one-off has played to its end. */
   finish: () => void
   showCorner: (corner: Omit<TopitoCorner, 'key'>, ms: number) => void
   hideCorner: () => void
@@ -40,7 +32,6 @@ export interface TopitoStore {
   leave: () => void
 }
 
-/** A backlog of moments helps nobody: a few waiting is plenty, the rest are let go. */
 const QUEUE_MAX = 2
 
 let keys = 0

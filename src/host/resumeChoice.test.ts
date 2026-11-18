@@ -11,12 +11,10 @@ const codex: LaunchSpec = { command: 'codex', args: [], resumeArgs: ['resume', '
 describe('startsResumed', () => {
   it('resumes Claude Code only into a conversation it saved', () => {
     expect(startsResumed(claude, 'a', true, () => true)).toBe(true)
-    // Never sent a prompt: --resume would say "No conversation found with session ID".
     expect(startsResumed(claude, 'a', true, () => false)).toBe(false)
   })
 
   it('never starts Claude Code over with an id it has already used', () => {
-    // --session-id would say "Session ID … is already in use".
     expect(startsResumed(claude, 'a', false, () => true)).toBe(true)
   })
 

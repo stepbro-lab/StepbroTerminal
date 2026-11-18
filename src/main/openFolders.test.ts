@@ -27,7 +27,6 @@ describe('folderArgs', () => {
   })
 
   it('opens no folder at all when a step:// link brought the app up', () => {
-    // The dev build's protocol registration puts its project folder on the command line.
     expect(folderArgs(['electron.exe', sub, 'step://focus/1'], root, [])).toEqual([])
     expect(folderArgs(['app.exe', 'step://workspace/demo', sub], root, [])).toEqual([])
   })

@@ -1,9 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { fitTitle, titleCandidates } from './shortTitle'
 
-/** A stand-in for the row's font: every character as wide as every other. */
 const chars = (s: string): number => s.length * 7.5
-/** The room a row's title has in a sidebar 240px wide, about 23 characters. */
 const ROW = 175
 
 describe('a session name told in fewer words', () => {

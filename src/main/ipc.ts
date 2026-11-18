@@ -23,7 +23,6 @@ export function registerIpc(ctx: Ctx): void {
     ipcMain.on(channel, (_e, ...args) => (fn as any)(...args))
   }
 
-  // ---- host ----
   handle('host:state', () => ctx.hostState)
   handle('host:list', () => [...ctx.sessions.values()])
   handle('host:create', (req: CreateRequest) => createSession(ctx, req))
@@ -42,9 +41,6 @@ export function registerIpc(ctx: Ctx): void {
   on('host:viewed', (id) => ctx.client.send({ t: 'viewed', id }))
   on('host:ack', (id, bytes) => ctx.client.send({ t: 'ack', id, bytes }))
 
-  // ---- diagnostics ----
-  // Everything needed to see why a session would not start, readable from the DevTools console
-  // with `await window.step.invoke('diag:dump')`.
   handle('diag:dump', () => {
     const read = (label: string, file: string): string => {
       try {
@@ -57,13 +53,11 @@ export function registerIpc(ctx: Ctx): void {
     return [header, read('host.log', hostLogPath()), read('host.err', join(stepDir(), 'host.err'))].join('\n\n')
   })
 
-  // ---- notes ----
   handle('notes:list', () => ctx.notes)
   on('notes:add', (text) => ctx.client.send({ t: 'notes:add', text }))
   on('notes:update', (id, patch) => ctx.client.send({ t: 'notes:update', id, ...patch }))
   on('notes:delete', (id) => ctx.client.send({ t: 'notes:delete', id }))
 
-  // ---- projects ----
   handle('projects:list', () => ctx.projects())
   handle('projects:pickFolder', async () => {
     const res = await dialog.showOpenDialog(ctx.win ?? undefined!, {
@@ -97,29 +91,25 @@ export function registerIpc(ctx: Ctx): void {
   handle('projects:openFolder', (p) => {
     void shell.openPath(p)
   })
-  // Folders dropped on the app icon or passed on the command line, waiting for the renderer.
+
   handle('app:pendingFolders', () => {
     ctx.rendererReady = true
     const focus = ctx.pendingFocus
     ctx.pendingFocus = null
-    // A moment for the session list to land before the renderer is asked to show one of them.
     if (focus) setTimeout(() => ctx.emit('ui:focusSession', focus), 400)
     return ctx.pendingFolders.splice(0)
   })
   handle('app:pendingWorkspaces', () => ctx.pendingWorkspaces.splice(0))
 
-  // ---- claude data ----
   handle('history:list', () => ctx.history.sessions())
   handle('history:details', (projectPath, sessionId) => readTranscriptDetails(transcriptPath(projectPath, sessionId)))
   handle('history:live', () => ctx.live.list())
 
-  // ---- presets & prefs ----
   handle('presets:list', () => ctx.presets)
   handle('presets:refresh', () => ctx.refreshPresets())
   handle('prefs:get', () => ctx.prefs)
   handle('prefs:set', (partial) => ctx.setPrefs(partial))
 
-  // ---- window ----
   handle('win:isMaximized', () => !!ctx.win?.isMaximized())
   on('win:minimize', () => ctx.win?.minimize())
   on('win:maximize', () => {
@@ -151,7 +141,6 @@ export function registerIpc(ctx: Ctx): void {
   handle('updates:check', () => ctx.updates.check())
   handle('updates:install', () => ctx.updates.install())
   on('workspace:set', (state) => saveWorkspace(state))
-  // The preview pane reports its browser view, so agents can be given the page through it.
   on('preview:attached', (sessionId, wcId) => ctx.previews.attached(sessionId, wcId))
   on('preview:detached', (sessionId) => ctx.previews.detached(sessionId))
 
@@ -165,9 +154,7 @@ export function registerIpc(ctx: Ctx): void {
   handle('app:revealPath', (p) => shell.showItemInFolder(p))
   handle('app:paths', () => ({ data: stepDir(), hostLog: hostLogPath() }))
 
-  // ---- resource use (Settings > Advanced) ----
   handle('stats:get', async () => {
-    // Every process Electron runs for us: the window, this one, the GPU and utility helpers.
     let appBytes = 0
     for (const m of app.getAppMetrics()) appBytes += (m.memory?.workingSetSize ?? 0) * 1024
     let host = null
@@ -184,11 +171,6 @@ export function registerIpc(ctx: Ctx): void {
 
 const PASTE_KEEP_MS = 24 * 60 * 60 * 1000
 
-/**
- * An image pasted into a program that cannot read the clipboard goes through a file. They live in
- * the temp folder under the app's name; yesterday's are removed on the next paste, the agent has
- * long since read them.
- */
 function savePastedImage(): string | null {
   const image = clipboard.readImage()
   if (image.isEmpty()) return null
@@ -199,9 +181,7 @@ function savePastedImage(): string | null {
     try {
       const p = join(dir, name)
       if (now - fs.statSync(p).mtimeMs > PASTE_KEEP_MS) fs.rmSync(p)
-    } catch {
-      /* someone else's file, or gone already */
-    }
+    } catch {}
   }
   const stamp = new Date(now).toISOString().slice(0, 19).replace(/[-:]/g, '').replace('T', '-')
   const file = join(dir, `image-${stamp}-${(now % 1000).toString().padStart(3, '0')}.png`)

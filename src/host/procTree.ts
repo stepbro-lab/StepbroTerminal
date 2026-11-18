@@ -2,7 +2,6 @@ import { execFile } from 'node:child_process'
 import fs from 'node:fs'
 import { mapLimit } from '@shared/async'
 
-/** Returns a pid -> parent pid table for every process visible to this user. */
 export function processTable(platform: NodeJS.Platform = process.platform): Promise<Map<number, number>> {
   if (platform === 'win32') return winTable()
   if (platform === 'linux') return procTable()
@@ -43,9 +42,7 @@ async function procTable(): Promise<Map<number, number>> {
       const after = stat.slice(stat.lastIndexOf(')') + 2)
       const ppid = Number(after.split(' ')[1])
       if (Number.isFinite(ppid)) map.set(Number(n), ppid)
-    } catch {
-      /* process vanished */
-    }
+    } catch {}
   })
   return map
 }
@@ -59,7 +56,6 @@ export function parsePairs(text: string): Map<number, number> {
   return map
 }
 
-/** Walks up from `pid` and returns the first ancestor contained in `candidates`, or null. */
 export function findAncestor(table: Map<number, number>, pid: number, candidates: Set<number>): number | null {
   let cur = pid
   for (let i = 0; i < 64; i++) {

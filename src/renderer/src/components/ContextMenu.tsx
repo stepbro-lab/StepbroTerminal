@@ -36,7 +36,6 @@ let lastMouse = { x: 0, y: 0 }
 window.addEventListener('pointermove', (e) => (lastMouse = { x: e.clientX, y: e.clientY }), { passive: true, capture: true })
 window.addEventListener('pointerdown', (e) => (lastMouse = { x: e.clientX, y: e.clientY }), { passive: true, capture: true })
 
-/** In-app menu that follows the app's own design instead of the OS one. Mounted once in App. */
 export function ContextMenu() {
   const items = useMenu((s) => s.items)
   const pos = useMenu((s) => s.pos)
@@ -78,7 +77,6 @@ function MenuPanel({
   const [openSub, setOpenSub] = useState<number | null>(null)
   const selectable = items.map((it, i) => (!it.separator && it.enabled !== false ? i : -1)).filter((i) => i >= 0)
 
-  // Position: anchored under an element, or at the pointer; keep inside the window.
   useLayoutEffect(() => {
     const el = ref.current
     if (!el) return

@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
 
-// Run as on Windows, whose path module would turn /run/user/1000 into D:\run\user\1000.
 vi.mock('node:path', async () => {
   const real = await vi.importActual<typeof import('node:path')>('node:path')
   return { ...real.win32, default: real.win32 }

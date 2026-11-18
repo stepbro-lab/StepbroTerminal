@@ -1,11 +1,6 @@
 import { useId } from 'react'
 import { SPINNER, useUi } from '@/stores/ui'
 
-/**
- * The 2×3 dot spinner agents print in a terminal, drawn as vector dots so it looks the same
- * on every platform. Frames come from the braille glyphs: each bit lights one dot.
- * dot bits: 1 top-left · 2 mid-left · 4 bottom-left · 8 top-right · 16 mid-right · 32 bottom-right
- */
 export function DotSpinner({ size = 14, color = 'currentColor', animate = true }: { size?: number; color?: string; animate?: boolean }) {
   const frame = useUi((s) => s.spinnerFrame)
   const bits = animate ? SPINNER[frame].codePointAt(0)! - 0x2800 : 0b111111
@@ -26,11 +21,6 @@ export function DotSpinner({ size = 14, color = 'currentColor', animate = true }
   )
 }
 
-/**
- * A project's folder: the back and its tab soft, the front solid and fading a touch toward the
- * bottom, the way a Finder folder reads; open, the front leans forward. Drawn in the text colour
- * so it follows the theme, with no dark line across it to go muddy on a dark frame.
- */
 export function FolderIcon({ size = 14, open = false }: { size?: number; open?: boolean }) {
   const fade = `folder-${useId()}`
   return (

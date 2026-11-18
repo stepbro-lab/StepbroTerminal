@@ -4,19 +4,6 @@ import { useUi } from '@/stores/ui'
 import { useMenu } from '../ContextMenu'
 import { PeekController } from '@/lib/sidebarPeek'
 
-/**
- * With the sidebar folded away, the left edge of the window brings it out for a look, the way Arc,
- * Zen and Helium do it: a solid card sliding in over the terminals (global.css, aside[data-peek]),
- * which stay exactly as they were underneath, so the programs in them are never resized.
- *
- * It comes out once the pointer has rested a moment in the thin strip along the edge, or has left
- * the window across that edge, below the window's buttons and with no button held. It stays out
- * while the pointer is on it, while a menu opened from it is up, while a session is being dragged
- * out of it and while something in it is being typed into; and goes back a moment after the
- * pointer leaves it, at once on a click or a key elsewhere, and when the window loses focus. Once it
- * has gone back with the pointer still at the edge, the pointer has to leave the edge and come
- * back before it counts again. The sidebar shortcut, or its button in the top bar, keeps it out for good.
- */
 export function SidebarPeek() {
   const enabled = usePrefs((s) => s.prefs?.edgePeek !== false)
   const collapsed = usePrefs((s) => s.prefs?.sidebarCollapsed ?? false)

@@ -4,11 +4,6 @@ import { randomUUID } from 'node:crypto'
 import { encodeFrame, FrameParser, type ClientMsg, type HostMsg } from '@shared/protocol'
 import type { CreateSessionOpts, HostInfo, HostStats, Session } from '@shared/types'
 
-/**
- * Socket client for step-host. Events:
- * 'hello' (version, pid) · 'sessions' (Session[]) · 'session' (Session) · 'removed' (id)
- * 'output' (id, bytes) · 'replay' (id, bytes) · 'clear' (id) · 'exit' (id, code) · 'error' (msg) · 'disconnected'
- */
 export class HostClient extends EventEmitter {
   private sock: net.Socket | null = null
   private parser = new FrameParser()
@@ -70,7 +65,6 @@ export class HostClient extends EventEmitter {
     return this.request<Session>((reqId) => ({ t: 'new', opts, reqId }), 10_000)
   }
 
-  /** What the host and its sessions use right now; the host samples processes, so allow it a moment. */
   stats(): Promise<HostStats> {
     return this.request<HostStats>((reqId) => ({ t: 'stats', reqId }), 15_000)
   }

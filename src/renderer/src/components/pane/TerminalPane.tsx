@@ -26,7 +26,6 @@ import { describeSessionError } from '@/lib/sessionErrors'
 
 export const DRAG_TYPE = 'application/x-step-session'
 
-/** Terminal cards arranged by the layout tree, plus an optional side panel. */
 export function TerminalPane() {
   const layout = useUi(activeLayout)
   const sides = useUi((s) => s.sides)
@@ -35,18 +34,11 @@ export function TerminalPane() {
   const sessions = useData((s) => s.sessions)
   const connected = hostState.kind === 'connected'
   const live = leaves(layout).filter((id) => sessions[id])
-  // A lone pane has no header: the sidebar names it (or the floating session rail, while that is
-  // off, see SESSION_RAIL). Panes side by side keep theirs, so they read as the separate things they are.
   const bare = live.length <= 1
 
-  // A side panel belongs to its session and shows only while that session is on screen: the focused
-  // pane's first, else another pane's in the same view. Opened in one session, it stays out of the rest.
   const shownId = activeId && live.includes(activeId) && sides[activeId] ? activeId : live.find((id) => sides[id])
   const shown = shownId ? sides[shownId] : undefined
-  // A preview stays loaded while its session is out of view, parked out of sight, so an agent there
-  // can keep working the page (and the page keeps its place) while you look at another session.
   const previews = Object.values(sides).filter((p) => p.kind === 'preview' && sessions[p.sessionId])
-  // How wide a side panel is: a share of the area, dragged from its edge and kept.
   const savedShare = usePrefs((s) => s.prefs?.sidePanelShare) ?? DEFAULT_SIDE_SHARE
   const setPrefs = usePrefs((s) => s.set)
   const [dragShare, setDragShare] = useState<number | null>(null)
@@ -72,8 +64,6 @@ export function TerminalPane() {
     ) : null
   )
 
-  // Panes travel when the arrangement changes shape: remembered just before React re-lays them
-  // out (the store tells us first), moved right after it has. A gutter drag only changes proportions.
   useEffect(
     () =>
       useUi.subscribe((s, prev) => {
@@ -103,7 +93,6 @@ export function TerminalPane() {
   return (
     <main className="pane-area relative flex min-w-0 flex-1 flex-col">
       <div ref={frame} className="pane-frame flex min-h-0 flex-1 gap-2">
-        {/* The rail hangs over the terminals' own corner, left of any side panel. */}
         <div className="relative flex min-w-0 flex-1">
           {SESSION_RAIL && <SessionRail />}
           <LayoutView node={layout} path={[]} connected={connected} multi={live.length > 1} bare={bare} underRail={SESSION_RAIL && !bare ? topRightLeaf(layout) : null} />
@@ -137,12 +126,7 @@ function LayoutView({ node, path, connected, multi, bare, underRail }: { node: L
   )
 }
 
-/**
- * The edge between the terminals and a side panel: drag it to give the panel more or less room.
- * A preview is a page of its own that swallows the pointer as it passes over it, so while the edge
- * is dragged a sheet over the whole window keeps the pointer; and the terminals keep their columns
- * until it is let go, rather than reflowing at every pixel.
- */
+// A preview swallows the pointer, so a sheet covers it while the edge is dragged.
 function SideGutter({ frame, onMove, onEnd }: { frame: React.RefObject<HTMLDivElement | null>; onMove: (share: number) => void; onEnd: (share: number) => void }) {
   const onDown = (e: React.MouseEvent): void => {
     e.preventDefault()
@@ -153,7 +137,6 @@ function SideGutter({ frame, onMove, onEnd }: { frame: React.RefObject<HTMLDivEl
     const sheet = document.createElement('div')
     sheet.style.cssText = 'position:fixed;inset:0;z-index:100;cursor:col-resize'
     document.body.appendChild(sheet)
-    // For the whole drag, however long: the agents behind the terminals redraw once, at the end.
     registry.beginResizeDrag()
     const onMoveEv = (ev: MouseEvent): void => {
       last = sideShareAt(ev.clientX, rect.left, rect.width)
@@ -169,7 +152,6 @@ function SideGutter({ frame, onMove, onEnd }: { frame: React.RefObject<HTMLDivEl
     }
     window.addEventListener('mousemove', onMoveEv)
     window.addEventListener('mouseup', onUp)
-    // A button let go outside the window never comes back as a mouseup.
     window.addEventListener('blur', onUp)
   }
   return (
@@ -179,7 +161,6 @@ function SideGutter({ frame, onMove, onEnd }: { frame: React.RefObject<HTMLDivEl
   )
 }
 
-/** Drag to change how the two sides of a split share the space. */
 function Gutter({ row, path }: { row: boolean; path: Array<'a' | 'b'> }) {
   const setRatio = useUi((s) => s.setRatio)
   const onDown = (e: React.MouseEvent): void => {
@@ -198,7 +179,6 @@ function Gutter({ row, path }: { row: boolean; path: Array<'a' | 'b'> }) {
       registry.endResizeDrag()
     }
     document.body.style.cursor = row ? 'col-resize' : 'row-resize'
-    // Both sides keep their size until the edge is let go, and their agents redraw once.
     registry.beginResizeDrag()
     window.addEventListener('mousemove', onMove)
     window.addEventListener('mouseup', onUp)
@@ -224,7 +204,6 @@ function Gutter({ row, path }: { row: boolean; path: Array<'a' | 'b'> }) {
   )
 }
 
-/** Accepts a session dragged from the sidebar or another card, showing where it will land. */
 function useDropZone(targetId: string | null): {
   zone: DropZone | null
   handlers: { onDragOver: (e: React.DragEvent) => void; onDragLeave: (e: React.DragEvent) => void; onDrop: (e: React.DragEvent) => void }
@@ -282,10 +261,6 @@ function DropHighlight({ zone }: { zone: DropZone }) {
   )
 }
 
-/**
- * `bare`: the window's only pane, drawn without a header; the sidebar names it.
- * `underRail`: the rail hangs over this pane's corner, so its header keeps its buttons out from under it.
- */
 function PaneCard({ id, connected, multi, bare, underRail }: { id: string; connected: boolean; multi: boolean; bare: boolean; underRail: boolean }) {
   const session = useData((s) => s.sessions[id])
   const dismissedError = useUi((s) => s.dismissedErrors[id])
@@ -314,7 +289,6 @@ function PaneCard({ id, connected, multi, bare, underRail }: { id: string; conne
         </div>
       )}
       <div className={`relative min-h-0 flex-1 overflow-hidden ${bare ? 'p-3.5' : 'px-3 pb-2.5 pt-2'}`}>
-        {/* The mount node stays in the tree while the host reconnects, so xterm is never orphaned. */}
         <div
           ref={mountRef}
           className="relative h-full w-full"
@@ -327,7 +301,6 @@ function PaneCard({ id, connected, multi, bare, underRail }: { id: string; conne
         {!session.alive && session.status === 'exited' && !session.archived && (
           <Bar>
             <span className="min-w-0 flex-1 truncate text-muted">{session.exitCode !== undefined ? t('Process exited with code {code}.', { code: session.exitCode }) : t('Process exited.')}</span>
-            {/* Buttons with room around them; the words alone were a target too small to hit. */}
             <button className="btn btn-secondary h-7 px-3 text-[12.5px]" onClick={() => restartSession(session.id)}>
               {t(canResume(session) ? 'Restart and resume conversation' : 'Restart')}
             </button>
@@ -348,11 +321,6 @@ function PaneCard({ id, connected, multi, bare, underRail }: { id: string; conne
   )
 }
 
-/**
- * A session put away has no terminal to show, so its pane shows the session itself: the agent's
- * mark, the title, and the way back. Resuming brings the conversation back where an agent can
- * pick it up; deleting lets it go.
- */
 function ArchivedView({ session }: { session: Session }) {
   const presets = useData((s) => s.presets)
   const presetId = rowPresetId(session)
@@ -379,7 +347,6 @@ function ArchivedView({ session }: { session: Session }) {
   )
 }
 
-/** What went wrong, in words a person can act on, with the host's own message a click away. */
 function ErrorBar({ session }: { session: Session }) {
   const [open, setOpen] = useState(false)
   const words = describeSessionError(session.error)
@@ -405,7 +372,6 @@ function ErrorBar({ session }: { session: Session }) {
         <button className="btn btn-secondary h-7 px-3 text-[12.5px]" onClick={() => restartSession(session.id)}>
           {t('Retry')}
         </button>
-        {/* Out of the way, the session as it is: a different error brings the bar back. */}
         <button className="icon-btn h-7 w-7 shrink-0" title={t('Dismiss')} aria-label={t('Dismiss')} onClick={() => useUi.getState().dismissError(session.id, session.error ?? '')}>
           <X size={14} />
         </button>

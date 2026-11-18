@@ -7,12 +7,9 @@ export interface NotifierDeps {
   getPrefs: () => Prefs
   getWindow: () => BrowserWindow | null
   getActive: () => string | null
-  /** The agent running in a session ("Claude Code", "Codex"), or null for a plain shell. */
   agentName: (s: Session) => string | null
   focusSession: (id: string) => void
-  /** Plays the app's own notification sound (the renderer holds the audio file). */
   playSound: () => void
-  /** The app log, mirrored into DevTools: what was shown, and why one could not be. */
   log: (...parts: unknown[]) => void
 }
 
@@ -24,12 +21,6 @@ function escapeXml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 }
 
-/**
- * Native notifications for sessions the user is not looking at. An agent that stops to ask
- * something gets a notice that says so by name, "Claude Code needs an answer", which stays on
- * screen until it is dismissed; clicking it brings that session forward. Finished and failed
- * sessions get an ordinary notice.
- */
 export class Notifier {
   private last = new Map<string, SessionStatus>()
 
@@ -39,7 +30,6 @@ export class Notifier {
     this.last.delete(id)
   }
 
-  /** Handles step://focus/<id> from a clicked notification. */
   handleUrl(url: string): boolean {
     const m = /^step:\/\/focus\/([0-9a-f-]+)/i.exec(url)
     if (!m) return false
@@ -69,14 +59,13 @@ export class Notifier {
     const n =
       process.platform === 'win32'
         ? new Notification({ toastXml: this.toast(s.id, title, body, sticky), silent: true })
-        : // macOS shows the app's own icon on the left by itself; an extra image would sit on the right.
+        :
           new Notification({ title, body, icon: process.platform === 'linux' ? appLogoPath(this.deps.getPrefs().logo ?? 'light') : undefined, silent: true })
     n.on('click', () => this.show(s.id))
-    // macOS refuses notifications from an app whose bundle is not signed, and says so only here.
+    // macOS refuses notifications from an unsigned bundle, and only says so here.
     n.on('failed', (_e, error) => this.deps.log('notification failed', s.id.slice(0, 8), s.status, error))
     n.on('show', () => this.deps.log('notification shown', s.id.slice(0, 8), s.status, title))
     n.show()
-    // The system sound stays off so only ours plays.
     if (prefs.sound) this.deps.playSound()
   }
 
@@ -91,7 +80,6 @@ export class Notifier {
   }
 
   private toast(id: string, title: string, body: string, sticky: boolean): string {
-    // A question stays on screen until it is dismissed; other notices time out normally.
     return `<toast activationType="protocol" launch="step://focus/${id}"${sticky ? ' scenario="reminder"' : ''}>
   <visual>
     <binding template="ToastGeneric">

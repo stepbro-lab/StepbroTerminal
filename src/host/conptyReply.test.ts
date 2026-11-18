@@ -5,7 +5,6 @@ describe('conptyReply', () => {
   it('answers the device-attributes probe', () => {
     expect(conptyReply('\x1b[c')).toBe('\x1b[?1;2c')
     expect(conptyReply('\x1b[0c')).toBe('\x1b[?1;2c')
-    // The real ConPTY startup chunk carries several sequences at once; only DA gets an answer.
     expect(conptyReply('\x1b[6n\x1b[c\x1b[?1004h\x1b[?9001h')).toBe('\x1b[?1;2c')
   })
 
@@ -88,7 +87,6 @@ describe('stripStaleReplies', () => {
   it('leaves typing alone, including anything that merely looks technical', () => {
     expect(stripStaleReplies('npm run dev')).toBe('npm run dev')
     expect(stripStaleReplies('rgb:1616/1616/1919')).toBe('rgb:1616/1616/1919')
-    // Arrow keys and Enter are input, not answers.
     expect(stripStaleReplies(`${ESC}[A`)).toBe(`${ESC}[A`)
     expect(stripStaleReplies(String.fromCharCode(13))).toBe(String.fromCharCode(13))
   })
@@ -109,7 +107,6 @@ describe('the answers owed to ConPTY\'s probe', () => {
     const owed = { da: 1, cpr: 1 }
     expect(dropOwedReplies('\x1b[1;1R\x1b[?1;2c', owed)).toBe('')
     expect(owed).toEqual({ da: 0, cpr: 0 })
-    // The program's own question, answered afterwards.
     expect(dropOwedReplies('\x1b[3;7R', owed)).toBe('\x1b[3;7R')
   })
 

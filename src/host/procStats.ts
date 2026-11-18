@@ -1,19 +1,15 @@
 import { execFile } from 'node:child_process'
 
-/** One process as the system reports it. */
 export interface ProcInfo {
   pid: number
   ppid: number
-  /** Resident memory in bytes. */
   rss: number
-  /** CPU time used so far, in seconds. */
   cpu: number
 }
 
 const WIN_CMD =
   'Get-CimInstance Win32_Process | ForEach-Object { "$($_.ProcessId) $($_.ParentProcessId) $($_.WorkingSetSize) $($_.KernelModeTime + $_.UserModeTime)" }'
 
-/** Every process visible to this user, with its parent, resident memory and CPU time so far. */
 export function readProcesses(platform: NodeJS.Platform = process.platform): Promise<Map<number, ProcInfo>> {
   if (platform === 'win32') return run('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', WIN_CMD]).then(parseWindows)
   return run('ps', ['-axo', 'pid=,ppid=,rss=,time=']).then(parsePs)
@@ -25,7 +21,6 @@ function run(file: string, args: string[]): Promise<string> {
   })
 }
 
-/** Windows rows: pid, parent, working set in bytes, kernel plus user time in 100 ns units. */
 export function parseWindows(text: string): Map<number, ProcInfo> {
   const map = new Map<number, ProcInfo>()
   for (const line of text.split(/\r?\n/)) {
@@ -35,7 +30,6 @@ export function parseWindows(text: string): Map<number, ProcInfo> {
   return map
 }
 
-/** ps rows: pid, parent, resident KB and the cumulative time column. */
 export function parsePs(text: string): Map<number, ProcInfo> {
   const map = new Map<number, ProcInfo>()
   for (const line of text.split(/\r?\n/)) {
@@ -45,7 +39,6 @@ export function parsePs(text: string): Map<number, ProcInfo> {
   return map
 }
 
-/** "mm:ss", "mm:ss.ss", "hh:mm:ss" or "dd-hh:mm:ss" (macOS and procps write all of these) to seconds. */
 export function parseCpuTime(text: string): number {
   let rest = text.trim()
   let days = 0
@@ -61,7 +54,6 @@ export function parseCpuTime(text: string): number {
   return days * 86400 + s
 }
 
-/** `root` and everything under it. A process that claims to be its own parent is skipped. */
 export function processChildren(procs: Map<number, ProcInfo>): Map<number, ProcInfo[]> {
   const children = new Map<number, ProcInfo[]>()
   for (const p of procs.values()) {
@@ -88,11 +80,9 @@ export function subtree(procs: Map<number, ProcInfo>, root: number, children = p
   return out
 }
 
-/** Turns CPU time so far into a share of one core since the last look at the same process. */
 export class CpuMeter {
   private last = new Map<number, { cpu: number; at: number }>()
 
-  /** Percent of one core `p` used since it was last seen; 0 the first time. */
   rate(p: ProcInfo, now: number): number {
     const prev = this.last.get(p.pid)
     this.last.set(p.pid, { cpu: p.cpu, at: now })
@@ -100,7 +90,6 @@ export class CpuMeter {
     return ((p.cpu - prev.cpu) / ((now - prev.at) / 1000)) * 100
   }
 
-  /** Drops what was remembered about processes that are gone, so a reused pid starts fresh. */
   keepOnly(pids: Set<number>): void {
     for (const pid of this.last.keys()) if (!pids.has(pid)) this.last.delete(pid)
   }

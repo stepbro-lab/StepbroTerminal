@@ -10,12 +10,10 @@ export interface SidebarSession {
   presetId: string
   pinned: boolean
   lastAt: number
-  /** Index of the split view this session shares with others, or null when it has a pane of its own. */
   view: number | null
   session: Session
 }
 
-/** A view with more than one pane: its index and the sessions in it. */
 export interface ViewGroup {
   view: number
   ids: string[]
@@ -25,7 +23,6 @@ export interface SidebarProject {
   path: string
   name: string
   sessions: SidebarSession[]
-  /** Sessions put away, newest first; drawn dimmed under the live ones. */
   archived: SidebarSession[]
   collapsed: boolean
   lastAt: number
@@ -37,15 +34,10 @@ function same(a: string, b: string): boolean {
   return window.step.platform === 'win32' ? na.toLowerCase() === nb.toLowerCase() : na === nb
 }
 
-/** The agent a row is drawn as: the one running in it, or for a session that has ended, the last one that ran there. */
 export function rowPresetId(s: Session): string {
   return s.agent.detectedPreset ?? (s.alive ? undefined : s.agent.lastPreset) ?? s.presetId
 }
 
-/**
- * Sidebar = user projects, each with the sessions opened in Step: pinned first, then in the
- * user's order, newest last. Sessions that share a split view sit together (see orderRows).
- */
 export function buildSidebar(projects: Project[], sessions: Session[], prefs: Prefs | null, groups: ViewGroup[] = []): SidebarProject[] {
   const collapsedSet = new Set((prefs?.collapsedProjects ?? []).map((p) => p.toLowerCase()))
   const viewOf = new Map<string, number>()
@@ -76,7 +68,7 @@ export function buildSidebar(projects: Project[], sessions: Session[], prefs: Pr
       lastAt: rows.reduce((m, r) => Math.max(m, r.lastAt), 0)
     })
   }
-  // Keep the order the user added them in; projects with live sessions do not jump around.
+
   return out
 }
 
@@ -85,10 +77,6 @@ function byPlace(a: SidebarSession, b: SidebarSession): number {
   return a.session.order - b.session.order || a.session.createdAt - b.session.createdAt
 }
 
-/**
- * Pinned first, then the user's order. Rows that share a split view stay together, at the
- * place of whichever of them comes first, so the sidebar can draw them in one box.
- */
 export function orderRows(rows: SidebarSession[]): SidebarSession[] {
   const sorted = rows.slice().sort(byPlace)
   const anchor = new Map<number, SidebarSession>()
@@ -101,17 +89,12 @@ export function orderRows(rows: SidebarSession[]): SidebarSession[] {
   })
 }
 
-/**
- * Whether starting the session again can pick its conversation back up: an agent launched with
- * a resume argument, or Claude Code typed into a shell, which left its conversation id behind.
- */
 export function canResume(s: Session): boolean {
   if (!s.agent.sessionId) return false
   return !!s.launch.resumeArgs || (s.presetId === 'shell' && (s.agent.detectedPreset ?? s.agent.lastPreset) === 'claude')
 }
 
 export function defaultTitle(s: Session): string {
-  // An agent started by hand in a shell goes by the agent until its first prompt names the session.
   const id = s.presetId === 'shell' ? s.agent?.detectedPreset : s.presetId
   if (!id) return 'Shell'
   return id.charAt(0).toUpperCase() + id.slice(1)

@@ -64,7 +64,6 @@ describe('detectPresets', () => {
     fs.writeFileSync(exe, '')
     const found = detectPresets({ PATH: '', USERPROFILE: tmp }, prefs(), 'win32').find((p) => p.id === 'clyra')!
     expect(found.installed).toBe(true)
-    // Off PATH, so the session has to spawn the full path.
     expect(found.binary).toBe(exe)
     expect(buildLaunchSpec(found, prefs(), {}, 'win32').command).toBe(exe)
   })
@@ -77,8 +76,6 @@ describe('detectPresets', () => {
     expect(off.binary).toBe(path.join(bin, 'clyra'))
   })
 
-  // Windows paths, so that the folder the test writes into survives being put on PATH whatever
-  // machine runs it: a POSIX PATH splits on the colon in "C:\…".
   it('keeps the plain name when PATH already has the binary', () => {
     fs.writeFileSync(path.join(tmp, 'clyra.exe'), '')
     const found = detectPresets({ PATH: tmp, LOCALAPPDATA: tmp }, prefs(), 'win32').find((p) => p.id === 'clyra')!

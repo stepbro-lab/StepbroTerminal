@@ -1,20 +1,8 @@
-/**
- * Springs for things that open and close under the pointer. A tween has a fixed length and starts
- * over from rest when it changes direction; a spring keeps its velocity when its target changes,
- * so a hover that ends halfway through an opening turns around without a jolt.
- *
- * The integrator is the one in stepbro-website's useLiquidMotion (itself @liquid-dom's): semi-implicit
- * Euler in steps of at most 1/60 s, settling once both speed and distance are below a threshold.
- * All springs share one requestAnimationFrame loop, which stops when every spring is at rest.
- */
-
 export interface SpringConfig {
   stiffness: number
   damping: number
   mass?: number
-  /** Settled once slower than this, in units per second... */
   restSpeed?: number
-  /** ...and nearer the target than this. */
   restDelta?: number
 }
 
@@ -23,7 +11,6 @@ let frame = 0
 let last = 0
 
 function tick(now: number): void {
-  // A frame late by more than a few is a stalled tab, not motion to catch up on.
   const dt = Math.min(0.064, Math.max(0, (now - last) / 1000))
   last = now
   for (const s of [...active]) {
@@ -52,14 +39,12 @@ export class Spring {
   constructor(
     value: number,
     private readonly onChange: (value: number) => void,
-    /** Called each time it comes to rest, including when it was asked to go where it already is. */
     private readonly onRest?: () => void
   ) {
     this.value = value
     this.target = value
   }
 
-  /** Heads for `target`, keeping whatever velocity it has. With reduced motion it jumps there. */
   to(target: number, config: SpringConfig): void {
     if (reducedMotion()) return this.set(target)
     this.target = target
@@ -68,7 +53,6 @@ export class Spring {
     wake(this)
   }
 
-  /** Puts it at `value` now, at rest. */
   set(value: number): void {
     active.delete(this)
     this.value = value
@@ -87,12 +71,10 @@ export class Spring {
     return active.has(this)
   }
 
-  /** The loop saw it settle. */
   rested(): void {
     this.onRest?.()
   }
 
-  /** Advances by `dt` seconds; false once it has settled. */
   step(dt: number): boolean {
     const c = this.config
     if (!c) return false
