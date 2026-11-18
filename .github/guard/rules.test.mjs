@@ -71,6 +71,11 @@ describe('added lines', () => {
   test('stays quiet on ordinary code', () => {
     for (const text of ["const url = 'https://github.com/stepbro-lab'", "term.write('\\x1b[2J')", 'return a + b', "fetch('http://localhost:3000/')"]) assert.deepEqual(scan(text), [], text)
   })
+  test('flags a huge line without slowing down', () => {
+    const started = Date.now()
+    assert.equal(level(scan('curl '.repeat(200_000))), REVIEW)
+    assert.ok(Date.now() - started < 5000)
+  })
   test('reports a rule once per file', () => {
     assert.equal(scanLines('a.ts', [{ line: 1, text: 'eval(a)' }, { line: 2, text: 'eval(b)' }]).length, 1)
   })
@@ -80,7 +85,7 @@ describe('package.json', () => {
   test('passes an untouched manifest', () => assert.deepEqual(checkPackageJson(pkg(), pkg()), []))
   test('refuses a new install script', () => assert.equal(level(checkPackageJson(pkg(), pkg({ scripts: { dev: 'x', postinstall: 'node a.js' } }))), BLOCK))
   test('refuses a dependency from outside npm', () => {
-    for (const spec of ['github:evil/zod', 'https://evil.test/a.tgz', 'git+ssh://git@evil.test/a.git', 'file:../a', 'npm:evil@1.0.0']) {
+    for (const spec of ['evil/zod', 'github:evil/zod', 'https://evil.test/a.tgz', 'git+ssh://git@evil.test/a.git', 'file:../a', 'npm:evil@1.0.0']) {
       assert.equal(level(checkPackageJson(pkg(), pkg({ dependencies: { zod: spec, gsap: '^3.0.0' } }))), BLOCK, spec)
     }
   })

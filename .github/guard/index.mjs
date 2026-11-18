@@ -49,7 +49,7 @@ async function checkFile(file, head, trusted) {
 
 async function lookUp({ name }) {
   try {
-    const res = await fetch(`https://registry.npmjs.org/${name.replace('/', '%2f')}`, { signal: AbortSignal.timeout(20_000) })
+    const res = await fetch(`https://registry.npmjs.org/${name.replaceAll('/', '%2f')}`, { signal: AbortSignal.timeout(20_000) })
     return res.ok ? res.json() : null
   } catch {
     return null

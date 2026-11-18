@@ -102,6 +102,8 @@ const LINE_RULES = [
   [REVIEW, /\b(?!10\.|127\.|192\.168\.|0\.0\.0\.0|255\.)(?:\d{1,3}\.){3}\d{1,3}:\d{2,5}\b/, 'Connects to a raw IP address.']
 ]
 
+const MAX_SCANNED_LINE = 20_000
+
 export function addedLines(patch) {
   const out = []
   let line = 0
@@ -129,9 +131,10 @@ export function scanLines(file, lines) {
     out.push(finding(level, file, message, line))
   }
   for (const { line, text } of lines) {
-    for (const [level, rule, message] of LINE_RULES) if (rule.test(text)) add(level, message, line)
+    const sample = text.slice(0, MAX_SCANNED_LINE)
+    for (const [level, rule, message] of LINE_RULES) if (rule.test(sample)) add(level, message, line)
     if (text.length > 2000) add(REVIEW, 'Very long line, possibly minified code.', line)
-    const host = externalHost(text)
+    const host = externalHost(sample)
     if (host) add(REVIEW, `Talks to an outside host: ${host}.`, line)
   }
   return out
@@ -139,7 +142,7 @@ export function scanLines(file, lines) {
 
 const LIFECYCLE = new Set(['preinstall', 'install', 'postinstall', 'preuninstall', 'uninstall', 'postuninstall', 'prepare', 'prepack', 'postpack', 'prepublish', 'prepublishOnly'])
 const DEPENDENCY_FIELDS = ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies']
-const REGISTRY_SPEC = /^(workspace:|catalog:)?[\^~<>=* ]*\d*[\w.*+-]*( *\|\| *[\^~<>=* ]*[\w.*+-]+)*$/
+const fromRegistry = (spec) => !/[:/]/.test(spec)
 
 function distance(a, b) {
   let row = Array.from({ length: b.length + 1 }, (_, i) => i)
@@ -171,7 +174,7 @@ export function checkPackageJson(baseText, headText) {
   for (const field of DEPENDENCY_FIELDS) {
     for (const [name, spec] of Object.entries(head[field] ?? {})) {
       if (base[field]?.[name] === spec) continue
-      if (!REGISTRY_SPEC.test(spec)) out.push(finding(BLOCK, file, `"${name}" does not come from the npm registry.`))
+      if (!fromRegistry(spec)) out.push(finding(BLOCK, file, `"${name}" does not come from the npm registry.`))
       if (known.includes(name)) continue
       const twin = known.find((other) => other !== name && distance(other, name) <= 1)
       out.push(twin ? finding(BLOCK, file, `New dependency "${name}" is one letter away from "${twin}".`) : finding(REVIEW, file, `New dependency "${name}".`))
