@@ -78,7 +78,8 @@ Keep the summary short and in the imperative mood.
 
 ## Review
 
-A maintainer reviews every pull request. We may ask for changes, suggest a different approach, or
+An automated guard checks every pull request for binaries, unsafe code and suspicious dependencies,
+and posts what it finds. A maintainer then reviews every pull request. We may ask for changes, suggest a different approach, or
 decline a change that does not fit where the app is going; that is never a judgement on you. Once
 it is approved and the checks pass, a maintainer merges it.
 
