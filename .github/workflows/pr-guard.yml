@@ -23,7 +23,17 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
+    env:
+      HAS_APP_KEY: ${{ secrets.GUARD_APP_KEY != '' }}
     steps:
+      - uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510
+        id: app
+        if: env.HAS_APP_KEY == 'true'
+        with:
+          client-id: Iv23ligy67cJPNIHAivO
+          private-key: ${{ secrets.GUARD_APP_KEY }}
+          permission-contents: read
+          permission-pull-requests: write
       # Runs the guard from the default branch. Code from the pull request is only read, never run.
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -34,6 +44,7 @@ jobs:
           node-version: 22
       - run: node .github/guard/index.mjs
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ steps.app.outputs.token || github.token }}
+          BOT_LOGIN: ${{ steps.app.outputs.app-slug && format('{0}[bot]', steps.app.outputs.app-slug) || 'github-actions[bot]' }}
           REPO: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number || inputs.pr }}

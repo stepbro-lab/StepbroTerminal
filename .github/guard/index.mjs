@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import { BLOCK, addedLines, checkModes, checkPackageJson, checkPath, checkPublished, compareLocks, render, scanLines, sniff, verdict } from './rules.mjs'
 
-const { GH_TOKEN, REPO, PR_NUMBER, DRY_RUN, GITHUB_STEP_SUMMARY } = process.env
+const { GH_TOKEN, REPO, PR_NUMBER, DRY_RUN, GITHUB_STEP_SUMMARY, BOT_LOGIN = 'github-actions[bot]' } = process.env
 const API = `https://api.github.com/repos/${REPO}`
 const MARKER = '<!-- pr-guard -->'
 const TRUSTED = new Set(['OWNER', 'MEMBER', 'COLLABORATOR'])
@@ -71,7 +71,7 @@ async function checkDependencies(files, base, head) {
 
 async function publish(body) {
   const comments = await api(`/issues/${PR_NUMBER}/comments?per_page=100`)
-  const mine = comments.find((c) => c.user?.login === 'github-actions[bot]' && c.body?.startsWith(MARKER))
+  const mine = comments.find((c) => c.user?.login === BOT_LOGIN && c.body?.startsWith(MARKER))
   const request = { method: mine ? 'PATCH' : 'POST', body: JSON.stringify({ body }) }
   await api(mine ? `/issues/comments/${mine.id}` : `/issues/${PR_NUMBER}/comments`, request)
 }
