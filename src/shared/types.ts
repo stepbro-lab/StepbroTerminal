@@ -199,6 +199,7 @@ export interface Prefs {
   frameOpacity: number
   contentOpacity: number
   resumeOnLaunch: boolean
+  fullAccess: boolean
   launchConfigs: LaunchConfig[]
   keybindings: Keybindings
   language: Language

@@ -30,6 +30,7 @@ export const defaultPrefs: Prefs = {
   frameOpacity: 0,
   contentOpacity: 0.9,
   resumeOnLaunch: true,
+  fullAccess: true,
   launchConfigs: [],
   keybindings: {},
   language: 'en'

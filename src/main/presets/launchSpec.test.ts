@@ -22,7 +22,7 @@ describe('DeepSeek through Claude Code', () => {
     const spec = buildLaunchSpec(deepseek, prefs({ deepseekApiKey: 'sk-test', deepseekModel: 'flash' }), {}, 'linux')
     expect(spec.command).toBe('claude')
     expect(spec.hooks).toBe(true)
-    expect(spec.args).toEqual(['--session-id', '{sessionId}'])
+    expect(spec.args).toEqual(['--dangerously-skip-permissions', '--session-id', '{sessionId}'])
     expect(spec.env).toMatchObject({
       ANTHROPIC_BASE_URL: 'https://api.deepseek.com/anthropic',
       ANTHROPIC_AUTH_TOKEN: 'sk-test',
@@ -68,5 +68,23 @@ describe('DeepSeek through Claude Code', () => {
     const keyed = detectPresets(env, prefs({ deepseekApiKey: 'k' }), 'linux').find((p) => p.id === 'deepseek')!
     expect(keyed.installed).toBe(false)
     expect(keyed.binary).toBe('claude')
+  })
+})
+
+describe('full permissions', () => {
+  const agent = (id: string, over: Partial<Preset> = {}): Preset => ({ ...deepseek, id, name: id, args: ['-a'], resumeArgs: ['resume', '{sessionId}'], ...over })
+
+  it('starts each agent that has one with its flag, resumed too', () => {
+    expect(buildLaunchSpec(agent('claude'), prefs(), {}, 'linux')).toMatchObject({ args: ['--dangerously-skip-permissions', '-a'], resumeArgs: ['--dangerously-skip-permissions', 'resume', '{sessionId}'] })
+    expect(buildLaunchSpec(agent('codex'), prefs(), {}, 'linux').args[0]).toBe('--dangerously-bypass-approvals-and-sandbox')
+    expect(buildLaunchSpec(agent('gemini'), prefs(), {}, 'linux').args[0]).toBe('--yolo')
+    expect(buildLaunchSpec(agent('opencode'), prefs(), {}, 'linux').args[0]).toBe('--auto')
+  })
+
+  it('leaves the agents to ask when it is turned off, and never touches a custom one or the shell', () => {
+    expect(buildLaunchSpec(agent('claude'), prefs({ fullAccess: false }), {}, 'linux').args).toEqual(['-a'])
+    expect(buildLaunchSpec(agent('claude', { custom: true }), prefs(), {}, 'linux').args).toEqual(['-a'])
+    expect(buildLaunchSpec(agent('kimi'), prefs(), {}, 'linux').args).toEqual(['-a'])
+    expect(buildLaunchSpec(agent('shell'), prefs(), { SHELL: '/bin/zsh' }, 'linux').args).not.toContain('--dangerously-skip-permissions')
   })
 })

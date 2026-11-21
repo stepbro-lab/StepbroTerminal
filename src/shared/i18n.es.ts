@@ -651,5 +651,9 @@ export const es: Record<string, string> = {
   'An agent is still working from before the update': 'Un agente sigue trabajando desde antes de la actualización',
   '{n} agents are still working from before the update': '{n} agentes siguen trabajando desde antes de la actualización',
   'Finishing the update restarts every session, which stops them mid-turn. Let them finish and it happens the next time you open stepbro terminal with none at work. Until then the sessions run as they did in {version}.':
-    'Terminar la actualización reinicia todas las sesiones, y eso los corta a mitad de turno. Si dejas que terminen, se hará la próxima vez que abras stepbro terminal sin ninguno trabajando. Hasta entonces las sesiones funcionan como en la {version}.'
+    'Terminar la actualización reinicia todas las sesiones, y eso los corta a mitad de turno. Si dejas que terminen, se hará la próxima vez que abras stepbro terminal sin ninguno trabajando. Hasta entonces las sesiones funcionan como en la {version}.',
+  Permissions: 'Permisos',
+  'Start agents with full permissions': 'Abrir los agentes con todos los permisos',
+  'New Claude Code, Codex, Gemini and OpenCode sessions start without asking before each command or edit. You can still change the mode inside the agent, with Shift+Tab in Claude Code.':
+    'Las sesiones nuevas de Claude Code, Codex, Gemini y OpenCode empiezan sin preguntar antes de cada comando o cambio. Puedes cambiar el modo dentro del agente, con Mayús+Tab en Claude Code.'
 }

@@ -225,6 +225,15 @@ export function AgentsPage() {
       </Section>
 
       <Section
+        title={t('Permissions')}
+        description={t('New Claude Code, Codex, Gemini and OpenCode sessions start without asking before each command or edit. You can still change the mode inside the agent, with Shift+Tab in Claude Code.')}
+      >
+        <Row label={t('Start agents with full permissions')}>
+          <Toggle value={p.fullAccess} onChange={(fullAccess) => upd({ fullAccess })} />
+        </Row>
+      </Section>
+
+      <Section
         title={t('As you type')}
         description={t('Type claude, codex, gemini or opencode at a prompt and the flag that skips its permission prompts shows up in grey. Tab or → accepts it, Esc hides it.')}
       >

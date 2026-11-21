@@ -14,6 +14,7 @@ const prefs = (over: Partial<Prefs> = {}): Prefs => ({
   frameOpacity: 0,
   contentOpacity: 0.9,
   resumeOnLaunch: true,
+  fullAccess: true,
   launchConfigs: [],
   keybindings: {},
   language: 'en',
@@ -125,8 +126,8 @@ describe('defaultShell and buildLaunchSpec', () => {
     const spec = buildLaunchSpec(list.find((p) => p.id === 'claude')!, prefs(), { PATH: tmp }, 'linux')
     expect(spec).toEqual({
       command: 'claude',
-      args: ['--session-id', '{sessionId}', '--settings', '{hooksSettings}', '--mcp-config', '{mcpConfig}'],
-      resumeArgs: ['--resume', '{sessionId}', '--settings', '{hooksSettings}', '--mcp-config', '{mcpConfig}'],
+      args: ['--dangerously-skip-permissions', '--session-id', '{sessionId}', '--settings', '{hooksSettings}', '--mcp-config', '{mcpConfig}'],
+      resumeArgs: ['--dangerously-skip-permissions', '--resume', '{sessionId}', '--settings', '{hooksSettings}', '--mcp-config', '{mcpConfig}'],
       hooks: true
     })
   })

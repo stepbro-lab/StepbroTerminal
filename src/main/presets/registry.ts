@@ -78,6 +78,14 @@ export const builtinPresets: BuiltinPreset[] = [
   { id: 'codewhale', name: 'Codewhale', color: '#2f9bd6', binary: 'codewhale', binaries: ['codewhale', 'codew'], args: [], hooks: false }
 ]
 
+export const FULL_ACCESS_FLAGS: Record<string, string> = {
+  claude: '--dangerously-skip-permissions',
+  deepseek: '--dangerously-skip-permissions',
+  codex: '--dangerously-bypass-approvals-and-sandbox',
+  gemini: '--yolo',
+  opencode: '--auto'
+}
+
 export function presetColor(id: string, presets?: Preset[]): string {
   return presets?.find((p) => p.id === id)?.color ?? builtinPresets.find((p) => p.id === id)?.color ?? '#8a8a90'
 }

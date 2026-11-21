@@ -1,5 +1,6 @@
 import type { LaunchSpec, Preset, Prefs } from '@shared/types'
 import { defaultShell } from './detect'
+import { FULL_ACCESS_FLAGS } from './registry'
 
 const DEEPSEEK_URL = 'https://api.deepseek.com/anthropic'
 
@@ -29,10 +30,12 @@ export function buildLaunchSpec(preset: Preset, prefs: Prefs, env: NodeJS.Proces
     const sh = defaultShell(env, platform, prefs.shell)
     return { command: sh.command, args: sh.args, hooks: false }
   }
+  const flag = prefs.fullAccess === false || preset.custom ? undefined : FULL_ACCESS_FLAGS[preset.id]
+  const lead = flag ? [flag] : []
   return {
     command: preset.binary,
-    args: [...preset.args],
-    resumeArgs: preset.resumeArgs ? [...preset.resumeArgs] : undefined,
+    args: [...lead, ...preset.args],
+    resumeArgs: preset.resumeArgs ? [...lead, ...preset.resumeArgs] : undefined,
     env: preset.id === 'deepseek' ? deepseekEnv(prefs) : undefined,
     hooks: preset.hooks
   }
