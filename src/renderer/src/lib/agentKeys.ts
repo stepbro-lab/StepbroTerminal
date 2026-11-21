@@ -1,8 +1,11 @@
 // Shift+Enter in win32-input-mode: VK 13, scan 28, char 13, key down, Shift held, repeat 1.
 export const WIN32_SHIFT_ENTER = '\x1b[13;28;13;1;16;1_'
 
+// DeepSeek runs Claude Code, so it takes Claude Code's keys.
+const isClaudeCode = (agent: string | null | undefined): boolean => agent === 'claude' || agent === 'deepseek'
+
 export function newlineSequence(agent: string | null | undefined, platform: string): string | null {
-  if (agent === 'claude' || agent === 'gemini') return '\\\r'
+  if (isClaudeCode(agent) || agent === 'gemini') return '\\\r'
   if (agent === 'codex') return platform === 'win32' ? WIN32_SHIFT_ENTER : '\n'
   return null
 }
@@ -15,7 +18,7 @@ export function altArrowSequence(agent: string | null | undefined, key: 'ArrowUp
 
 // Claude Code reads the clipboard on its paste key: Alt+V on Windows, Ctrl+V elsewhere.
 export function imagePaste(agent: string | null | undefined, platform: string): { kind: 'key'; bytes: number[] } | { kind: 'path' } {
-  if (agent === 'claude') return { kind: 'key', bytes: platform === 'win32' ? [0x1b, 0x76] : [0x16] }
+  if (isClaudeCode(agent)) return { kind: 'key', bytes: platform === 'win32' ? [0x1b, 0x76] : [0x16] }
   return { kind: 'path' }
 }
 

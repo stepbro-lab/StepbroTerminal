@@ -5,6 +5,7 @@ describe('pasting an image', () => {
   it('lets Claude Code read the clipboard itself, with the key its platform listens for', () => {
     expect(imagePaste('claude', 'win32')).toEqual({ kind: 'key', bytes: [0x1b, 0x76] })
     expect(imagePaste('claude', 'darwin')).toEqual({ kind: 'key', bytes: [0x16] })
+    expect(imagePaste('deepseek', 'darwin')).toEqual({ kind: 'key', bytes: [0x16] })
   })
 
   it('hands everyone else a file', () => {
@@ -24,6 +25,10 @@ describe('newlineSequence', () => {
   it('gives Claude and Gemini a backslash and Enter', () => {
     expect(newlineSequence('claude', 'win32')).toBe('\\\r')
     expect(newlineSequence('gemini', 'darwin')).toBe('\\\r')
+  })
+
+  it('gives DeepSeek the same, since it runs Claude Code', () => {
+    expect(newlineSequence('deepseek', 'darwin')).toBe('\\\r')
   })
 
   it('gives Codex a real Shift+Enter on Windows, where ConPTY would turn Ctrl+J into Ctrl+Enter, and Ctrl+J elsewhere', () => {
