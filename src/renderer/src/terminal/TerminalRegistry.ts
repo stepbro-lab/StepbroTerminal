@@ -54,6 +54,7 @@ function onWindow<K extends keyof WindowEventMap>(type: K, fn: (ev: WindowEventM
   window.addEventListener(type, fn, true)
   return { dispose: () => window.removeEventListener(type, fn, true) }
 }
+const openLink = (uri: string): void => void window.step.invoke('app:openExternal', uri)
 const measure = document.createElement('canvas').getContext('2d')
 
 type AppKeyHandler = (ev: KeyboardEvent) => boolean
@@ -148,6 +149,7 @@ class TerminalRegistry {
       drawBoldTextInBrightColors: false,
       scrollOnUserInput: true,
       smoothScrollDuration: 0,
+      linkHandler: { activate: (_e, uri) => openLink(uri) },
       windowsPty: window.step.platform === 'win32' ? { backend: 'conpty', buildNumber: windowsBuild() } : undefined
     })
     keepSelectionWhileTheMouseMoves(term)
@@ -157,7 +159,7 @@ class TerminalRegistry {
     term.loadAddon(search)
     term.loadAddon(new Unicode11Addon())
     term.unicode.activeVersion = '11'
-    term.loadAddon(new WebLinksAddon((_e, uri) => void window.step.invoke('app:openExternal', uri)))
+    term.loadAddon(new WebLinksAddon((_e, uri) => openLink(uri)))
 
     const container = document.createElement('div')
     container.className = 'absolute inset-0'
