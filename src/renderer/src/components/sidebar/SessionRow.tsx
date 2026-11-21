@@ -68,7 +68,7 @@ export function SessionRow({ row, insert, onDragOver, onDrop }: Props) {
       }}
       style={{ color: titleColor, fontWeight: active || row.status === 'attention' ? 550 : undefined, opacity: lifted ? 0.4 : undefined }}
     >
-      <StatusGlyph status={row.status} color={color} />
+      <StatusGlyph status={row.status} color={color} paused={!!row.session.suspended && !row.session.alive} />
       {renaming ? (
         <RenameInput id={row.id} initial={row.session.titleSource === 'user' ? row.title : ''} placeholder={row.title} />
       ) : (

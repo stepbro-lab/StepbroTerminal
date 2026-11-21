@@ -94,6 +94,12 @@ export function canResume(s: Session): boolean {
   return !!s.launch.resumeArgs || (s.presetId === 'shell' && (s.agent.detectedPreset ?? s.agent.lastPreset) === 'claude')
 }
 
+export function canSuspend(s: Session): boolean {
+  if (!s.alive || s.archived) return false
+  const byFolder = !!s.launch.resumeArgs && !s.launch.resumeArgs.some((a) => a.includes('{sessionId}'))
+  return canResume(s) || byFolder
+}
+
 export function defaultTitle(s: Session): string {
   const id = s.presetId === 'shell' ? s.agent?.detectedPreset : s.presetId
   if (!id) return 'Shell'

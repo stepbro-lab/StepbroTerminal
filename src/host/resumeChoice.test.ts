@@ -24,6 +24,12 @@ describe('startsResumed', () => {
     expect(startsResumed(codex, undefined, true, () => true)).toBe(false)
     expect(startsResumed({ ...claude, resumeArgs: undefined }, 'a', true, () => true)).toBe(false)
   })
+
+  it('picks up the folder\'s last conversation, with no id, for an agent that resumes that way', () => {
+    const opencode: LaunchSpec = { command: 'opencode', args: [], resumeArgs: ['--continue'], hooks: false }
+    expect(startsResumed(opencode, undefined, true, () => false)).toBe(true)
+    expect(startsResumed(opencode, undefined, false, () => false)).toBe(false)
+  })
 })
 
 describe('claudeConversationExists', () => {

@@ -34,7 +34,7 @@ import { agentOf } from './handoff'
 import { pacePieces } from './pace'
 import { isOwnEndpoint, previewUrlIn } from './previewUrl'
 import { SessionLog, altScreenBefore, readLogTail } from './SessionLog'
-import { claudeConversationExists, conversationFromTranscript, latestClaudeConversation, startsResumed } from './resumeChoice'
+import { claudeConversationExists, conversationFromTranscript, latestClaudeConversation, resumesByFolder, startsResumed } from './resumeChoice'
 import { TranscriptTitles } from './claudeTitle'
 import { codexHome, codexThreadsSince, justWritten, latestSince } from './codexThreads'
 import { OutputPressure } from './OutputPressure'
@@ -85,6 +85,7 @@ interface Live {
   probeParsing: number
   askedAt?: number
   transcript?: string
+  kept?: string
 }
 
 const TITLE_LOOKS_MS = [3000, 10_000, 30_000]
@@ -323,7 +324,7 @@ export class SessionManager extends EventEmitter {
       const found = latestSince(codexThreadsSince(this.codexHome(s), s.createdAt), startDirOf(s), s.createdAt, this.codexTaken(s))
       if (found) s.agent.sessionId = found
     }
-    const canResume = !!l.s.launch.resumeArgs && !!l.s.agent.sessionId
+    const canResume = !!l.s.launch.resumeArgs && (!!l.s.agent.sessionId || !!l.s.suspended)
     this.spawn(l, canResume)
     this.emitSession(l)
   }
@@ -332,6 +333,27 @@ export class SessionManager extends EventEmitter {
     const l = this.live.get(id)
     if (!l?.pty) return
     this.hangUp(l.pty)
+  }
+
+  // Ends the agent to free its memory, keeping what it last showed; restart() picks the conversation back up.
+  suspend(id: string): void {
+    const l = this.live.get(id)
+    const p = l?.pty
+    if (!l || !p || !(l.s.agent.sessionId || resumesByFolder(l.s.launch))) return
+    l.s.suspended = true
+    this.emitSession(l)
+    void l.drained.then(() => {
+      if (l.pty !== p) return
+      l.kept = this.serialize(l)
+      this.hangUp(p)
+    })
+  }
+
+  private showKept(l: Live, kept: string): void {
+    const bytes = Buffer.from('\x1b[H\x1b[2J\x1b[3J' + kept, 'utf8')
+    this.feedScreen(l, bytes)
+    l.log?.append(bytes)
+    this.emit('output', l.s.id, bytes)
   }
 
   // SIGHUP the subtree too: agents leave servers running that the shell's exit never reaches.
@@ -783,6 +805,7 @@ export class SessionManager extends EventEmitter {
   private spawn(l: Live, resume: boolean): void {
     const s = l.s
     const now = Date.now()
+    const waking = !!s.suspended
     s.agent.detectedPreset = undefined
     s.agent.hooked = false
     s.agent.tool = undefined
@@ -791,6 +814,8 @@ export class SessionManager extends EventEmitter {
     s.updatedAt = now
     s.error = undefined
     s.leftRunning = false
+    s.suspended = undefined
+    l.kept = undefined
     s.cwd = undefined
     const env = ptyEnv(this.opts.baseEnv, { ...(s.launch.env ?? {}), STEP_SESSION_ID: s.id })
     const tryWrite = (what: string, fn: () => string): string => {
@@ -808,7 +833,7 @@ export class SessionManager extends EventEmitter {
     const plugin = this.opts.opencodePlugin
     const opencodeConfig = plugin ? tryWrite('opencode config', () => writeOpencodeConfig(this.opts.hooksDir, s.id, mcpUrl, plugin, env['OPENCODE_CONFIG'])) : ''
     const saved = (id: string): boolean => claudeConversationExists(id, env['CLAUDE_CONFIG_DIR'])
-    if (resume && s.launch.args.includes('--session-id') && s.agent.sessionId && !saved(s.agent.sessionId)) {
+    if (resume && !waking && s.launch.args.includes('--session-id') && s.agent.sessionId && !saved(s.agent.sessionId)) {
       const taken = new Set([...this.live.values()].filter((o) => o.s.id !== s.id && o.s.agent.sessionId).map((o) => o.s.agent.sessionId!))
       const found = latestClaudeConversation(startDirOf(s), s.createdAt, taken, env['CLAUDE_CONFIG_DIR'])
       if (found) {
@@ -915,6 +940,9 @@ export class SessionManager extends EventEmitter {
       l.readAt = Date.now()
       if (l.quietTimer) clearTimeout(l.quietTimer)
       this.apply(l, { kind: 'exit', code: exitCode })
+      const kept = l.kept
+      l.kept = undefined
+      if (kept && s.suspended) this.showKept(l, kept)
       this.emit('exit', s.id, exitCode)
     })
     this.persist()

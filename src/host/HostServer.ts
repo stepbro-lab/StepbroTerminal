@@ -189,6 +189,9 @@ export class HostServer {
       case 'restart':
         this.sm.restart(msg.id)
         break
+      case 'suspend':
+        this.sm.suspend(msg.id)
+        break
       case 'rename':
         this.sm.rename(msg.id, msg.title)
         break

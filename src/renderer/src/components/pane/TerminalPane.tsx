@@ -298,7 +298,15 @@ function PaneCard({ id, connected, multi, bare, underRail }: { id: string; conne
           }}
         />
         {session.status === 'error' && session.error && dismissedError !== session.error && <ErrorBar session={session} />}
-        {!session.alive && session.status === 'exited' && !session.archived && (
+        {!session.alive && session.status === 'exited' && !session.archived && session.suspended && (
+          <Bar>
+            <span className="min-w-0 flex-1 truncate text-muted">{t('Paused. It isn’t using memory until you resume it.')}</span>
+            <button className="btn btn-primary h-7 px-3 text-[12.5px]" onClick={() => restartSession(session.id)}>
+              {t('Resume')}
+            </button>
+          </Bar>
+        )}
+        {!session.alive && session.status === 'exited' && !session.archived && !session.suspended && (
           <Bar>
             <span className="min-w-0 flex-1 truncate text-muted">{session.exitCode !== undefined ? t('Process exited with code {code}.', { code: session.exitCode }) : t('Process exited.')}</span>
             <button className="btn btn-secondary h-7 px-3 text-[12.5px]" onClick={() => restartSession(session.id)}>

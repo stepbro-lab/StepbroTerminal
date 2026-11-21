@@ -75,6 +75,7 @@ export interface Session {
   error?: string
   errorDetail?: string
   leftRunning?: boolean
+  suspended?: boolean
   archived?: boolean
   archivedAt?: number
   cols: number

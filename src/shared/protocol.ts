@@ -11,6 +11,7 @@ export type ClientMsg =
   | { t: 'kill'; id: string }
   | { t: 'close'; id: string }
   | { t: 'restart'; id: string }
+  | { t: 'suspend'; id: string }
   | { t: 'rename'; id: string; title: string }
   | { t: 'pin'; id: string; pinned: boolean }
   | { t: 'archive'; id: string; archived: boolean }

@@ -5,7 +5,7 @@ import { usePrefs } from '@/stores/prefs'
 import { registry } from '@/terminal/TerminalRegistry'
 import { popup, sep } from './menus'
 import type { MenuPosition } from '@/components/ContextMenu'
-import { canResume as sessionCanResume, type SidebarProject, type SidebarSession } from './sidebarModel'
+import { canResume as sessionCanResume, canSuspend, type SidebarProject, type SidebarSession } from './sidebarModel'
 import { findWorkspace, layoutFor, openablePanes, paneTitle } from './launchConfigs'
 import { hasLeaf, leaves } from './layout'
 import { t } from '@/lib/i18n'
@@ -106,6 +106,16 @@ export function restartSession(id: string): void {
 
 export function killSession(id: string): void {
   window.step.send('host:kill', id)
+}
+
+export async function suspendSession(id: string): Promise<void> {
+  const s = useData.getState().sessions[id]
+  if (!s) return
+  if (s.status === 'working' || s.status === 'attention') {
+    const pick = await popup([{ id: 'pause', label: t('Pause anyway (it is still working)') }, { id: 'cancel', label: t('Keep it running') }])
+    if (pick !== 'pause') return
+  }
+  window.step.send('host:suspend', id)
 }
 
 export async function archiveSession(id: string): Promise<void> {
@@ -286,7 +296,12 @@ export async function sessionMenu(row: SidebarSession, pos: MenuPosition = {}): 
     { id: 'beside-right', label: t('Open to the right of the current pane'), enabled: beside },
     { id: 'beside-down', label: t('Open below the current pane'), enabled: beside },
     { id: 'detach', label: t('Move to its own view'), enabled: grouped },
-    s.archived ? { id: 'restore', label: t(canResume ? 'Restore and resume conversation' : 'Restore') } : { id: 'restart', label: t(canResume ? 'Restart and resume conversation' : 'Restart') },
+    s.archived
+      ? { id: 'restore', label: t(canResume ? 'Restore and resume conversation' : 'Restore') }
+      : s.suspended
+        ? { id: 'restart', label: t('Resume') }
+        : { id: 'pause', label: t('Pause'), enabled: canSuspend(s) },
+    ...(s.archived || s.suspended ? [] : [{ id: 'restart', label: t(canResume ? 'Restart and resume conversation' : 'Restart') }]),
     { id: 'kill', label: t('Kill process'), enabled: s.alive },
     s.archived ? { id: 'unarchive', label: t('Unarchive') } : { id: 'archive', label: t('Archive') },
     sep,
@@ -323,6 +338,9 @@ export async function sessionMenu(row: SidebarSession, pos: MenuPosition = {}): 
       break
     case 'restart':
       restartSession(s.id)
+      break
+    case 'pause':
+      await suspendSession(s.id)
       break
     case 'kill':
       killSession(s.id)

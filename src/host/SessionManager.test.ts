@@ -305,6 +305,57 @@ describe('picks a Claude Code conversation back up only when there is one', () =
   })
 })
 
+describe('a paused agent', () => {
+  it('ends its process, says so, and picks the conversation back up when woken', async () => {
+    const config = path.join(dir, 'claude')
+    const s = sm.create({ projectPath: dir, presetId: 'claude', cols: 80, rows: 24,
+      launch: { command: process.execPath, args: ['--session-id', '{sessionId}'], resumeArgs: ['--resume', '{sessionId}'], env: { CLAUDE_CONFIG_DIR: config }, hooks: true } })
+    await fs.mkdir(path.join(config, 'projects', 'p'), { recursive: true })
+    await fs.writeFile(path.join(config, 'projects', 'p', `${s.agent.sessionId}.jsonl`), '{}\n')
+    ptys[0].data('the conversation so far\r\n')
+    sm.suspend(s.id)
+    expect(sm.get(s.id)?.suspended).toBe(true)
+    await vi.waitFor(() => expect(ptys[0].kill).toHaveBeenCalled())
+    ptys[0].data('\x1b[H\x1b[2J')
+    ptys[0].exit({ exitCode: 0 })
+    expect(sm.get(s.id)).toMatchObject({ alive: false, status: 'exited', suspended: true })
+    expect((await sm.screenLines(s.id, 10)).join('\n')).toContain('the conversation so far')
+    sm.restart(s.id)
+    expect(sm.get(s.id)?.suspended).toBeUndefined()
+    expect(JSON.stringify(ptys.at(-1).args)).toContain('--resume')
+  })
+
+  it('wakes an agent that resumes by folder into its last conversation', async () => {
+    const s = sm.create({ projectPath: dir, presetId: 'opencode', cols: 80, rows: 24, launch: { command: process.execPath, args: [], resumeArgs: ['--continue'], hooks: false } })
+    sm.suspend(s.id)
+    await vi.waitFor(() => expect(ptys[0].kill).toHaveBeenCalled())
+    ptys[0].exit({ exitCode: 0 })
+    sm.restart(s.id)
+    expect(ptys.at(-1).args).toContain('--continue')
+  })
+
+  it('starts over, never in another conversation of its folder, when it had saved none', async () => {
+    const config = path.join(dir, 'claude')
+    const s = sm.create({ projectPath: dir, presetId: 'claude', cols: 80, rows: 24,
+      launch: { command: process.execPath, args: ['--session-id', '{sessionId}'], resumeArgs: ['--resume', '{sessionId}'], env: { CLAUDE_CONFIG_DIR: config }, hooks: true } })
+    const folder = path.join(config, 'projects', dir.replace(/[^a-zA-Z0-9]/g, '-'))
+    await fs.mkdir(folder, { recursive: true })
+    await fs.writeFile(path.join(folder, '11111111-2222-3333-4444-555555555555.jsonl'), '{}\n')
+    sm.suspend(s.id)
+    await vi.waitFor(() => expect(ptys[0].kill).toHaveBeenCalled())
+    ptys[0].exit({ exitCode: 0 })
+    sm.restart(s.id)
+    expect(ptys.at(-1).args).not.toContain('11111111-2222-3333-4444-555555555555')
+    expect(ptys.at(-1).args).toContain('--session-id')
+  })
+
+  it('is not paused when it could not be picked back up', () => {
+    const s = create()
+    sm.suspend(s.id)
+    expect(sm.get(s.id)?.suspended).toBeUndefined()
+  })
+})
+
 describe('a name kept from an earlier version', () => {
   const saved = (over: Partial<Session>): Session => ({ id: randomId(), projectPath: dir, presetId: 'shell', title: '', titleSource: 'none', pinned: false,
     order: 0, createdAt: 0, updatedAt: 0, status: 'exited', statusAt: 0, alive: false, cols: 80, rows: 24, agent: {},

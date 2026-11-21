@@ -80,6 +80,7 @@ export interface SendMap {
   'host:kill': (id: string) => void
   'host:close': (id: string) => void
   'host:restart': (id: string) => void
+  'host:suspend': (id: string) => void
   'host:rename': (id: string, title: string) => void
   'host:pin': (id: string, pinned: boolean) => void
   'host:archive': (id: string, archived: boolean) => void

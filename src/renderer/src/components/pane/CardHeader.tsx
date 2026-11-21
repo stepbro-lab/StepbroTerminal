@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
-import { FileDiff, Globe, MoreHorizontal, Pin, Search, Ungroup, X } from 'lucide-react'
+import { FileDiff, Globe, MoreHorizontal, Pause, Pin, Play, Search, Ungroup, X } from 'lucide-react'
 import type { Session } from '@shared/types'
 import { useData } from '@/stores/data'
 import { useUi } from '@/stores/ui'
-import { archiveSession, closeSession, copyText, killSession, openFolder, pinSession, renameSession, restartSession, splitWithNewShell, redrawSession } from '@/lib/actions'
+import { archiveSession, closeSession, copyText, killSession, openFolder, pinSession, renameSession, restartSession, splitWithNewShell, redrawSession, suspendSession } from '@/lib/actions'
 import { popup, sep } from '@/lib/menus'
-import { canResume as sessionCanResume, defaultTitle, rowPresetId } from '@/lib/sidebarModel'
+import { canResume as sessionCanResume, canSuspend, defaultTitle, rowPresetId } from '@/lib/sidebarModel'
 import { StatusGlyph } from '../sidebar/StatusGlyph'
 import { DRAG_TYPE } from './TerminalPane'
 import { SearchBar } from './SearchBar'
@@ -119,7 +119,7 @@ export function CardHeader({ session, split = false, dim = false, inset = 0 }: {
       onDragEnd={() => useUi.getState().setDragging(null)}
       title={t('Drag to move this pane')}
     >
-      <StatusGlyph status={session.status} color={color} size={14} />
+      <StatusGlyph status={session.status} color={color} size={14} paused={!!session.suspended && !session.alive} />
       {editing ? (
         <TitleInput session={session} onDone={() => setEditing(false)} />
       ) : (
@@ -163,6 +163,17 @@ export function CardHeader({ session, split = false, dim = false, inset = 0 }: {
             <button className="icon-btn" title={titled(t('Find'), 'find')} onClick={() => setSearchOpen(true)}>
               <Search size={14} />
             </button>
+          )}
+          {session.suspended && !session.alive ? (
+            <button className="icon-btn" title={t('Resume')} onClick={() => restartSession(session.id)}>
+              <Play size={14} />
+            </button>
+          ) : (
+            canSuspend(session) && (
+              <button className="icon-btn" title={t('Pause to free its memory')} onClick={() => void suspendSession(session.id)}>
+                <Pause size={14} />
+              </button>
+            )
           )}
           {split && (
             <button className="icon-btn" title={titled(t('Move to its own view'), 'detach-pane')} onClick={() => useUi.getState().detach(session.id)}>

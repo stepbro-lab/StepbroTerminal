@@ -15,8 +15,13 @@ export function claudeConversationExists(id: string, configDir?: string): boolea
   return dirs.some((d) => fs.existsSync(path.join(projects, d, `${id}.jsonl`)))
 }
 
+export function resumesByFolder(launch: LaunchSpec): boolean {
+  return !!launch.resumeArgs && !launch.resumeArgs.some((a) => a.includes('{sessionId}'))
+}
+
 export function startsResumed(launch: LaunchSpec, sessionId: string | undefined, wanted: boolean, exists: (id: string) => boolean): boolean {
-  if (!launch.resumeArgs || !sessionId) return false
+  if (!launch.resumeArgs) return false
+  if (!sessionId) return wanted && resumesByFolder(launch)
   if (launch.args.includes('--session-id')) return exists(sessionId)
   return wanted
 }

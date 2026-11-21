@@ -5,10 +5,20 @@ interface Props {
   status: RowStatus
   color: string
   size?: number
+  paused?: boolean
 }
 
-export function StatusGlyph({ status, color, size = 14 }: Props) {
+export function StatusGlyph({ status, color, size = 14, paused = false }: Props) {
   const box: React.CSSProperties = { width: size, height: size }
+  if (paused) {
+    const bar: React.CSSProperties = { width: 2, height: 8, borderRadius: 1, background: 'var(--text-muted)' }
+    return (
+      <span className="inline-flex items-center justify-center gap-[2px]" style={box}>
+        <span style={bar} />
+        <span style={bar} />
+      </span>
+    )
+  }
   const dot = (bg: string, px = 7, pulse = false): React.ReactElement => (
     <span className="inline-flex items-center justify-center" style={box}>
       <span className={pulse ? 'pulse-once rounded-full' : 'rounded-full'} style={{ width: px, height: px, background: bg }} />
