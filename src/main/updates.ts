@@ -2,7 +2,7 @@ import { app, shell } from 'electron'
 import { autoUpdater, type UpdateInfo } from 'electron-updater'
 import type { UpdateState } from '@shared/types'
 
-export const RELEASES_URL = 'https://github.com/kevin9038440334/StepbroTerminal-releases/releases/latest'
+export const RELEASES_URL = 'https://github.com/stepbro-lab/StepbroTerminal/releases/latest'
 const FIRST_CHECK_MS = 15_000
 const CHECK_EVERY_MS = 4 * 60 * 60 * 1000
 

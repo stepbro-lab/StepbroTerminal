@@ -3,7 +3,7 @@ import { t } from '../i18n'
 import { connectDiscord, type DiscordLink } from './ipc'
 
 export const DISCORD_APP_ID = '1565029231925264516'
-const DOWNLOAD_URL = 'https://github.com/kevin9038440334/StepbroTerminal-releases'
+const DOWNLOAD_URL = 'https://github.com/stepbro-lab/StepbroTerminal/releases'
 const MIN_GAP_MS = 5000
 const RETRY_MS = 30_000
 

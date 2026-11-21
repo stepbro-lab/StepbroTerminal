@@ -12,7 +12,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/kevin9038440334/StepbroTerminal-releases/releases"><img src="https://img.shields.io/github/v/release/kevin9038440334/StepbroTerminal-releases?include_prereleases&label=versi%C3%B3n&color=1f1f22" alt="Última versión"></a>
+  <a href="https://github.com/stepbro-lab/StepbroTerminal/releases"><img src="https://img.shields.io/github/v/release/stepbro-lab/StepbroTerminal?include_prereleases&label=versi%C3%B3n&color=1f1f22" alt="Última versión"></a>
   <img src="https://img.shields.io/badge/sistemas-Windows%20%C2%B7%20macOS%20%C2%B7%20Linux-1f1f22" alt="Windows, macOS y Linux">
   <img src="https://img.shields.io/badge/Electron-38-1f1f22?logo=electron" alt="Electron 38">
   <a href="LICENSE.md"><img src="https://img.shields.io/badge/licencia-PolyForm%20Noncommercial-1f1f22" alt="Licencia: PolyForm Noncommercial 1.0.0"></a>
@@ -84,7 +84,7 @@ corre como en cualquier terminal.
 ## Descarga
 
 Los instaladores se publican en la
-[página de versiones](https://github.com/kevin9038440334/StepbroTerminal-releases/releases).
+[página de versiones](https://github.com/stepbro-lab/StepbroTerminal/releases).
 
 | Sistema | Archivo |
 | --- | --- |
@@ -126,7 +126,7 @@ una versión nueva y te lleva a ella.
 
 - Todo se queda en tu computadora. No hay cuentas, ni analíticas, ni telemetría.
 - La app solo se conecta a internet para buscar actualizaciones en
-  [el repositorio de versiones](https://github.com/kevin9038440334/StepbroTerminal-releases). Los
+  [las versiones de este repositorio](https://github.com/stepbro-lab/StepbroTerminal/releases). Los
   agentes que uses hablan con sus propios servicios, como en cualquier terminal.
 - Mientras Discord está abierto, tu perfil de Discord muestra que usas stepbro terminal y con qué
   agentes, nunca tus carpetas, sesiones ni lo que escribes. Solo habla con la app de Discord de tu

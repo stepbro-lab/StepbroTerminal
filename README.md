@@ -12,7 +12,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/kevin9038440334/StepbroTerminal-releases/releases"><img src="https://img.shields.io/github/v/release/kevin9038440334/StepbroTerminal-releases?include_prereleases&label=release&color=1f1f22" alt="Latest release"></a>
+  <a href="https://github.com/stepbro-lab/StepbroTerminal/releases"><img src="https://img.shields.io/github/v/release/stepbro-lab/StepbroTerminal?include_prereleases&label=release&color=1f1f22" alt="Latest release"></a>
   <img src="https://img.shields.io/badge/platforms-Windows%20%C2%B7%20macOS%20%C2%B7%20Linux-1f1f22" alt="Windows, macOS and Linux">
   <img src="https://img.shields.io/badge/Electron-38-1f1f22?logo=electron" alt="Electron 38">
   <a href="LICENSE.md"><img src="https://img.shields.io/badge/license-PolyForm%20Noncommercial-1f1f22" alt="License: PolyForm Noncommercial 1.0.0"></a>
@@ -83,7 +83,7 @@ any terminal.
 ## Download
 
 Installers are published on the
-[releases page](https://github.com/kevin9038440334/StepbroTerminal-releases/releases).
+[releases page](https://github.com/stepbro-lab/StepbroTerminal/releases).
 
 | System | File |
 | --- | --- |
@@ -123,7 +123,7 @@ in **Settings › Shortcuts**.
 
 - Everything stays on your computer. There are no accounts, no analytics and no telemetry.
 - The app itself only goes online to check
-  [the releases repository](https://github.com/kevin9038440334/StepbroTerminal-releases) for
+  [this repository's releases](https://github.com/stepbro-lab/StepbroTerminal/releases) for
   updates. The agents you run talk to their own services, as they would in any terminal.
 - While Discord is open, your Discord profile shows that you are using stepbro terminal and which
   agents, never your folders, sessions or what you type. It talks to the local Discord app only, and

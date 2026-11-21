@@ -6,7 +6,7 @@ seriously and handle them before anything else.
 ## Supported versions
 
 Fixes go into the latest release. Please check that a problem still happens on the newest version
-from the [releases page](https://github.com/kevin9038440334/StepbroTerminal-releases/releases)
+from the [releases page](https://github.com/stepbro-lab/StepbroTerminal/releases)
 before reporting it.
 
 ## Reporting a vulnerability

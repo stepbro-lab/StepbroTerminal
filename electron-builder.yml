@@ -10,8 +10,8 @@ directories:
   output: release
 publish:
   provider: github
-  owner: kevin9038440334
-  repo: StepbroTerminal-releases
+  owner: stepbro-lab
+  repo: StepbroTerminal
   releaseType: prerelease
 npmRebuild: false
 files:

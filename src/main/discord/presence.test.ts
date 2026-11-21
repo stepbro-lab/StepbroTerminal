@@ -37,7 +37,7 @@ describe('what a Discord profile shows', () => {
     const a = activityFor([], agentName, 0) as any
     expect(a.assets).toEqual({ large_image: 'dock-light', large_text: 'stepbro terminal' })
     expect((activityFor([], agentName, 0, 'dark') as any).assets.large_image).toBe('dock-dark')
-    expect(a.buttons[0].url).toContain('StepbroTerminal-releases')
+    expect(a.buttons[0].url).toBe('https://github.com/stepbro-lab/StepbroTerminal/releases')
   })
 })
 

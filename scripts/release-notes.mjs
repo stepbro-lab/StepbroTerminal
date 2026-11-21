@@ -1,15 +1,13 @@
 import { CHANGELOG } from '../src/shared/changelog.ts'
 
-const REPO = 'kevin9038440334/StepbroTerminal-releases'
-const [version, flag] = process.argv.slice(2)
+const [version] = process.argv.slice(2)
 if (!version) {
-  console.error('usage: release-notes.mjs <version> [--readme]')
+  console.error('usage: release-notes.mjs <version>')
   process.exit(1)
 }
 const entry = CHANGELOG.find((e) => e.version === version)
 
 const file = (arch, ext) => `StepbroTerminal-${version}-${arch}.${ext}`
-const link = (name) => `https://github.com/${REPO}/releases/download/v${version}/${name}`
 
 function changes() {
   if (!entry) return ''
@@ -50,32 +48,4 @@ function notes() {
   ].join('\n')
 }
 
-function readme() {
-  return [
-    '# stepbro terminal (beta)',
-    '',
-    'A terminal built for running coding agents like Claude Code, Codex and OpenCode, with sessions that keep running when you close the window.',
-    '',
-    '![stepbro terminal on macOS, a folder open and Topito waiting for a new session](assets/stepbro-terminal.png)',
-    '',
-    `## Latest: ${version}`,
-    '',
-    entry ? `${entry.headline}` : '',
-    '',
-    `- **Windows**: [${file('win-x64', 'exe')}](${link(file('win-x64', 'exe'))})`,
-    `- **macOS (Apple Silicon)**: [${file('mac-arm64', 'dmg')}](${link(file('mac-arm64', 'dmg'))})`,
-    `- **macOS (Intel)**: [${file('mac-x64', 'dmg')}](${link(file('mac-x64', 'dmg'))})`,
-    `- **Linux**: [.deb](${link(file('linux-amd64', 'deb'))}) for Ubuntu and Debian, [AppImage](${link(file('linux-x86_64', 'AppImage'))}) for other distributions`,
-    '',
-    ubuntu,
-    '',
-    `What changed in each version is on the [Releases](https://github.com/${REPO}/releases) page. ${updates}`,
-    '',
-    unsigned,
-    '',
-    'It is early and things will change. If something breaks, open an issue here and tell me what you were doing.',
-    ''
-  ].join('\n')
-}
-
-process.stdout.write(flag === '--readme' ? readme() : notes())
+process.stdout.write(notes())

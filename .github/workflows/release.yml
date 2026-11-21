@@ -13,39 +13,43 @@ jobs:
   prepare:
     name: release page
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-node@v4
         with:
           node-version: 22
 
-      - name: Write the README and create the release
+      - name: Create the release
         env:
-          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
-          REPO: kevin9038440334/StepbroTerminal-releases
+          GH_TOKEN: ${{ github.token }}
         run: |
           VERSION=$(node -p "require('./package.json').version")
           node --experimental-strip-types scripts/release-notes.mjs "$VERSION" > notes.md
-          node --experimental-strip-types scripts/release-notes.mjs "$VERSION" --readme > README.md
-          SHA=$(gh api "repos/$REPO/contents/README.md" --jq .sha)
-          gh api -X PUT "repos/$REPO/contents/README.md" -f message="$VERSION" -f content="$(base64 -w0 README.md)" -f sha="$SHA" > /dev/null
-          if gh release view "v$VERSION" --repo "$REPO" > /dev/null 2>&1; then
-            gh release edit "v$VERSION" --repo "$REPO" --title "$VERSION" --notes-file notes.md
+          if gh release view "v$VERSION" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            gh release edit "v$VERSION" --repo "$GITHUB_REPOSITORY" --title "$VERSION" --notes-file notes.md
           else
-            gh release create "v$VERSION" --repo "$REPO" --title "$VERSION" --notes-file notes.md --prerelease --target main
+            gh release create "v$VERSION" --repo "$GITHUB_REPOSITORY" --title "$VERSION" --notes-file notes.md --prerelease --target "$GITHUB_SHA"
           fi
 
   build:
     needs: prepare
     name: ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
     strategy:
       fail-fast: false
       matrix:
         os: [windows-latest, macos-latest, ubuntu-latest]
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - uses: pnpm/action-setup@v4
 
@@ -76,5 +80,5 @@ jobs:
 
       - name: Build and publish
         env:
-          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
         run: pnpm exec electron-builder --publish always $BUILDER_ARGS
