@@ -105,40 +105,17 @@ aside[data-peek] {
   height: auto;
   width: var(--sidebar-w) !important;
   border-radius: var(--radius-card);
-  background: color-mix(in srgb, var(--bg-sidebar) 60%, transparent);
-  backdrop-filter: blur(20px) saturate(1.6);
+  background: var(--bg-sidebar);
   box-shadow:
     0 0 0 1px var(--border),
     var(--shadow-pop);
-  animation: peek-in 200ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
 }
 :root[data-squircle] aside[data-peek] {
   corner-shape: squircle;
 }
-@media (prefers-reduced-transparency: reduce) {
-  aside[data-peek] {
-    background: var(--bg-sidebar);
-    backdrop-filter: none;
-  }
-}
 aside[data-peek='out'] {
   pointer-events: none;
-  animation: peek-out 160ms cubic-bezier(0.4, 0, 1, 1) forwards;
-}
-@keyframes peek-in {
-  from {
-    transform: translateX(calc(-100% - 16px));
-  }
-}
-@keyframes peek-out {
-  to {
-    transform: translateX(calc(-100% - 16px));
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  aside[data-peek] {
-    animation: none;
-  }
 }
 
 .fab {

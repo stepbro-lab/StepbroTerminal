@@ -35,7 +35,10 @@ const MAX_W = 360
 const DRAG_FIT_MS = 160
 
 const reducedMotion = (): boolean => window.matchMedia('(prefers-reduced-motion: reduce)').matches
-const PEEK_OUT_MS = 160
+const PEEK_IN_S = 0.36
+const PEEK_OUT_S = 0.18
+// Docks it a little after the slide ends, so the last frames are never cut.
+const PEEK_OUT_MS = 230
 
 export function Sidebar() {
   const model = useSidebarModel()
@@ -51,18 +54,16 @@ export function Sidebar() {
   const peek = useUi((s) => s.sidebarPeek)
   const shown = !collapsed
   const [peekOut, setPeekOut] = useState(false)
-  const wasPeek = useRef(false)
+  const [lastPeek, setLastPeek] = useState(peek)
+  if (lastPeek !== peek) {
+    setLastPeek(peek)
+    setPeekOut(!peek && collapsed && !reducedMotion())
+  }
   useEffect(() => {
-    const was = wasPeek.current
-    wasPeek.current = peek
-    if (!was || peek || !collapsed || reducedMotion()) return
-    setPeekOut(true)
+    if (!peekOut) return
     const t = window.setTimeout(() => setPeekOut(false), PEEK_OUT_MS)
-    return () => {
-      window.clearTimeout(t)
-      setPeekOut(false)
-    }
-  }, [peek, collapsed])
+    return () => window.clearTimeout(t)
+  }, [peekOut])
   const floating = collapsed ? (peek ? 'in' : peekOut ? 'out' : undefined) : undefined
   const dragging = useRef(false)
   const list = useRef<HTMLDivElement>(null)
@@ -203,6 +204,23 @@ export function Sidebar() {
       registry.releaseFits()
     }
   }, [shown])
+  // Picks up from wherever the panel is, so changing your mind mid-slide never jumps.
+  useLayoutEffect(() => {
+    const el = aside.current
+    if (!el) return
+    if (!floating || reducedMotion()) {
+      gsap.killTweensOf(el)
+      gsap.set(el, { clearProps: 'transform' })
+      return
+    }
+    const away = -(el.offsetWidth + 24)
+    if (floating === 'in') {
+      if (!shownAs.current) gsap.set(el, { x: away })
+      gsap.to(el, { x: 0, duration: PEEK_IN_S, ease: 'expo.out', overwrite: true })
+    } else {
+      gsap.to(el, { x: away, duration: PEEK_OUT_S, ease: 'power2.in', overwrite: true })
+    }
+  }, [floating])
   useLayoutEffect(() => {
     shownAs.current = floating
   })
