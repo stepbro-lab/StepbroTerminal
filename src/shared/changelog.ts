@@ -11,11 +11,16 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     version: '0.1.0-beta.30',
-    date: '2026-10-28',
-    headline: 'stepbro terminal on your Discord profile, and notes Claude always finds.',
+    date: '2026-11-20',
+    headline: 'Pause an agent to free its memory, agents that start with full permissions, and stepbro terminal on your Discord profile.',
     changes: [
+      { kind: 'new', text: 'Pause an agent from its header or its menu and it stops using memory, keeping its last screen. Resume picks the same conversation back up. If it is still working, stepbro asks first.' },
+      { kind: 'new', text: "Sessions you open from the + menu start Claude Code, Codex, Gemini and OpenCode with full permissions, so they don't stop to ask before every command. Settings, under Agents, turns it off, and you can still change the mode inside the agent." },
       { kind: 'new', text: 'While stepbro terminal is open, your Discord profile says so: "Playing stepbro terminal", with the agents you are coding with, how many are working, and a button for others to get the app. Your folders, sessions and what you write never show. Settings, under Appearance, can turn it off.' },
-      { kind: 'fixed', text: 'Ask Claude Code to note something ("note that…", "anota que…") and it goes straight to stepbro\'s notes every time. It used to miss that they were there, and could go looking for a notes feature in your project instead.' }
+      { kind: 'fixed', text: 'Ask Claude Code to note something ("note that…", "anota que…") and it goes straight to stepbro\'s notes every time. It used to miss that they were there, and could go looking for a notes feature in your project instead.' },
+      { kind: 'improved', text: "The sidebar that comes out from the left edge is solid again, so the terminal no longer shows through it, and it slides in and out like Arc's: change your mind halfway and it turns back from where it is." },
+      { kind: 'fixed', text: 'Clicking a link an agent prints, such as a pull request Claude Code just opened, opens it in your browser. It used to ask for confirmation and then open nothing.' },
+      { kind: 'fixed', text: 'Shift+Enter starts a new line and Ctrl+V pastes images in Claude Code on DeepSeek, as they do in Claude Code.' }
     ]
   },
   {

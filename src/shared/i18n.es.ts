@@ -463,8 +463,18 @@ export const es: Record<string, string> = {
   '1 session open': '1 sesión abierta',
   '{n} sessions open': '{n} sesiones abiertas',
   'Get stepbro terminal': 'Descargar stepbro terminal',
-  'stepbro terminal on your Discord profile, and notes Claude always finds.':
-    'stepbro terminal en tu perfil de Discord, y notas que Claude siempre encuentra.',
+  'Pause an agent to free its memory, agents that start with full permissions, and stepbro terminal on your Discord profile.':
+    'Pausa un agente para liberar su memoria, agentes que se abren con todos los permisos, y stepbro terminal en tu perfil de Discord.',
+  'Pause an agent from its header or its menu and it stops using memory, keeping its last screen. Resume picks the same conversation back up. If it is still working, stepbro asks first.':
+    'Pausa un agente desde su cabecera o su menú y deja de usar memoria, guardando lo último que mostraba. Al retomarlo sigue con la misma conversación. Si todavía está trabajando, stepbro te pregunta antes.',
+  "Sessions you open from the + menu start Claude Code, Codex, Gemini and OpenCode with full permissions, so they don't stop to ask before every command. Settings, under Agents, turns it off, and you can still change the mode inside the agent.":
+    'Las sesiones que abres con el menú + arrancan Claude Code, Codex, Gemini y OpenCode con todos los permisos, así que no se paran a preguntar antes de cada comando. Se apaga en Ajustes, en Agentes, y puedes cambiar el modo dentro del agente.',
+  "The sidebar that comes out from the left edge is solid again, so the terminal no longer shows through it, and it slides in and out like Arc's: change your mind halfway and it turns back from where it is.":
+    'La barra lateral que sale desde el borde izquierdo vuelve a ser sólida, así que ya no se ve la terminal a través, y entra y sale como la de Arc: si cambias de idea a mitad de camino, vuelve desde donde está.',
+  'Clicking a link an agent prints, such as a pull request Claude Code just opened, opens it in your browser. It used to ask for confirmation and then open nothing.':
+    'Al hacer clic en un enlace que imprime un agente, como un pull request que Claude Code acaba de abrir, se abre en tu navegador. Antes pedía confirmación y luego no abría nada.',
+  'Shift+Enter starts a new line and Ctrl+V pastes images in Claude Code on DeepSeek, as they do in Claude Code.':
+    'Mayús+Enter hace un salto de línea y Ctrl+V pega imágenes en Claude Code con DeepSeek, igual que en Claude Code.',
   'While stepbro terminal is open, your Discord profile says so: "Playing stepbro terminal", with the agents you are coding with, how many are working, and a button for others to get the app. Your folders, sessions and what you write never show. Settings, under Appearance, can turn it off.':
     'Mientras stepbro terminal está abierto, tu perfil de Discord lo dice: "Jugando a stepbro terminal", con los agentes con los que programas, cuántos están trabajando y un botón para que otros descarguen la app. Tus carpetas, sesiones y lo que escribes nunca se muestran. Se puede apagar en Ajustes, en Apariencia.',
   "Ask Claude Code to note something (\"note that…\", \"anota que…\") and it goes straight to stepbro's notes every time. It used to miss that they were there, and could go looking for a notes feature in your project instead.":
