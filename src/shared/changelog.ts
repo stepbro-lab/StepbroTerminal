@@ -10,6 +10,16 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.1.0-beta.31',
+    date: '2026-11-22',
+    headline: "Messages between agents that wait until you finish typing, and notifications with only stepbro's sound.",
+    changes: [
+      { kind: 'fixed', text: 'A message one agent sends another no longer gets mixed into what you are typing in that session: it waits until you send or clear your text, then goes in on its own.' },
+      { kind: 'fixed', text: "On Windows, notifications no longer play the system sound on top of stepbro's." },
+      { kind: 'improved', text: 'Play a sound works with notifications off, so stepbro can just chime when an agent finishes or needs you, on Windows and macOS.' }
+    ]
+  },
+  {
     version: '0.1.0-beta.30',
     date: '2026-11-20',
     headline: 'Pause an agent to free its memory, agents that start with full permissions, and stepbro terminal on your Discord profile.',

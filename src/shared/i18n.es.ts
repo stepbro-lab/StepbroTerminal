@@ -463,6 +463,14 @@ export const es: Record<string, string> = {
   '1 session open': '1 sesión abierta',
   '{n} sessions open': '{n} sesiones abiertas',
   'Get stepbro terminal': 'Descargar stepbro terminal',
+  "Messages between agents that wait until you finish typing, and notifications with only stepbro's sound.":
+    'Mensajes entre agentes que esperan a que termines de escribir, y notificaciones con solo el sonido de stepbro.',
+  'A message one agent sends another no longer gets mixed into what you are typing in that session: it waits until you send or clear your text, then goes in on its own.':
+    'Un mensaje que un agente le manda a otro ya no se mezcla con lo que estás escribiendo en esa sesión: espera a que envíes o borres tu texto y luego entra solo.',
+  "On Windows, notifications no longer play the system sound on top of stepbro's.":
+    'En Windows, las notificaciones ya no hacen sonar el sonido del sistema encima del de stepbro.',
+  'Play a sound works with notifications off, so stepbro can just chime when an agent finishes or needs you, on Windows and macOS.':
+    'Reproducir un sonido funciona con las notificaciones apagadas, así stepbro puede solo sonar cuando un agente termina o te necesita, en Windows y en macOS.',
   'Pause an agent to free its memory, agents that start with full permissions, and stepbro terminal on your Discord profile.':
     'Pausa un agente para liberar su memoria, agentes que se abren con todos los permisos, y stepbro terminal en tu perfil de Discord.',
   'Pause an agent from its header or its menu and it stops using memory, keeping its last screen. Resume picks the same conversation back up. If it is still working, stepbro asks first.':
