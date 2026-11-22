@@ -97,7 +97,7 @@ const PIECE_BYTES = 900
 const PIECE_GAP_MS = 150
 const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms))
 
-export type HandoffOutcome = 'typed' | 'held' | 'lost'
+export type HandoffOutcome = 'typed' | 'held' | 'drafting' | 'lost'
 
 interface HeldHandoff {
   from: string
@@ -480,6 +480,7 @@ export class SessionManager extends EventEmitter {
       }
     }
     l.pty.write(text)
+    if (this.heldHandoffs.has(id) && !l.lines.drafting) this.flushHeld(l)
   }
 
   resize(id: string, cols: number, rows: number): void {
@@ -554,12 +555,12 @@ export class SessionManager extends EventEmitter {
     const l = this.live.get(to)
     if (!l?.pty) return 'lost'
     const item: HeldHandoff = { from, text, submit, suffix: opts.suffix, titled: opts.titled }
-    if (agentOf(l.s) !== 'shell' && (this.typing.has(to) || !(this.freeToType(l) && this.still(l)))) {
+    if (agentOf(l.s) !== 'shell' && (this.typing.has(to) || l.lines.drafting || !(this.freeToType(l) && this.still(l)))) {
       const list = this.heldHandoffs.get(to) ?? []
       list.push(item)
       this.heldHandoffs.set(to, list)
       this.flushHeld(l)
-      return 'held'
+      return l.lines.drafting ? 'drafting' : 'held'
     }
     this.typeHandoff(l, [item])
     return 'typed'
@@ -607,13 +608,14 @@ export class SessionManager extends EventEmitter {
 
   private flushHeld(l: Live): void {
     const id = l.s.id
-    if (!this.heldHandoffs.get(id)?.length || this.heldTimers.has(id) || !this.freeToType(l)) return
+    if (!this.heldHandoffs.get(id)?.length || this.heldTimers.has(id) || !this.freeToType(l) || l.lines.drafting) return
     const since = Date.now()
     const tick = (): void => {
       this.heldTimers.delete(id)
       const live = this.live.get(id)
       const items = this.heldHandoffs.get(id) ?? []
-      if (!live?.pty || !items.length || !this.freeToType(live)) return
+      // What the person has typed and not sent stays theirs; it goes in once they send or clear it.
+      if (!live?.pty || !items.length || !this.freeToType(live) || live.lines.drafting || this.typing.has(id)) return
       if (!this.still(live) && Date.now() - since < HELD_MAX_WAIT_MS) {
         this.heldTimers.set(id, setTimeout(tick, HELD_POLL_MS))
         return

@@ -1,3 +1,5 @@
+const dropWord = (s: string): string => s.replace(/\S*\s*$/, '')
+
 export class TitleCapture {
   private line = ''
   private escape = false
@@ -8,6 +10,7 @@ export class TitleCapture {
 
   feed(input: Uint8Array): string | null {
     const text = Buffer.from(input).toString('utf8')
+    let sent: string | null = null
     for (let i = 0; i < text.length; i++) {
       const ch = text[i]
       const code = text.charCodeAt(i)
@@ -21,7 +24,8 @@ export class TitleCapture {
       }
       if (this.escape) {
         this.escape = false
-        if (ch === '[') this.csi = true
+        if (ch === '\x7f') this.line = dropWord(this.line)
+        else if (ch === '[') this.csi = true
         else if (ch === ']') this.osc = true
         continue
       }
@@ -32,11 +36,19 @@ export class TitleCapture {
       if (ch === '\r' || ch === '\n') {
         const t = this.line.trim()
         this.line = ''
-        if (t.length) return t.length > this.max ? t.slice(0, this.max - 1) + '…' : t
+        if (t.length) sent ??= t.length > this.max ? t.slice(0, this.max - 1) + '…' : t
         continue
       }
       if (ch === '\x7f' || ch === '\b') {
         this.line = this.line.slice(0, -1)
+        continue
+      }
+      if (ch === '\x03' || ch === '\x15') {
+        this.line = ''
+        continue
+      }
+      if (ch === '\x17') {
+        this.line = dropWord(this.line)
         continue
       }
       if (code < 0x20) continue
@@ -44,7 +56,11 @@ export class TitleCapture {
     }
 
     this.escape = false
-    return null
+    return sent
+  }
+
+  get drafting(): boolean {
+    return this.line.trim().length > 0
   }
 
   reset(): void {

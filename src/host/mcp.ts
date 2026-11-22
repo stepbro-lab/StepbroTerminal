@@ -28,7 +28,7 @@ export interface McpDeps {
   bus: AgentBus
   session: (id: string) => Session | undefined
   sessions: () => Session[]
-  send: (from: string, to: string, text: string, submit: boolean, suffix?: string) => 'typed' | 'held' | 'lost'
+  send: (from: string, to: string, text: string, submit: boolean, suffix?: string) => 'typed' | 'held' | 'drafting' | 'lost'
   screen: (id: string, lines: number) => Promise<string[]>
   browser: (sessionId: string, op: BrowserOp, timeoutMs?: number) => Promise<BrowserResult>
   workspaces: (op: WorkspaceOp) => Promise<WorkspaceResult>
@@ -235,6 +235,8 @@ function buildServer(deps: McpDeps, sessionId: string): McpServer {
       const outcome = deps.send(sessionId, target.id, body, submit !== false, suffix)
       if (outcome === 'lost') return text(`Session "${label(target)}" is not accepting input right now.`)
       const tail = 'Their answer will arrive in your conversation as a message, so you can end your turn now; read_screen shows what they are doing meanwhile.'
+      if (outcome === 'drafting')
+        return text(`The person in "${label(target)}" (${agentOf(target)}) has a message typed there and not sent yet; your text is held and goes in once they send or clear it. ${tail}`)
       if (outcome === 'held')
         return text(`"${label(target)}" (${agentOf(target)}) is ${target.status === 'attention' ? 'waiting on a person' : 'in the middle of a turn'}; your text is held and goes in the moment they are free. ${tail}`)
       return text(`Sent to "${label(target)}" (${agentOf(target)}). ${tail}`)

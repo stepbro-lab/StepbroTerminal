@@ -530,3 +530,30 @@ describe('names a Claude session after its conversation', () => {
     expect(now(s.id)).toMatchObject({ title: 'Facturas', titleSource: 'agent' })
   })
 })
+
+describe('a message from another agent', () => {
+  const agent = (): Session => sm.create({ projectPath: dir, presetId: 'opencode', cols: 80, rows: 24, launch: { command: process.execPath, args: [], hooks: false } })
+  const written = (): string => ptys[0].write.mock.calls.map((c: unknown[]) => String(c[0])).join('')
+  const moment = (): Promise<void> => new Promise((r) => setTimeout(r, 400))
+
+  it('waits while the person has something typed there, and goes in once they send it', async () => {
+    const s = agent()
+    sm.input(s.id, Buffer.from('half a thought'))
+    expect(sm.handoff('other', s.id, 'from codex', true)).toBe('drafting')
+    await moment()
+    expect(written()).toBe('half a thought')
+    sm.input(s.id, Buffer.from('\r'))
+    await vi.waitFor(() => expect(written()).toContain('from codex'))
+    expect(written().startsWith('half a thought\r')).toBe(true)
+  })
+
+  it('goes in once the person clears what they typed', async () => {
+    const s = agent()
+    sm.input(s.id, Buffer.from('never mind'))
+    expect(sm.handoff('other', s.id, 'from codex', true)).toBe('drafting')
+    await moment()
+    expect(written()).not.toContain('from codex')
+    sm.input(s.id, Buffer.from('\x15'))
+    await vi.waitFor(() => expect(written()).toContain('from codex'))
+  })
+})

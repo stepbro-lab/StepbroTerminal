@@ -19,7 +19,7 @@ describe('TitleCapture', () => {
 
   it('ignores control bytes and osc sequences', () => {
     const t = new TitleCapture()
-    expect(t.feed(b('\x1b]0;title\x07ls -la\x03\n'))).toBe('ls -la')
+    expect(t.feed(b('\x1b]0;title\x07ls -la\x01\n'))).toBe('ls -la')
   })
 
   it('keeps the key typed after Escape pressed on its own', () => {
@@ -27,6 +27,29 @@ describe('TitleCapture', () => {
     expect(c.feed(b('\x1b'))).toBeNull()
     expect(c.feed(b('e'))).toBeNull()
     expect(c.feed(b('scribe\r'))).toBe('escribe')
+  })
+
+  it('knows when something is typed and not sent yet', () => {
+    const t = new TitleCapture()
+    expect(t.drafting).toBe(false)
+    t.feed(b('half a'))
+    expect(t.drafting).toBe(true)
+    t.feed(b(' thought\r'))
+    expect(t.drafting).toBe(false)
+    expect(t.feed(b('one\rtwo'))).toBe('one')
+    expect(t.drafting).toBe(true)
+  })
+
+  it('forgets a line cleared with Ctrl+C or Ctrl+U, and a word with Ctrl+W or Alt+Backspace', () => {
+    const t = new TitleCapture()
+    t.feed(b('never mind\x03'))
+    expect(t.drafting).toBe(false)
+    t.feed(b('scratch that\x15'))
+    expect(t.drafting).toBe(false)
+    t.feed(b('keep this word'))
+    t.feed(b('\x17'))
+    t.feed(b('\x1b\x7f'))
+    expect(t.feed(b('\r'))).toBe('keep')
   })
 
   it('truncates long lines', () => {
