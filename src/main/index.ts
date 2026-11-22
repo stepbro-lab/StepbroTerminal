@@ -277,7 +277,8 @@ async function boot(): Promise<void> {
         if (Notification.isSupported()) {
           new Notification({
             title: t('stepbro terminal is still running'),
-            body: t('Your sessions go on, and you will hear when one needs you. Open it from the tray icon; quit it from there too.')
+            body: t('Your sessions go on, and you will hear when one needs you. Open it from the tray icon; quit it from there too.'),
+            silent: true
           }).show()
         }
       }

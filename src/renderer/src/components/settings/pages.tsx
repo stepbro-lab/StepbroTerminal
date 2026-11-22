@@ -340,9 +340,9 @@ export function NotificationsPage() {
           <Toggle value={p.notifications} onChange={(notifications) => upd({ notifications })} />
         </Row>
         <Row label={t('Play a sound')}>
-          <Toggle value={p.sound} disabled={!p.notifications} onChange={(sound) => upd({ sound })} />
+          <Toggle value={p.sound} onChange={(sound) => upd({ sound })} />
         </Row>
-        {p.notifications && p.sound && (
+        {p.sound && (
           <Row label={t('Volume')}>
             <div className="flex items-center gap-3">
               <Slider value={p.soundVolume} min={0} max={100} step={5} onChange={(soundVolume) => upd({ soundVolume })} format={(v) => `${v}%`} />

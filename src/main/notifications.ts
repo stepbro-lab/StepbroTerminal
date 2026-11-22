@@ -1,7 +1,7 @@
 import { BrowserWindow, Notification } from 'electron'
 import type { Prefs, Session, SessionStatus } from '@shared/types'
 import { appLogoPath } from './branding'
-import { noticeFor } from './noticeText'
+import { noticeFor, type Notice } from './noticeText'
 
 export interface NotifierDeps {
   getPrefs: () => Prefs
@@ -44,29 +44,30 @@ export class Notifier {
     if (s.status !== 'attention' && s.status !== 'done' && s.status !== 'error') return
     if (prev === undefined && s.status === 'done') return
     const prefs = this.deps.getPrefs()
-    if (!prefs.notifications) return
+    if (!prefs.notifications && !prefs.sound) return
     const win = this.deps.getWindow()
     const looking = !!win && win.isFocused() && !win.isMinimized() && this.deps.getActive() === s.id
     if (looking) return
+    const notice = noticeFor(s, this.deps.agentName(s))
+    if (!notice) return
+    if (prefs.notifications) this.notify(s, notice)
+    if (prefs.sound) this.deps.playSound()
+  }
+
+  private notify(s: Session, { title, body, sticky }: Notice): void {
     if (!Notification.isSupported()) {
       this.deps.log('notification not supported here; nothing shown for', s.id.slice(0, 8), s.status)
       return
     }
-
-    const notice = noticeFor(s, this.deps.agentName(s))
-    if (!notice) return
-    const { title, body, sticky } = notice
     const n =
       process.platform === 'win32'
-        ? new Notification({ toastXml: this.toast(s.id, title, body, sticky), silent: true })
-        :
-          new Notification({ title, body, icon: process.platform === 'linux' ? appLogoPath(this.deps.getPrefs().logo ?? 'light') : undefined, silent: true })
+        ? new Notification({ toastXml: this.toast(s.id, title, body, sticky) })
+        : new Notification({ title, body, icon: process.platform === 'linux' ? appLogoPath(this.deps.getPrefs().logo ?? 'light') : undefined, silent: true })
     n.on('click', () => this.show(s.id))
     // macOS refuses notifications from an unsigned bundle, and only says so here.
     n.on('failed', (_e, error) => this.deps.log('notification failed', s.id.slice(0, 8), s.status, error))
     n.on('show', () => this.deps.log('notification shown', s.id.slice(0, 8), s.status, title))
     n.show()
-    if (prefs.sound) this.deps.playSound()
   }
 
   private show(id: string): void {
@@ -79,6 +80,7 @@ export class Notifier {
     this.deps.focusSession(id)
   }
 
+  // Windows ignores `silent` once a toast brings its own XML, so the XML asks for no sound.
   private toast(id: string, title: string, body: string, sticky: boolean): string {
     return `<toast activationType="protocol" launch="step://focus/${id}"${sticky ? ' scenario="reminder"' : ''}>
   <visual>
@@ -88,6 +90,7 @@ export class Notifier {
       <text>${escapeXml(body)}</text>
     </binding>
   </visual>
+  <audio silent="true"/>
 </toast>`
   }
 }
